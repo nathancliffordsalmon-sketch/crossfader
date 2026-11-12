@@ -1309,6 +1309,7 @@ const narr = (() => {
   return { chapter };
 })();
 
+if (document.fonts) ['8px "Press Start 2P"', '30px "Patrick Hand"', 'bold 34px "Amatic SC"'].forEach((f) => document.fonts.load(f).catch(() => {}));
 const m0 = location.hash.match(/chapter-(\d+)/); go(m0 ? +m0[1] : 0, true);
 if (reduce) render(3);
 document.fonts && document.fonts.ready.then(() => reduce && render(cur ? SCENES[cur].len : 3));
