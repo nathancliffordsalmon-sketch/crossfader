@@ -1,0 +1,25 @@
+Like The Fish's Crossfader
+Copyright (c) 2026 Nathan Salmon. All rights reserved.
+
+This app is free to download and use. You may not resell or redistribute it.
+
+YouTube
+Videos play in YouTube's own embedded player. By using this app you agree to the
+YouTube Terms of Service (https://www.youtube.com/t/terms). Google's handling of data
+is covered by the Google Privacy Policy (https://policies.google.com/privacy).
+This app is not affiliated with, endorsed or sponsored by YouTube or Google.
+
+Your data
+Your settings and saved playlists are stored only on this computer. To find skip
+points and song facts, the app sends video IDs and song titles to SponsorBlock,
+MusicBrainz and Wikipedia. The app has no accounts, ads or analytics of its own.
+Full privacy policy: https://likethefish.ca/crossfader/privacy
+
+Credits
+Skip data (c) SponsorBlock contributors, CC BY-NC-SA 4.0.
+Song and artist facts from Wikipedia (CC BY-SA 4.0); release years from MusicBrainz.
+Fonts under the SIL Open Font License 1.1. Built with Electron.
+
+No warranty
+The app is provided "as is", without warranty of any kind. To the extent permitted
+by law, the author is not liable for any claim or damage arising from its use.

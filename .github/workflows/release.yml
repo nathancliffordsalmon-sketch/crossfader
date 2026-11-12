@@ -1,0 +1,58 @@
+# Builds the public installer on Windows and publishes it as a GitHub Release.
+# - Push a tag like v1.7.3 (or use "Run workflow" on the Actions tab).
+# - If the Azure signing secrets are set (see RELEASE-GUIDE.md), the installer is signed;
+#   otherwise an unsigned installer is published.
+# - Every release also carries "Like-The-Fishs-Crossfader-Setup.exe", so this link always gets
+#   the newest version:  https://github.com/<you>/<repo>/releases/latest/download/Like-The-Fishs-Crossfader-Setup.exe
+name: Build installer
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    env:
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Build installer (signed when the Azure secrets are set)
+        shell: pwsh
+        run: |
+          if ($env:AZURE_CLIENT_SECRET) { node scripts/build.js public --sign } else { node scripts/build.js public }
+
+      - name: Check signature and add the always-latest file name
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist\*Setup-*.exe | Select-Object -First 1
+          $sig = Get-AuthenticodeSignature $exe.FullName
+          Write-Host "Installer: $($exe.Name)  Signature: $($sig.Status)"
+          if ($env:AZURE_CLIENT_SECRET -and $sig.Status -ne 'Valid') { throw "Signing was configured but the installer isn't validly signed" }
+          Copy-Item $exe.FullName dist\Like-The-Fishs-Crossfader-Setup.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer
+          path: dist/*Setup*.exe
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Like-The-Fishs-Crossfader-Setup-*.exe
+            dist/Like-The-Fishs-Crossfader-Setup.exe
+          make_latest: true

@@ -1,0 +1,17 @@
+{
+  "edition": "public",
+  "productName": "Like The Fish's Crossfader",
+  "appId": "ca.likethefish.crossfader",
+  "website": "https://likethefish.ca",
+  "supportUrl": "https://likethefish.ca/crossfader",
+  "updateUrl": "https://likethefish.ca/crossfader/latest.json",
+  "privacyUrl": "https://likethefish.ca/crossfader/privacy",
+  "youtubeApiKey": "",
+  "sponsorblock": true,
+  "signing": {
+    "publisherName": "Nathan Salmon",
+    "endpoint": "https://eus.codesigning.azure.net/",
+    "codeSigningAccountName": "FILL-IN-your-artifact-signing-account",
+    "certificateProfileName": "FILL-IN-your-certificate-profile"
+  }
+}

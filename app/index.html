@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Like The Fish's Crossfader</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="intro" hidden><canvas></canvas><div class="skip">click or press any key to skip</div></div>
+
+<!-- ============ SETUP ============ -->
+<main id="setup">
+  <div id="updateBanner" class="banner" hidden></div>
+  <header class="brand">
+    <img class="logo" src="icon.png" alt="" aria-hidden="true">
+    <div>
+      <h1>Like The Fish's Crossfader</h1>
+      <p class="sub">YouTube playlists, one continuous mix.</p>
+    </div>
+  </header>
+
+  <section class="card account full-only">
+    <h2>YouTube account</h2>
+    <div class="acct-row">
+      <div>
+        <div id="acctState" class="acct-state">Checking…</div>
+        <p class="hint" id="acctHint">Sign in to use YouTube Premium (no ads) and your unlisted playlists.</p>
+      </div>
+      <div class="acct-btns">
+        <button id="signInBtn" class="ghost">Sign in</button>
+        <button id="signOutBtn" class="ghost" hidden>Sign out</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Playlists</h2>
+    <div class="seg" role="radiogroup" aria-label="Playlist mode">
+      <label><input type="radio" name="playMode" value="one"><span>One playlist<small>Songs blend into each other in order</small></span></label>
+      <label><input type="radio" name="playMode" value="two"><span>Two playlists<small>Blend back and forth between them</small></span></label>
+    </div>
+    <div class="field">
+      <label for="pl1"><span id="pl1Label">Playlist <em>copy the playlist's link from YouTube or YouTube Music and paste it here</em></span></label>
+      <div class="input-row">
+        <input id="pl1" type="text" placeholder="https://www.youtube.com/playlist?list=PL…" spellcheck="false">
+        <button type="button" class="ghost save-pl" data-save="pl1" title="Save to My playlists">☆ Save</button>
+      </div>
+    </div>
+    <div id="twoOnly">
+      <div class="field">
+        <label for="pl2"><span>Playlist 2</span></label>
+        <div class="input-row">
+          <input id="pl2" type="text" placeholder="https://www.youtube.com/playlist?list=PL…" spellcheck="false">
+          <button type="button" class="ghost save-pl" data-save="pl2" title="Save to My playlists">☆ Save</button>
+        </div>
+      </div>
+      <label class="field">
+        <span>Order</span>
+        <select id="mode">
+          <option value="alternate">Alternate: 1, 2, 1, 2…</option>
+          <option value="random">Random mix of both</option>
+        </select>
+      </label>
+    </div>
+    <label class="check"><input id="shuffle" type="checkbox"> Shuffle</label>
+
+    <div class="mylists">
+      <div class="mylists-head"><b>My playlists</b><span class="hint-inline" id="myListsCount"></span></div>
+      <ul id="myLists"></ul>
+      <p class="hint" id="myListsEmpty">Playlists you play are saved here automatically, so next time it's one click. You can rename or remove them.</p>
+      <p class="hint small">Public and unlisted playlists work. A private playlist won't play — in YouTube, open the playlist, click the pencil/settings and change it to <b>Unlisted</b>.</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Transitions</h2>
+    <label class="field">
+      <span>Crossfade length <b id="fadeVal"></b></span>
+      <input id="fade" type="range" min="2" max="20" step="1">
+    </label>
+    <div class="row">
+      <label class="field grow">
+        <span>Skip first <em>seconds, if no skip data</em></span>
+        <input id="trimStart" type="number" min="0" max="120" step="1">
+      </label>
+      <label class="field grow">
+        <span>End early by <em>seconds, if no skip data</em></span>
+        <input id="trimEnd" type="number" min="0" max="120" step="1">
+      </label>
+      <label class="field grow">
+        <span>Max song length <em>minutes, 0 = off</em></span>
+        <input id="maxLen" type="number" min="0" max="30" step="0.5">
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Trim gaps</h2>
+    <label class="check master"><input id="silence" type="checkbox"> Listen for silence and skip dead air</label>
+    <p class="hint" id="silenceHint">Starts the next song as soon as one goes quiet at the end, and jumps past silent starts. Listens to your PC's sound output, so other sounds playing at the same time can confuse it.</p>
+  </section>
+
+  <section class="card" id="sbCard">
+    <h2>Skip talking and filler <span class="pill">SponsorBlock</span></h2>
+    <p class="hint">Uses community-marked timestamps to start each video where the music starts and fade out where it ends. Videos nobody has marked fall back to the trim settings above.</p>
+    <label class="check master"><input id="sb" type="checkbox"> Use skip data</label>
+    <div class="cats" id="cats">
+      <label class="check"><input type="checkbox" data-cat="music_offtopic"> Non-music parts (talking, skits)</label>
+      <label class="check"><input type="checkbox" data-cat="intro"> Intros / title cards</label>
+      <label class="check"><input type="checkbox" data-cat="outro"> Outros / end cards / credits</label>
+      <label class="check"><input type="checkbox" data-cat="sponsor"> Sponsor segments</label>
+      <label class="check"><input type="checkbox" data-cat="selfpromo"> Self-promotion</label>
+      <label class="check"><input type="checkbox" data-cat="interaction"> "Like and subscribe" reminders</label>
+      <label class="check"><input type="checkbox" data-cat="filler"> Tangents / filler</label>
+    </div>
+  </section>
+
+  <section class="card full-only">
+    <h2>Sound</h2>
+    <div class="presets">
+      <button type="button" data-preset="off">Off</button>
+      <button type="button" data-preset="bass">Bass boost</button>
+      <button type="button" data-preset="vocal">Vocal boost</button>
+      <button type="button" data-preset="party">Party</button>
+      <button type="button" data-preset="hall">Concert hall</button>
+    </div>
+    <label class="field fx"><span>Bass boost <b data-fxval="bass"></b></span><input type="range" data-fx="bass" min="0" max="12" step="1"></label>
+    <label class="field fx"><span>Vocal boost <b data-fxval="vocal"></b></span><input type="range" data-fx="vocal" min="0" max="9" step="1"></label>
+    <label class="field fx"><span>Reverb <b data-fxval="reverb"></b></span><input type="range" data-fx="reverb" min="0" max="100" step="5"></label>
+    <p class="hint">You can also change these while the mix plays: move the mouse and click the sliders button, or press E.</p>
+  </section>
+
+  <section class="card">
+    <h2>Song facts</h2>
+    <label class="check master"><input id="facts" type="checkbox"> Show "Did you know?" facts during songs</label>
+    <div class="cats" id="factCats">
+      <label class="check"><input type="checkbox" data-fact="song"> About the song</label>
+      <label class="check"><input type="checkbox" data-fact="artist"> About the artist</label>
+      <label class="check"><input type="checkbox" data-fact="news"> News from the year it came out</label>
+      <label class="check"><input type="checkbox" data-fact="music"> Music events that year</label>
+    </div>
+    <label class="field">
+      <span>How often</span>
+      <select id="factGap">
+        <option value="25">Often — about every 25 seconds</option>
+        <option value="45">Now and then — about every 45 seconds</option>
+        <option value="90">Occasionally — about every 90 seconds</option>
+      </select>
+    </label>
+    <p class="hint">Facts come from Wikipedia, and the release year from MusicBrainz. They're looked up by the song's title, so a few songs will have none or the odd mismatch.</p>
+  </section>
+
+  <section class="card">
+    <h2>Display</h2>
+    <div class="row">
+      <label class="field grow">
+        <span>Font style</span>
+        <select id="fontStyle">
+          <option value="neon">Neon 80s</option>
+          <option value="arcade">Arcade pixels</option>
+          <option value="groovy">Groovy 70s</option>
+          <option value="modern">Clean modern</option>
+        </select>
+      </label>
+      <label class="field grow">
+        <span>Side visualizers <em>fill the black bars on 4:3 videos</em></span>
+        <select id="viz">
+          <option value="song">Colours from the video</option>
+          <option value="classic">Classic green-yellow-red</option>
+          <option value="off">Off</option>
+        </select>
+      </label>
+    </div>
+    <label class="check"><input id="introOn" type="checkbox"> Play the Salmon intro when the app opens</label>
+    <label class="check public-only"><input id="barAlways" type="checkbox"> Always show the control bar under the video <em class="hint-inline">(otherwise it slides away and the video fills the screen until you move the mouse)</em></label>
+    <label class="check"><input id="captions" type="checkbox"> Show closed captions when the video has them</label>
+    <div class="row cc-row full-only">
+      <label class="field grow">
+        <span>Caption font</span>
+        <select id="ccFont">
+          <option value="default">YouTube default</option>
+          <option value="vt323">VT323 — retro terminal</option>
+          <option value="press">Press Start 2P — arcade</option>
+          <option value="righteous">Righteous — 80s neon</option>
+          <option value="audiowide">Audiowide — synthwave</option>
+          <option value="shrikhand">Shrikhand — groovy 70s</option>
+          <option value="fredoka">Fredoka — rounded</option>
+          <option value="arial">Arial</option>
+          <option value="comic">Comic Sans</option>
+          <option value="courier">Courier</option>
+          <option value="georgia">Georgia</option>
+          <option value="impact">Impact</option>
+        </select>
+      </label>
+      <label class="field grow">
+        <span>Caption size</span>
+        <select id="ccSize">
+          <option value="0.8">Small</option><option value="1">Medium</option><option value="1.3">Large</option><option value="1.7">Huge</option>
+        </select>
+      </label>
+      <label class="field grow">
+        <span>Caption look</span>
+        <select id="ccLook">
+          <option value="box">White on a dark box</option>
+          <option value="outline">Outlined, no box</option>
+          <option value="neon">Neon glow</option>
+          <option value="yellow">Yellow, outlined</option>
+          <option value="karaoke">Karaoke (colours from the visualizer)</option>
+        </select>
+      </label>
+    </div>
+    <p class="hint public-only">Tip: change the caption font, size and colours with the ⚙ settings button in the YouTube player.</p>
+    <div class="cc-preview full-only"><span id="ccPreview">♪ This is how your captions will look ♪</span></div>
+    <div class="row">
+      <label class="field grow">
+        <span>Show full screen on</span>
+        <select id="display"></select>
+      </label>
+      <label class="field grow">
+        <span>Volume <b id="volVal"></b></span>
+        <input id="volume" type="range" min="0" max="100" step="1">
+      </label>
+    </div>
+  </section>
+
+  <div class="actions">
+    <p id="status" role="status"></p>
+    <button id="logBtn" class="ghost" hidden>Open log</button>
+    <button id="startBtn" class="primary">Start the mix</button>
+  </div>
+
+  <div class="support-row">
+    <button id="supportBtn" class="support" hidden>♥ Support the fish — leave a tip</button>
+    <a href="#" id="siteLink" class="muted-link" hidden>likethefish.ca</a>
+  </div>
+
+  <details class="keys about">
+    <summary>About &amp; legal</summary>
+    <div class="about-body">
+      <p><b id="aboutName">Like The Fish's Crossfader</b> <span id="aboutVersion"></span> — made by Nathan Salmon.</p>
+      <p>Videos play in YouTube's own embedded player. By using this app you agree to the
+        <a href="#" data-url="https://www.youtube.com/t/terms">YouTube Terms of Service</a>, and Google's handling of data is covered by the
+        <a href="#" data-url="https://policies.google.com/privacy">Google Privacy Policy</a>.
+        This app isn't affiliated with or endorsed by YouTube or Google.</p>
+      <p><b>Privacy:</b> settings and My playlists stay on this PC. To find skips and song facts the app sends video IDs and song titles to
+        <a href="#" data-url="https://sponsor.ajay.app">SponsorBlock</a>, <a href="#" data-url="https://musicbrainz.org">MusicBrainz</a> and
+        <a href="#" data-url="https://en.wikipedia.org">Wikipedia</a>. No accounts, ads or tracking of your own. <a href="#" id="privacyLink" hidden>Full privacy policy</a></p>
+      <p><b>Credits:</b> skip data © SponsorBlock contributors, <a href="#" data-url="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.
+        Song and artist facts from Wikipedia, <a href="#" data-url="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>; release years from MusicBrainz.
+        Fonts: Press Start 2P, VT323, Righteous, Audiowide, Shrikhand, Fredoka — <a href="#" data-url="https://openfontlicense.org">SIL Open Font License</a>.</p>
+    </div>
+  </details>
+
+  <details class="keys">
+    <summary>Keyboard controls while playing</summary>
+    <dl>
+      <dt>Space</dt><dd>Pause / resume</dd>
+      <dt>R</dt><dd>Restart the current song</dd>
+      <dt>Home or B</dt><dd>Back to the start of the playlist</dd>
+      <dt>→ or N</dt><dd>Crossfade to the next song now</dd>
+      <dt>Shift + →</dt><dd>Quick 1.5-second cut to the next song</dd>
+      <dt>← / Shift + ←</dt><dd>Jump back / forward 10 seconds</dd>
+      <dt>↑ / ↓</dt><dd>Volume</dd>
+      <dt>I</dt><dd>Show song info</dd>
+      <dt>T</dt><dd>Show the next song fact now</dd>
+      <dt>C</dt><dd>Closed captions on / off</dd>
+      <dt>E</dt><dd>Open / close the sound panel</dd>
+      <dt>Mouse</dt><dd>Move it to show the control buttons</dd>
+      <dt>D</dt><dd>Move to the next monitor</dd>
+      <dt>F</dt><dd>Toggle full screen</dd>
+      <dt>Esc</dt><dd>Stop and return here</dd>
+    </dl>
+  </details>
+</main>
+
+<!-- ============ SHOW ============ -->
+<div id="stage" hidden>
+  <div class="deck" id="deckA"><div id="playerA"></div></div>
+  <div class="deck" id="deckB"><div id="playerB"></div></div>
+  <div class="vizpanel left" id="vizLeft" aria-hidden="true">
+    <div class="lcd"><span class="lcd-time" id="lcdTime">0:00</span><span class="lcd-label" id="lcdLabel">LEFT</span></div>
+    <div class="screen"><canvas id="vizCanvasL"></canvas></div>
+  </div>
+  <div class="vizpanel right" id="vizRight" aria-hidden="true">
+    <div class="lcd marquee"><span id="lcdMarquee"></span></div>
+    <div class="screen"><canvas id="vizCanvasR"></canvas></div>
+  </div>
+  <div id="shield"></div>
+  <div id="hud" class="hidden">
+    <div class="now">
+      <div class="src" id="hudSrc"></div>
+      <div class="title" id="hudTitle"></div>
+      <div class="artist" id="hudArtist"></div>
+      <div class="bar"><div id="hudBar"></div></div>
+      <div class="time" id="hudTime"></div>
+    </div>
+    <div class="next" id="hudNext"></div>
+  </div>
+  <div id="pubBar" aria-hidden="true"></div>
+  <div id="ticker" aria-live="polite"><span class="tk-label">Did you know?</span><div class="tk-track" id="tkTrack"><span id="tkText"></span></div></div>
+  <div id="toast" class="hidden"></div>
+  <div id="controls" class="hidden">
+    <button data-act="first" title="Back to the start of the playlist (Home)" aria-label="Back to start of playlist">
+      <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+    <button data-act="restart" title="Restart this song (R)" aria-label="Restart song">
+      <svg viewBox="0 0 24 24"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+    <button data-act="pause" class="big" title="Pause / play (Space)" aria-label="Pause or play">
+      <svg class="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+      <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+    <button data-act="next" title="Crossfade to the next song (→)" aria-label="Next song">
+      <svg viewBox="0 0 24 24"><path d="M4 5v14l11-7zM16 5h2v14h-2z"/></svg></button>
+    <button data-act="cc" class="cc" title="Closed captions on / off (C)" aria-label="Closed captions">CC</button>
+    <button data-act="facts" title="Show a song fact (T)" aria-label="Show a song fact">
+      <svg viewBox="0 0 24 24"><path d="M9 21h6v-1.5H9zm3-19a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg></button>
+    <button data-act="fx" title="Sound: bass, vocals, reverb (E)" aria-label="Sound effects">
+      <svg viewBox="0 0 24 24"><path d="M6 3h2v6h2v2H4V9h2zm2 10v8H6v-8zm4-10h2v12h2v2h-6v-2h2zm2 16v2h-2v-2zm4-16h2v4h2v2h-6V7h2zm2 8v10h-2V11z"/></svg></button>
+    <button data-act="exit" title="Stop and go back to settings (Esc)" aria-label="Stop">
+      <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
+  </div>
+  <div id="fxPanel" hidden>
+    <div class="fx-head"><b>Sound</b><button type="button" class="x" aria-label="Close">×</button></div>
+    <div class="presets">
+      <button type="button" data-preset="off">Off</button>
+      <button type="button" data-preset="bass">Bass boost</button>
+      <button type="button" data-preset="vocal">Vocal boost</button>
+      <button type="button" data-preset="party">Party</button>
+      <button type="button" data-preset="hall">Concert hall</button>
+    </div>
+    <label class="field fx"><span>Bass boost <b data-fxval="bass"></b></span><input type="range" data-fx="bass" min="0" max="12" step="1"></label>
+    <label class="field fx"><span>Vocal boost <b data-fxval="vocal"></b></span><input type="range" data-fx="vocal" min="0" max="9" step="1"></label>
+    <label class="field fx"><span>Reverb <b data-fxval="reverb"></b></span><input type="range" data-fx="reverb" min="0" max="100" step="5"></label>
+  </div>
+  <aside id="fact" class="hidden" aria-live="polite">
+    <div class="fact-label" id="factLabel"></div>
+    <div class="fact-text" id="factText"></div>
+    <div class="fact-src">Wikipedia</div>
+  </aside>
+  <div id="loading"><div class="spin"></div><div id="loadingText">Starting…</div><div class="esc">Esc to cancel</div></div>
+</div>
+
+<div id="loaders" aria-hidden="true"></div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script src="intro.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{
+  "name": "playlist-crossfader",
+  "productName": "Like The Fish's Crossfader",
+  "version": "1.7.3",
+  "description": "Like The Fish's Crossfader: crossfades audio and video between YouTube playlists.",
+  "main": "main.js",
+  "author": "Nathan Salmon",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win zip",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:linux": "electron-builder --linux AppImage",
+    "dist:public": "node scripts/build.js public",
+    "dist:public:signed": "node scripts/build.js public --sign",
+    "dist:personal": "node scripts/build.js personal"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "resedit": "^2.0.3"
+  },
+  "build": {
+    "appId": "com.nathansalmon.likethefishcrossfader",
+    "files": [
+      "main.js",
+      "preload.js",
+      "facts.js",
+      "app/**/*"
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "icon": "build/icon.ico"
+    },
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "productName": "Like The Fish's Crossfader",
+    "afterPack": "build/after-pack.js",
+    "artifactName": "Like-The-Fishs-Crossfader-${version}-win.${ext}"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nathancliffordsalmon-sketch/crossfader.git"
+  }
+}
