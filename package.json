@@ -1,7 +1,7 @@
 {
   "name": "playlist-crossfader",
   "productName": "Like The Fish's Crossfader",
-  "version": "1.7.3",
+  "version": "1.8.0",
   "description": "Like The Fish's Crossfader: crossfades audio and video between YouTube playlists.",
   "main": "main.js",
   "author": "Nathan Salmon",

@@ -294,3 +294,4 @@ button.ghost:disabled { opacity: .5; cursor: wait; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 #loaders { position: fixed; left: -10000px; top: 0; width: 320px; height: 180px; overflow: hidden; }
+#windOpts.off { opacity: .35; pointer-events: none; }

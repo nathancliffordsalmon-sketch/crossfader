@@ -14,6 +14,7 @@ const DEFAULTS = {
   playMode: 'one', pl1: '', pl2: '', mode: 'alternate', shuffle: false,
   silence: true,
   fade: 8, trimStart: 0, trimEnd: 0, maxLen: 0,
+  windDown: true, windAfter: 5, windFade: 16,
   sponsorblock: true,
   cats: { music_offtopic: true, intro: true, outro: true, sponsor: true, selfpromo: true, interaction: true, filler: false },
   displayId: null, volume: 85,
@@ -83,6 +84,9 @@ function readForm() {
   S.trimStart = clamp(+$('#trimStart').value || 0, 0, 120);
   S.trimEnd = clamp(+$('#trimEnd').value || 0, 0, 120);
   S.maxLen = clamp(+$('#maxLen').value || 0, 0, 30);
+  S.windDown = $('#windDown').checked;
+  S.windAfter = clamp(+$('#windAfter').value || 5, 1, 30);
+  S.windFade = clamp(+$('#windFade').value || 16, 4, 30);
   S.sponsorblock = $('#sb').checked;
   S.facts = $('#facts').checked;
   S.intro = $('#introOn').checked;
@@ -101,6 +105,7 @@ function fillForm() {
   $('#pl1').value = S.pl1; $('#pl2').value = S.pl2;
   $('#mode').value = S.mode; $('#shuffle').checked = S.shuffle;
   $('#fade').value = S.fade; $('#trimStart').value = S.trimStart; $('#trimEnd').value = S.trimEnd; $('#maxLen').value = S.maxLen;
+  $('#windDown').checked = S.windDown !== false; $('#windAfter').value = S.windAfter; $('#windFade').value = S.windFade;
   $('#sb').checked = S.sponsorblock;
   $('#facts').checked = S.facts;
   $('#introOn').checked = S.intro !== false;
@@ -120,6 +125,7 @@ function syncLabels() {
   $('#fadeVal').textContent = `${$('#fade').value} s`;
   $('#volVal').textContent = `${$('#volume').value}%`;
   $('#cats').classList.toggle('off', !$('#sb').checked);
+  $('#windOpts').classList.toggle('off', !$('#windDown').checked);
   $('#factCats').classList.toggle('off', !$('#facts').checked);
   const two = (document.querySelector('input[name=playMode]:checked') || {}).value === 'two';
   $('#twoOnly').hidden = !two;
@@ -160,7 +166,7 @@ function resetPlayers() {
 /* ================= silence detection (system audio level) ================= */
 const Meter = { ok: false, ctx: null, an: null, buf: null, stream: null, level: 0, lastSound: 0, silentMs: 0, timer: null };
 async function startMeter() {
-  if (Meter.ok || !(S.silence || (PUBLIC && S.viz !== 'off')) || !(await api.loopbackSupported())) return;
+  if (Meter.ok || !(S.silence || S.windDown || (PUBLIC && S.viz !== 'off')) || !(await api.loopbackSupported())) return;
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({ video: { width: 1, height: 1, frameRate: 1 }, audio: true });
     if (!stream.getAudioTracks().length) { stream.getTracks().forEach((t) => t.stop()); return; }
@@ -190,9 +196,11 @@ function readLevel() {
 }
 // Runs every 100 ms. Only the live song is audible except during a crossfade.
 function meterTick() {
-  if (!Meter.ok || !S.silence || !running || paused || S.volume < 5) { Meter.silentMs = 0; return; }
+  if (!Meter.ok || !running || paused || S.volume < 5) { Meter.silentMs = 0; return; }
   if (decks[live].inAd || (fading && fadeState.inc && fadeState.inc.inAd)) { Meter.silentMs = 0; return; }
   const lvl = readLevel();
+  windTrack(lvl);
+  if (!S.silence) { Meter.silentMs = 0; return; }
   // No sound at all for 25 s means the PC is muted or capture failed: don't act on it.
   if (Date.now() - Meter.lastSound > 25000) { Meter.silentMs = 0; return; }
 
@@ -225,6 +233,28 @@ function meterTick() {
   if (frac > 0.6 && (d.peak || 0) > 0.01 && Meter.silentMs >= 2000) {
     Meter.silentMs = 0; crossfade(Math.min(S.fade, 3));
   }
+}
+/* ================= wind down long songs =================
+ * Songs longer than S.windAfter minutes start a long, gentle blend into the next song just after
+ * that mark. If the PC's sound can be measured, it waits (up to 20 s) for a quieter moment —
+ * the end of a chorus, a breakdown — so the hand-off lands on a natural wind-down. */
+function windTrack(lvl) {
+  const d = decks[live], p = d.plan;
+  if (!S.windDown || fading || !p || !d.player || typeof d.player.getCurrentTime !== 'function') return;
+  const ct = d.player.getCurrentTime();
+  p.lvShort = p.lvShort == null ? lvl : p.lvShort * 0.8 + lvl * 0.2;           // ~0.5 s
+  if (ct - p.start > 20 && ct < S.windAfter * 60) p.lvLong = p.lvLong == null ? lvl : p.lvLong * 0.995 + lvl * 0.005; // ~20 s
+}
+function windCheck(d, ct) {
+  const p = d.plan;
+  if (!S.windDown || p.windDone || p.end == null) return false;
+  const T = S.windAfter * 60, fadeLen = Math.max(S.fade, S.windFade);
+  if (!(p.dur > T + 20) || p.end < T + fadeLen || ct < T) return false;
+  const waited = ct - T;
+  const dip = Meter.ok && p.lvLong > 0.003 && p.lvShort != null && p.lvShort < p.lvLong * 0.6;
+  if (!dip && Meter.ok && waited < 20) return false;
+  p.windDone = true; toast('Long song — winding down into the next one'); crossfade(fadeLen);
+  return true;
 }
 let displays = [];
 async function refreshDisplays() {
@@ -540,6 +570,7 @@ function tick() {
     if (ct >= g.s && ct < g.e - 0.5) { d.player.seekTo(g.e, true); toast('Skipped non-music part'); break; }
   }
   factTick(d, ct);
+  if (windCheck(d, ct)) return;
   if (d.plan.end != null && ct >= d.plan.end - S.fade) crossfade();
 }
 
@@ -1333,7 +1364,7 @@ $('#shield').addEventListener('dblclick', () => api.toggleFullscreen());
   });
   $('#introOn').addEventListener('change', () => { S.intro = $('#introOn').checked; api.saveSettings(S); });
   $('#fontStyle').addEventListener('change', () => { S.fontStyle = $('#fontStyle').value; applyFont(); });
-  ['#fade', '#volume', '#sb', '#facts'].forEach((s) => $(s).addEventListener('input', syncLabels));
+  ['#fade', '#volume', '#sb', '#facts', '#windDown'].forEach((s) => $(s).addEventListener('input', syncLabels));
   document.querySelectorAll('input[name=playMode]').forEach((r) => r.addEventListener('change', syncLabels));
   $('#signInBtn').addEventListener('click', signIn);
   $('#logBtn').addEventListener('click', () => api.openLog());
