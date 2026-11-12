@@ -62,8 +62,8 @@ This is what turns "Unknown publisher" into **Nathan Salmon** on the install scr
 
 ## 4. Build and publish the installer
 
-- For a release: bump `"version"` in `package.json`, then create a tag like `v1.7.4`
-  (Releases → Draft a new release → choose a new tag → Publish). The **Build installer** workflow runs on a
+- For a release: bump `"version"` in `package.json`, then on GitHub go to **Releases → Draft a new release**,
+  type a new tag like `v1.7.4`, and click **Publish release**. The **Build installer** workflow runs on a
   Windows machine at GitHub (about 10 minutes) and attaches the installer to that release.
 - Without the Azure secrets the installer is unsigned; once the secrets from step 3 are in place, it's signed
   automatically (and the build fails on purpose if signing was set up but didn't work).

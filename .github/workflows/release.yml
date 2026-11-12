@@ -1,5 +1,6 @@
 # Builds the public installer on Windows and publishes it as a GitHub Release.
-# - Push a tag like v1.7.3 (or use "Run workflow" on the Actions tab).
+# - Publish a release on GitHub (Releases → Draft a new release → new tag like v1.7.4 → Publish),
+#   or use "Run workflow" on the Actions tab to just build a test installer.
 # - If the Azure signing secrets are set (see RELEASE-GUIDE.md), the installer is signed;
 #   otherwise an unsigned installer is published.
 # - Every release also carries "Like-The-Fishs-Crossfader-Setup.exe", so this link always gets
@@ -7,8 +8,8 @@
 name: Build installer
 
 on:
-  push:
-    tags: ['v*']
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -48,11 +49,11 @@ jobs:
           name: installer
           path: dist/*Setup*.exe
 
-      - name: Publish the release
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Attach the installer to the release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/Like-The-Fishs-Crossfader-Setup-*.exe
             dist/Like-The-Fishs-Crossfader-Setup.exe
-          make_latest: true
+          tag_name: ${{ github.event.release.tag_name }}
