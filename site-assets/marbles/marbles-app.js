@@ -1526,8 +1526,8 @@ const crawl = (() => {
     box.querySelectorAll('p.reading').forEach((p) => p.classList.remove('reading'));
     const p = box.querySelector(`p[data-k="${k}"]`);
     if (k === -2) { target = maxY - box.clientHeight * 0.55; return; }
-    if (!p) { if (k === -1) target = box.clientHeight * 0.15; return; }
-    p.classList.add('reading'); target = p.offsetTop + box.clientHeight * 0.25;
+    if (!p) { if (k === -1) target = box.clientHeight * 0.45; return; }
+    p.classList.add('reading'); target = p.offsetTop + box.clientHeight * 0.6;
   };
   api.readingK = () => {
     if (follow) return focusK == null ? 0 : focusK;
@@ -1538,6 +1538,8 @@ const crawl = (() => {
     return k;
   };
   api.progress = () => (maxY ? clamp(y / maxY) : 0);
+  // glide along with the voice: f is how far through paragraph k the narrator is (0..1)
+  api.along = (k, f) => { const p = box.querySelector(`p[data-k="${k}"]`); if (p) target = p.offsetTop + clamp(f) * p.offsetHeight + box.clientHeight * 0.6 - 30; };
   api.follow = (f) => { follow = f; box.classList.toggle('following', f); if (!f) target = null; };
   function nudge(d) { y = clamp(y + d, 0, maxY); manualUntil = performance.now() + 4000; apply(); }
   // the mouse wheel moves the words only while there is somewhere to go; otherwise the page scrolls as normal
@@ -1583,7 +1585,7 @@ const narr = (() => {
   const split = (p) => (p.match(/[^.!?…]+(?:[.!?…]+[”’"')]*|$)\s*/g) || [p]).map((s) => s.trim()).filter(Boolean);
   function build(i) {
     const c = CHAPTERS[i - 1], q = [{ text: `Chapter ${i}. ${c.title}.`, k: -1, gap: 900 }];
-    c.paras.forEach((p, k) => { if (p === '***') return; const ss = split(p); ss.forEach((s, j) => q.push({ text: s, k, gap: j === ss.length - 1 ? 650 : 260 })); });
+    c.paras.forEach((p, k) => { if (p === '***') return; const ss = split(p), plen = ss.reduce((a, s) => a + s.length + 1, 0); let off = 0; ss.forEach((s, j) => { q.push({ text: s, k, off, plen, words: s.split(/\s+/).length, gap: j === ss.length - 1 ? 650 : 260 }); off += s.length + 1; }); });
     if (i === CHAPTERS.length) q.push({ text: '… how will it end?', k: -2, gap: 600 });
     return q;
   }
@@ -1592,7 +1594,7 @@ const narr = (() => {
     now.innerHTML = text.split(/(\s+)/).map((w) => /\S/.test(w) ? `<span>${esc(w)}</span>` : w).join('');
     cc.classList.add('roll'); void cc.offsetWidth; cc.classList.remove('roll'); if (!crawl.on) cc.classList.add('show');
   }
-  function mark(n) { [...now.querySelectorAll('span')].forEach((s, j) => s.classList.toggle('said', j < n)); }
+  function mark(n) { [...now.querySelectorAll('span')].forEach((s, j) => s.classList.toggle('said', j < n)); const it = queue[qi]; if (it && it.plen) crawl.along(it.k, (it.off + Math.min(1, n / it.words) * it.text.length) / it.plen); }
   function markChar(text, ci) { mark(text.slice(0, ci).split(/\s+/).filter(Boolean).length + 1); }
   function highlight(k) { crawl.focus(k); document.querySelectorAll('article p.reading').forEach((p) => p.classList.remove('reading')); const p = document.querySelector(`article p[data-k="${k}"]`); if (p) p.classList.add('reading'); }
   function speak() {
