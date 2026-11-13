@@ -37,6 +37,14 @@ const css = `
 #pq .pq-quest{font-size:9px;line-height:1.9;color:#ffe060;margin:12px 2px 0;padding:8px 10px;border:2px solid #433900;border-radius:8px;background:#2a2060}
 #pq .pq-quest i{font-style:normal;color:#9a8fe0}
 #pq-sheet .q{border:3px double currentColor;padding:6px 8px;margin:10px 0 0;text-align:center}
+#pq .pq-logo,#pq .pq-fsinfo,#pq .pq-fsx{display:none}
+#pq .pq-tv.full{position:fixed;inset:0;z-index:2147483000;border-radius:0;padding:0;background:#6c5eb5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4vh;box-shadow:none;padding:2.5vh 0 1vh}
+#pq .pq-tv.full canvas#pq-cv{width:min(94vw,calc((100vh - 19vh) * 1.6));height:auto;box-shadow:0 0 0 6px #4a3f9a}
+#pq .pq-tv.full .pq-logo{display:flex;flex-direction:column;align-items:center;gap:.8vh;line-height:1}
+#pq .pq-logo b{font-size:clamp(18px,5.2vh,54px);color:#fff;letter-spacing:.12em;text-shadow:.12em .12em 0 #352879,-.04em -.04em 0 #9a6759;background:linear-gradient(#ffe060 0 40%,#fff 40% 55%,#9ad284 55%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(4px 4px 0 #352879)}
+#pq .pq-logo span{font-size:clamp(7px,1.4vh,13px);color:#d8d0ff;letter-spacing:.3em}
+#pq .pq-tv.full .pq-fsinfo{display:block;font-size:clamp(7px,1.4vh,12px);color:#ffe060;text-align:center;line-height:1.8}
+#pq .pq-tv.full .pq-fsx{display:block;position:absolute;top:12px;right:12px;font-size:14px;padding:6px 10px}
 #pq-sheet{display:none}
 @media print{
   body *{visibility:hidden!important}
@@ -65,7 +73,7 @@ const st = document.createElement('style'); st.textContent = css; document.head.
 root.innerHTML = `
 <div id="pq">
   <div class="pq-title"><b>PHANTASEA SESSIONS</b><span>roll a party · press play · battle to the music</span></div>
-  <div class="pq-tv"><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
+  <div class="pq-tv" id="pq-tv"><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
   <div class="pq-hud"><span id="pq-status">READY.</span><span id="pq-songnow">♪ —</span></div>
   <div class="pq-tabs" role="tablist">
     <button data-tab="sp" aria-pressed="true">Spotify player here</button>
@@ -90,7 +98,7 @@ root.innerHTML = `
     <span style="font-size:9px;color:#9a8fe0">Battle pace</span>
     <button data-pace="0.6" aria-pressed="false">Chill</button><button data-pace="1" aria-pressed="true">Normal</button><button data-pace="1.8" aria-pressed="false">Frantic</button>
     <span style="flex:1"></span>
-    <button id="pq-new">New party</button><button id="pq-endbtn" class="end">End session & make my print</button>
+    <button id="pq-fs">⛶ Full screen</button><button id="pq-new">New party</button><button id="pq-endbtn" class="end">End session & make my print</button>
   </div>
   <div class="pq-quest" id="pq-quest"></div>
   <div class="pq-songs" id="pq-songs"></div>
@@ -338,13 +346,14 @@ let lastAcct = Date.now();
 function acct() { const now = Date.now(); if (S.playing && !S.ended && S.curSong >= 0 && S.songs[S.curSong]) S.songs[S.curSong].secs += (now - lastAcct) / 1000; lastAcct = now; }
 function totalSecs() { return S.songs.reduce((t, s) => t + s.secs, 0); }
 function fmt(t) { t = Math.round(t); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+function songsLeftText() { const n = S.songs.length, l = MAXSONGS - n; return !n ? `${MAXSONGS} SONGS TO SURVIVE` : l <= 0 ? 'FINAL SONG!' : `${l} SONG${l === 1 ? '' : 'S'} LEFT`; }
 function questResult() { const t = totalSecs(), n = S.songs.length; if (!n) return 'none'; if (n > MAXSONGS) return 'over'; const off = Math.abs(t - GOAL); return off <= EXACT ? 'perfect' : off <= NEAR ? 'won' : t < GOAL - NEAR ? 'short' : 'long'; }
 let questTick = 0;
 function renderQuest() {
   const t = totalSecs(), n = S.songs.length, left = GOAL - t;
-  const songsTxt = n > MAXSONGS ? `${n} SONGS — TOO MANY, THE 2048 QUEST IS LOST (KEEP ADVENTURING!)` : `${n}/${MAXSONGS} SONGS`;
-  const where = n > MAXSONGS ? '' : Math.abs(left) <= EXACT ? ' · ★ EXACTLY 2048! END THE SESSION NOW ★' : Math.abs(left) <= NEAR ? ` · IN THE ZONE (${left > 0 ? fmt(left) + ' TO GO' : fmt(-left) + ' OVER'}) — END THE SESSION TO CLAIM IT` : left > 0 ? ` · ${fmt(left)} TO GO` : ` · ${fmt(-left)} PAST — TOO LONG`;
-  $('#pq-quest').innerHTML = `THE 2048 QUEST: LISTEN ${GOAL} SECONDS IN ${MAXSONGS} SONGS OR FEWER (±${NEAR}s WINS · ±${EXACT}s = FIREWORKS)<br>${Math.floor(t)}s HEARD · ${songsTxt}${where}<br><i>HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</i>`;
+  const lt = songsLeftText();
+  const html = `THE QUEST: SURVIVE ${MAXSONGS} SONGS. LISTEN WELL, OR PERISH.<br>${lt} · TIME HEARD ${fmt(t)}${S.ended ? ' · QUEST OVER' : ''}<br><i>HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</i>`;
+  $('#pq-quest').innerHTML = html; $('#pq-fsinfo').innerHTML = `${lt} · TIME HEARD ${fmt(t)}<br><span style="color:#c8c0ff">HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</span>`;
 }
 function renderSongs() { $('#pq-songs').innerHTML = S.songs.length ? 'SONGS THIS QUEST (' + S.songs.length + '):<br>' + S.songs.map((s, i) => `${i + 1}. ${esc(s.title)}`).join('<br>') : ''; }
 function setStatus() {
@@ -462,6 +471,7 @@ function frame(now) {
   const dt = S.playing ? rawDt * speed : 0;
   acct(); if (++questTick % 15 === 0) renderQuest();
   if (S.phase === 'fireworks') { drawFireworks(rawDt); requestAnimationFrame(frame); return; }
+  if (S.phase === 'graveyard') { drawGraveyard(rawDt); requestAnimationFrame(frame); return; }
   if (S.phase === 'roll') drawRoll(now);
   else if (S.phase === 'walk') {
     S.walkT += dt / 1000; S.fieldX += dt * 0.04;
@@ -481,7 +491,72 @@ function frame(now) {
 
 /* ---------- controls ---------- */
 function begin() { if (S.phase !== 'roll') return; S.phase = 'walk'; S.walkT = 0; S.nextEnc = 5; chronicle(`The party gathered: ${S.party.map((h) => `${h.name} ${h.epi} (${h.race} ${h.cls})`).join(', ')}.`); setStatus(); }
-cv.addEventListener('click', () => { if (S.phase === 'roll') { rollParty(); } else if (S.phase === 'fireworks' && FW.t > 6000) { S.phase = 'walk'; S.ended = false; } });
+/* ---------- the graveyard (and a sad song: Chopin's Funeral March, public domain, played on a SID-style synth) ---------- */
+const GY = { t: 0, rain: [] };
+function startGraveyard() {
+  S.phase = 'graveyard'; GY.t = 0; GY.rain = Array.from({ length: 90 }, () => [ri(0, W), ri(0, H), 2 + rnd() * 2]);
+  dirge.start();
+}
+const dirge = (() => {
+  let ac = null, timer = null, next = 0, step = 0;
+  // [midi, beats] — melody; bass alternates Bb and Gb chords
+  const M = [[58, 1], [58, .75], [58, .25], [58, 2], [61, .75], [60, .25], [60, .75], [58, .25], [58, .75], [57, .25], [58, 1],
+             [58, 1], [58, .75], [58, .25], [58, 2], [61, .75], [60, .25], [60, .75], [58, .25], [58, .75], [57, .25], [58, 1],
+             [65, 1.5], [63, .5], [62, 1.5], [60, .5], [62, 1], [63, .5], [65, .5], [60, 2], [58, 1], [57, 1], [58, 2]];
+  const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const BEAT = 1.15;
+  function note(type, f, t0, dur, vol) {
+    const o = ac.createOscillator(), gn = ac.createGain(); o.type = type; o.frequency.value = f;
+    gn.gain.setValueAtTime(0, t0); gn.gain.linearRampToValueAtTime(vol, t0 + 0.02); gn.gain.exponentialRampToValueAtTime(vol * 0.5, t0 + dur * 0.6); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur * 0.98);
+    o.connect(gn); gn.connect(ac.master); o.start(t0); o.stop(t0 + dur);
+  }
+  function sched() {
+    while (next < ac.currentTime + 0.6) {
+      const [m, b] = M[step % M.length], d = b * BEAT;
+      note('square', hz(m), next, d * 0.95, 0.06); note('triangle', hz(m + 12), next, d * 0.9, 0.03);
+      const beatIdx = Math.round(M.slice(0, step % M.length).reduce((s, x) => s + x[1], 0));
+      if (Math.abs(M.slice(0, step % M.length).reduce((s, x) => s + x[1], 0) - beatIdx) < 0.01) { const root = beatIdx % 2 ? 42 : 46; note('triangle', hz(root), next, BEAT * 0.95, 0.16); note('sawtooth', hz(root + 7), next, BEAT * 0.9, 0.025); }
+      next += d; step++;
+    }
+  }
+  return {
+    start() { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (!ac.master) { ac.master = ac.createGain(); ac.master.gain.value = 0.9; ac.master.connect(ac.destination); } ac.resume(); step = 0; next = ac.currentTime + 0.3; clearInterval(timer); timer = setInterval(sched, 150); } catch (e) {} },
+    stop() { clearInterval(timer); timer = null; if (ac && ac.master) { const m = ac.master; m.gain.setTargetAtTime(0, ac.currentTime, 0.3); setTimeout(() => { try { m.disconnect(); } catch (e) {} }, 1500); ac.master = null; } },
+    blocked() { return ac && ac.state !== 'running'; }, resume() { ac && ac.resume(); },
+  };
+})();
+function drawGraveyard(dt) {
+  GY.t += dt;
+  g.fillStyle = C[0]; g.fillRect(0, 0, W, H); g.fillStyle = C[6]; g.fillRect(0, 40, W, 100); g.fillStyle = '#241a5c'; g.fillRect(0, 20, W, 30);
+  // moon behind clouds, lightning now and then
+  const flash = (GY.t % 9000) > 8700 && Math.floor(GY.t / 60) % 2;
+  if (flash) { g.fillStyle = C[15]; g.fillRect(0, 0, W, 140); }
+  g.fillStyle = C[15]; g.fillRect(44, 22, 18, 18); g.fillStyle = C[12]; g.fillRect(30 + (GY.t / 120) % 80, 30, 40, 6); g.fillRect(120 + (GY.t / 90) % 120, 18, 50, 5);
+  // dead tree + fence
+  g.fillStyle = C[0]; g.fillRect(270, 70, 5, 70); g.fillRect(262, 82, 10, 3); g.fillRect(275, 92, 14, 3); g.fillRect(258, 76, 3, 8); g.fillRect(287, 86, 3, 8);
+  for (let x = 0; x < W; x += 10) { g.fillStyle = C[11]; g.fillRect(x, 112, 2, 26); g.fillRect(x - 1, 110, 4, 2); } g.fillStyle = C[11]; g.fillRect(0, 118, W, 2); g.fillRect(0, 130, W, 2);
+  // ground
+  g.fillStyle = C[9]; g.fillRect(0, 138, W, 62); g.fillStyle = C[11]; for (let x = 0; x < W; x += 8) g.fillRect(x + ((x / 8) % 3), 142 + ((x / 8) % 4) * 3, 3, 1);
+  // tombstones with names
+  S.party.forEach((h, i) => {
+    const x = 26 + i * 72, y = 112; const sink = Math.min(1, GY.t / 2500);
+    g.fillStyle = C[0]; g.fillRect(x - 1, y - 1, 52, 44); g.fillStyle = C[12]; g.fillRect(x, y + 6, 50, 36); g.fillRect(x + 6, y, 38, 8); g.fillStyle = C[15]; g.fillRect(x + 2, y + 8, 2, 30); g.fillRect(x + 8, y + 2, 34, 2);
+    txt('R.I.P.', x + 25, y + 8, 0, 'center', 6); txt(upper(h.name).slice(0, 8), x + 25, y + 18, 6, 'center', 6); txt(`${h.cls.slice(0, 3).toUpperCase()} LV${h.lvl}`, x + 25, y + 28, 11, 'center', 6);
+    g.fillStyle = C[9]; g.fillRect(x - 4, y + 42, 58, 6); g.fillStyle = C[8]; g.fillRect(x + 4, y + 44, 42, 2);
+    // the hero's ghost drifts up
+    if (GY.t > 1500) { const gt = (GY.t - 1500 - i * 400) / 1000; if (gt > 0) { g.save(); g.globalAlpha = Math.max(0, 0.55 - gt * 0.06); g.drawImage(h.sprite, x + 18 + Math.sin(gt * 2 + i) * 4, y - 20 - gt * 9, 14, 18); g.restore(); } }
+    void sink;
+  });
+  // rain
+  g.fillStyle = C[14]; GY.rain.forEach((r) => { r[1] += r[2] * dt / 16; r[0] -= 0.6 * dt / 16; if (r[1] > H) { r[1] = -4; r[0] = ri(0, W + 40); } g.fillRect(Math.round(r[0]), Math.round(r[1]), 1, 4); });
+  box(40, 4, 240, 30, 0, 2);
+  txt('THE PARTY HAS PERISHED', W / 2, 9, 10, 'center');
+  txt(S.result === 'short' ? 'THE MUSIC ENDED TOO SOON' : S.result === 'long' ? 'THEY LINGERED TOO LONG' : 'THE SONGS RAN OUT', W / 2, 22, 15, 'center', 6);
+  if (dirge.blocked() && Math.floor(GY.t / 600) % 2) txt('CLICK FOR THE FUNERAL MARCH', W / 2, 190, 7, 'center', 6);
+  else if (GY.t > 8000) txt('CLICK TO RISE AGAIN', W / 2, 190, 15, 'center', 6);
+}
+cv.addEventListener('click', () => {
+  if (S.phase === 'graveyard') { if (dirge.blocked()) { dirge.resume(); return; } if (GY.t > 8000) { dirge.stop(); S.party.forEach((h) => { h.alive = true; h.hp = h.max; }); S.phase = 'walk'; } return; } if (S.phase === 'roll') { rollParty(); } else if (S.phase === 'fireworks' && FW.t > 6000) { S.phase = 'walk'; S.ended = false; } });
 document.addEventListener('keydown', (e) => { if (S.phase === 'roll' && e.key === 'Enter' && !/input|select|textarea/i.test(e.target.tagName)) { e.preventDefault(); begin(); } });
 root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
   root.querySelectorAll('[data-tab]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
@@ -491,10 +566,15 @@ root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', (
 root.querySelectorAll('[data-pace]').forEach((b) => b.addEventListener('click', () => { S.pace = +b.dataset.pace; root.querySelectorAll('[data-pace]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
 $('#pq-new').addEventListener('click', () => { if (S.songs.length && !confirmNew()) return; resetAll(); });
 function confirmNew() { return window.confirm ? window.confirm('Start over with a new party? This quest will end.') : true; }
-function resetAll() { Object.assign(S, { phase: 'roll', gold: 0, foes: [], bestiary: [], songs: [], curSong: -1, log: [], chronicle: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), anim: null, banner: null, ended: false }); FW.parts = []; rollParty(); renderSongs(); setStatus(); $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); }
+function resetAll() { dirge.stop(); Object.assign(S, { phase: 'roll', gold: 0, foes: [], bestiary: [], songs: [], curSong: -1, log: [], chronicle: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), anim: null, banner: null, ended: false }); FW.parts = []; rollParty(); renderSongs(); setStatus(); $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); }
 let MODE = 'sp';
 // any music starting begins the quest if the party is still being rolled
-function musicStarted(title) { if (S.phase === 'roll') begin(); songStart(title); }
+function musicStarted(title) {
+  if (S.ended) return;
+  if (S.songs.length >= MAXSONGS) { endSession(true); return; } // a seventh song means the six are done
+  if (S.phase === 'roll') begin(); songStart(title);
+  const l = MAXSONGS - S.songs.length; setTimeout(() => { if (!S.ended && S.songs.length === MAXSONGS - l) S.banner = { text: l ? `${l} SONG${l === 1 ? '' : 'S'} LEFT` : 'FINAL SONG! LISTEN WELL...', t: 0 }; }, 4300);
+}
 
 /* Spotify embed (same approach as Rubber Tree Sessions) */
 const sel = $('#pq-pl'); PLAYLISTS.forEach(([n, id]) => { const o = document.createElement('option'); o.value = id; o.textContent = n; sel.appendChild(o); });
@@ -511,6 +591,7 @@ function loadEmbed(uri) {
         if (!SP.hasUri && on) { const changed = (t.duration && Math.abs(t.duration - SP.dur) > 1500) || (SP.pos > 4000 && t.position < 1500); if (S.curSong < 0 || changed) musicStarted(null); }
         if (t.duration) SP.dur = t.duration; if (t.position != null) SP.pos = t.position;
         if (on && S.curSong < 0 && SP.uri) { const i = S.songs.length; musicStarted(null); S.songs[i].uri = SP.uri; fetchTitle(i, SP.uri); }
+        if (S.songs.length >= MAXSONGS && !S.ended && t.duration > 20000 && t.position >= t.duration - 1200) endSession(true);
         setPlaying(on);
       });
     });
@@ -542,7 +623,7 @@ $('#pq-mic').addEventListener('click', async () => {
 });
 /* Type my songs */
 $('#pq-tstart').addEventListener('click', () => { musicStarted($('#pq-typed').value.trim() || null); setPlaying(true); $('#pq-typed').value = ''; });
-$('#pq-tend').addEventListener('click', () => setPlaying(false));
+$('#pq-tend').addEventListener('click', () => { setPlaying(false); if (S.songs.length >= MAXSONGS) endSession(true); });
 
 /* ---------- end-of-session print sheet ---------- */
 function spriteURL(c, scale) { const o = makeCanvas(c.width * scale, c.height * scale), x = o.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL('image/png'); }
@@ -564,23 +645,31 @@ function makeSheet() {
   $('#pq-sheet').classList.add('show'); $('#pq-sheetbar').classList.add('on');
   $('#pq-sheet').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-$('#pq-endbtn').addEventListener('click', () => {
+function endSession(auto) {
+  if (S.ended) return;
   setPlaying(false); S.ended = true; if (ctrl && ctrl.pause) try { ctrl.pause(); } catch (e) {}
-  const r = questResult(); makeSheet();
-  if (r === 'perfect') startFireworks();
-  else if (r === 'won') { S.banner = { text: `2048 QUEST WON! ${Math.round(totalSecs())} SECONDS`, t: 0 }; }
-});
+  if (mic) $('#pq-mic').click();
+  const r = questResult(); S.result = r;
+  if (r === 'perfect') { startFireworks(true); chronicle('A PERFECT 2048. The castle lit up in fireworks.'); }
+  else if (r === 'won') { startFireworks(false); chronicle('The party survived the six songs and reached the castle.'); }
+  else if (r !== 'none') { S.party.forEach((h) => { h.alive = false; h.hp = 0; }); startGraveyard(); chronicle('The music ran out and the party perished.'); }
+  makeSheet(); renderQuest();
+  if (!document.fullscreenElement && !$('#pq-tv').classList.contains('full')) cv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+$('#pq-endbtn').addEventListener('click', () => endSession(false));
 function questBlock() {
   const r = questResult(), t = totalSecs(), n = S.songs.length;
-  const msg = { perfect: '★ PERFECT 2048! THE CASTLE LIT UP IN FIREWORKS ★', won: '2048 QUEST WON — WITHIN 100 SECONDS', short: `2048 QUEST: ${fmt(GOAL - t)} SHORT`, long: `2048 QUEST: ${fmt(t - GOAL)} TOO LONG`, over: `2048 QUEST: TOO MANY SONGS (${n})`, none: '2048 QUEST: NOT ATTEMPTED' }[r];
-  return `<div class="q"><b>${msg}</b><br><span class="sub">${t.toFixed(1)} SECONDS HEARD IN ${n} SONG${n === 1 ? '' : 'S'} · GOAL ${GOAL}s IN ${MAXSONGS} OR FEWER</span></div>`;
+  const msg = { perfect: '★ A PERFECT 2048! THE CASTLE LIT UP IN FIREWORKS ★', won: 'THE PARTY SURVIVED AND REACHED THE CASTLE', short: `✝ THE PARTY PERISHED — ${fmt(GOAL - t)} TOO SHORT`, long: `✝ THE PARTY PERISHED — ${fmt(t - GOAL)} TOO LONG`, over: '✝ THE PARTY PERISHED — TOO MANY SONGS', none: 'THE QUEST WAS NOT ATTEMPTED' }[r];
+  return `<div class="q"><b>${msg}</b><br><span class="sub">${t.toFixed(1)} SECONDS HEARD IN ${n} SONG${n === 1 ? '' : 'S'}${r === 'none' ? '' : ` · THE SECRET: 2048 SECONDS (THE 2,048 POSSIBLE SETS OF THE 12 NOTES), ±100 TO SURVIVE, ±2 FOR FIREWORKS`}</span></div>`;
 }
 /* ---------- the fireworks castle movie ---------- */
 const FW = { parts: [], t: 0, next: 0, stars: [] };
-function startFireworks() {
-  S.phase = 'fireworks'; FW.t = 0; FW.parts = []; FW.next = 0;
+function startFireworks(perfect) {
+  S.phase = 'fireworks'; FW.perfect = perfect; FW.t = 0; FW.parts = []; FW.next = perfect ? 0 : 1500;
   FW.stars = Array.from({ length: 70 }, () => [ri(0, W), ri(0, 120), ri(0, 3)]);
   // one song at random to celebrate: one they heard if Spotify knows it, otherwise a random Like The Fish playlist
+  FW.title = 'THE PARTY SURVIVED SIX SONGS';
+  if (!perfect) return;
   const heard = S.songs.filter((s) => s.uri && s.uri.includes(':track:'));
   const uri = heard.length ? pick(heard).uri : 'spotify:playlist:' + pick(PLAYLISTS)[1];
   const song = heard.find((s) => s.uri === uri);
@@ -589,7 +678,6 @@ function startFireworks() {
     if (ctrl && ctrl.loadUri) { ctrl.loadUri(uri); setTimeout(() => { try { ctrl.play(); } catch (e) {} }, 900); }
     else { root.querySelector('[data-tab="sp"]').click(); loadEmbed(uri); }
   } catch (e) {}
-  cv.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 function burst(x, y) {
   const col = pick([1, 2, 3, 4, 5, 7, 10, 13, 14]), col2 = pick([1, 7, 15]), n = ri(36, 64), sp = 0.6 + rnd() * 0.9, ring = rnd() < 0.3;
@@ -615,7 +703,7 @@ function drawFireworks(dt) {
   // moon
   g.fillStyle = C[15]; g.fillRect(268, 18, 16, 16); g.fillStyle = C[1]; g.fillRect(270, 18, 12, 16); g.fillRect(268, 20, 16, 12); g.fillStyle = C[6]; g.fillRect(276, 16, 12, 12);
   FW.next -= dt;
-  if (FW.next <= 0) { FW.next = 280 + rnd() * 650; FW.parts.push({ x: ri(40, 280), y: 168, vx: (rnd() - 0.5) * 0.3, vy: -(2.4 + rnd() * 1.0), t: 0, life: 900 + rnd() * 500, col: 7, rocket: true }); }
+  if (FW.next <= 0) { FW.next = FW.perfect ? 280 + rnd() * 650 : 2600 + rnd() * 2500; FW.parts.push({ x: ri(40, 280), y: 168, vx: (rnd() - 0.5) * 0.3, vy: -(2.4 + rnd() * 1.0), t: 0, life: 900 + rnd() * 500, col: 7, rocket: true }); }
   const keep = [];
   for (const p of FW.parts) {
     p.t += dt; const f = dt / 16;
@@ -630,17 +718,33 @@ function drawFireworks(dt) {
   // the party cheering at the gate
   S.party.forEach((h, i) => { const jump = Math.abs(Math.sin(FW.t / 220 + i * 1.3)) * 6; g.drawImage(h.sprite, 104 + i * 32 + (i > 1 ? 16 : 0), 150 - jump, 14, 18); });
   box(20, 4, 280, 30, 0, 7);
-  txt('★ A PERFECT 2048! ★', W / 2, 9, Math.floor(FW.t / 250) % 2 ? 7 : 1, 'center');
+  txt(FW.perfect ? '★ A PERFECT 2048! ★' : 'QUEST COMPLETE!', W / 2, 9, Math.floor(FW.t / 250) % 2 ? 7 : 1, 'center');
   txt(upper(FW.title).slice(0, 40), W / 2, 22, 3, 'center', 6);
   if (FW.t > 6000) txt('CLICK TO RETURN', W / 2, 190, 15, 'center', 6);
 }
 $('#pq-print').addEventListener('click', () => window.print());
 $('#pq-c64').addEventListener('click', (e) => { const on = $('#pq-sheet').classList.toggle('c64'); e.currentTarget.setAttribute('aria-pressed', String(on)); });
-$('#pq-keep').addEventListener('click', () => { S.ended = false; if (S.phase === 'fireworks') S.phase = 'walk'; $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); cv.scrollIntoView({ behavior: 'smooth' }); });
+$('#pq-keep').textContent = 'Back to the game';
+$('#pq-keep').addEventListener('click', () => { if (S.phase === 'graveyard') { dirge.stop(); S.party.forEach((h) => { h.alive = true; h.hp = h.max; }); } if (S.phase === 'fireworks' || S.phase === 'graveyard') S.phase = 'walk'; $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); cv.scrollIntoView({ behavior: 'smooth' }); });
+
+/* ---------- full screen ---------- */
+const tv = $('#pq-tv');
+function isFull() { return tv.classList.contains('full'); }
+function setFull(on) {
+  if (on === isFull()) return;
+  tv.classList.toggle('full', on); renderQuest();
+  if (on) { if (tv.requestFullscreen) tv.requestFullscreen().catch(() => {}); else if (tv.webkitRequestFullscreen) tv.webkitRequestFullscreen(); }
+  else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+}
+$('#pq-fs').addEventListener('click', () => setFull(true));
+$('#pq-fsx').addEventListener('click', () => setFull(false));
+cv.addEventListener('dblclick', () => setFull(!isFull()));
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && isFull()) { tv.classList.remove('full'); } });
+document.addEventListener('keydown', (e) => { if (/input|select|textarea/i.test(e.target.tagName)) return; if (e.key === 'f' || e.key === 'F') setFull(!isFull()); if (e.key === 'Escape' && isFull()) setFull(false); });
 
 /* ---------- go ---------- */
 rollParty(); setStatus(); renderQuest();
 if (document.fonts) document.fonts.load('8px "Press Start 2P"').catch(() => {});
 requestAnimationFrame(frame);
-window.__pq = { S, startFireworks, questResult, totalSecs, renderQuest, musicStarted, setPlaying, makeSheet, encounter, begin };
+window.__pq = { S, endSession, setFull, dirge, startFireworks, questResult, totalSecs, renderQuest, musicStarted, setPlaying, makeSheet, encounter, begin };
 })();
