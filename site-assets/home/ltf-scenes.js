@@ -118,7 +118,7 @@
     function size() { CW = innerWidth; CH = innerHeight; cv.width = CW * DPR; cv.height = CH * DPR; cx.setTransform(DPR, 0, 0, DPR, 0, 0); }
     size(); addEventListener('resize', size);
     var COLS = ['#ff5e1a', '#ffd60a', '#2ec4b6', '#4bb3ff', '#a46be0', '#ff006e', '#52b788', '#ffffff'];
-    var R = 4.6, G = 1500, S = [], L = [], total = 0, built = 0, pile = [], free = [], rolling = [], spills = 0, emptying = false, ant = { t: 0, phase: 'rest' }, lastSpawn = 0;
+    var R = 4.6, G = 1500, S = [], L = [], total = 0, built = 0, pile = [], free = [], rolling = [], spilling = [], spills = 0, emptying = false, ant = { t: 0, phase: 'rest' }, lastSpawn = 0;
     function build() {
       var len = rail.getTotalLength(), m = svg.getScreenCTM(); if (!m) return; S = []; L = []; total = 0;
       for (var i = 0; i <= 120; i++) { var p = rail.getPointAtLength(len * i / 120), sx = m.a * p.x + m.c * p.y + m.e + scrollX, sy = m.b * p.x + m.d * p.y + m.f + scrollY; S.push([sx, sy]); }
@@ -131,19 +131,31 @@
       var tx = S[i][0] - S[i - 1][0], ty = S[i][1] - S[i - 1][1], tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl; var nx = ty, ny = -tx; // inward (up at the bottom)
       return { x: x + nx * off, y: y + ny * off, tx: tx, ty: ty };
     }
+    var GF = 380; // falling gravity: slow, floaty drops
+    function railY(x, off) { // the rail is a function of x (it runs left to right), so find the height under any x
+      for (var i = 1; i < S.length; i++) if (S[i][0] >= x) { var k = (x - S[i - 1][0]) / Math.max(0.001, S[i][0] - S[i - 1][0]); return { y: S[i - 1][1] + (S[i][1] - S[i - 1][1]) * k - off, s: L[i - 1] + (L[i] - L[i - 1]) * k }; }
+      return { y: S[S.length - 1][1] - off, s: total };
+    }
     function slots() { // where settled marbles sit: rows stacked in the bottom of the bowl
-      var out = [], mid = total / 2, base = R + 2.2, rowN = [7, 6, 5, 4];
+      var out = [], mid = total / 2, base = R + 2.2, rowN = [9, 8, 7, 6, 5];
       for (var r = 0; r < rowN.length; r++) for (var k = 0; k < rowN[r]; k++) {
         var off = (k - (rowN[r] - 1) / 2) * 2 * R * 1.02, p = at(mid + off, base);
         out.push({ x: p.x, y: p.y - r * R * 1.74 });
       }
       return out;
     }
+    function surface(x) { // top of the pile under x
+      var y = 1e9; pile.forEach(function (p) { var dx = Math.abs(p.x - x); if (dx < 2 * R) y = Math.min(y, p.y - Math.sqrt(4 * R * R - dx * dx)); }); return y;
+    }
+    function spillOver(m, delay) { // roll up the pile and over the nearer rim, then fall away outside the bowl
+      var left = m.x < (S[0][0] + S[S.length - 1][0]) / 2, rim = left ? S[0] : S[S.length - 1];
+      m.sp = { x0: m.x, y0: m.y, x1: rim[0] + (left ? -R * 1.6 : R * 1.6), y1: rim[1] - R - 3, t: -(delay || 0), dir: left ? -1 : 1 };
+    }
     function marble(x, y, vx, vy) { return { x: x, y: y, vx: vx, vy: vy, c: pick(COLS), r: R }; }
     function spawn(now) {
       var sr = screen.getBoundingClientRect(), hx = sr.left + scrollX + sr.width * 0.165, hy = sr.top + scrollY + sr.height * 0.4;
-      var tgx = S[0][0] + (S[S.length - 1][0] - S[0][0]) * rnd(0.22, 0.4), dy = Math.max(40, S[0][1] - hy), vy0 = -150;
-      var tfall = (-vy0 + Math.sqrt(vy0 * vy0 + 2 * G * dy)) / G; free.push(marble(hx, hy, (tgx - hx) / tfall, vy0)); lastSpawn = now;
+      var tgx = S[0][0] + (S[S.length - 1][0] - S[0][0]) * rnd(0.25, 0.45), dy = Math.max(40, S[0][1] - hy), vy0 = -70;
+      var tfall = (-vy0 + Math.sqrt(vy0 * vy0 + 2 * GF * dy)) / GF; free.push(marble(hx, hy, (tgx - hx) / tfall, vy0)); lastSpawn = now;
     }
     function drawBall(m, sy) { var g = cx.createRadialGradient(m.x - m.r * 0.35, m.y - sy - m.r * 0.4, 0.5, m.x, m.y - sy, m.r); g.addColorStop(0, '#fff'); g.addColorStop(0.3, m.c); g.addColorStop(1, shade(m.c)); cx.fillStyle = g; cx.beginPath(); cx.arc(m.x - scrollX, m.y - sy, m.r, 0, 7); cx.fill(); cx.strokeStyle = 'rgba(43,16,85,.6)'; cx.lineWidth = 0.8; cx.stroke(); }
     function shade(h) { var n = parseInt(h.slice(1), 16), r = (n >> 16) * 0.45, g = (n >> 8 & 255) * 0.45, b = (n & 255) * 0.45; return 'rgb(' + (r | 0) + ',' + (g | 0) + ',' + (b | 0) + ')'; }
@@ -165,37 +177,45 @@
       // ant + spawning (only while the box is on screen)
       if (seen && !emptying) {
         ant.t += dt * 1000;
-        if (ant.phase === 'rest' && now - lastSpawn > 2300) { ant.phase = 'up'; ant.t = 0; }
-        else if (ant.phase === 'up' && ant.t > 900) { spawn(now); ant.phase = 'down'; ant.t = 0; }
-        else if (ant.phase === 'down' && ant.t > 900) { ant.phase = 'rest'; ant.t = 0; }
+        var FAST = window.__ltfFast || 1;
+        if (ant.phase === 'rest' && now - lastSpawn > 2300 / FAST) { ant.phase = 'up'; ant.t = 0; }
+        else if (ant.phase === 'up' && ant.t > 900 / FAST) { spawn(now); ant.phase = 'down'; ant.t = 0; }
+        else if (ant.phase === 'down' && ant.t > 900 / FAST) { ant.phase = 'rest'; ant.t = 0; }
       }
-      var SL = slots(), full = pile.length >= SL.length, topY = pile.length ? Math.min.apply(null, pile.map(function (p) { return p.y; })) : 1e9;
-      // free-falling marbles
+      var SL = slots(), full = pile.length >= SL.length, cxm = (S[0][0] + S[S.length - 1][0]) / 2;
+      // free-falling marbles: caught by the bowl or the pile wherever they come down
       free.forEach(function (m) {
-        m.vy += G * dt; m.x += m.vx * dt; m.y += m.vy * dt;
-        if (m.out) return;
-        if (m.vy > 0 && m.x > S[0][0] && m.x < S[S.length - 1][0]) {
-          if (full && m.y > topY - R * 1.5 && m.y < topY + R) { m.vy = -Math.abs(m.vy) * 0.35; m.vx = (m.x < (S[0][0] + S[S.length - 1][0]) / 2 ? -1 : 1) * rnd(90, 160); m.out = true; spills++; return; }
-          var best = 1e9, bi = 0; for (var i = 0; i < S.length; i += 2) { var p = at(L[i], R + 2.2), d = Math.hypot(p.x - m.x, p.y - m.y); if (d < best) { best = d; bi = i; } }
-          if (best < R * 1.2) { var q = at(L[bi], R + 2.2); m.s = L[bi]; m.v = (m.vx * q.tx + m.vy * q.ty) * 0.8; m.dead = true; if (!full) rolling.push(m); }
-        }
+        m.vy += GF * dt; m.x += m.vx * dt; m.y += m.vy * dt;
+        if (m.out || m.vy <= 0 || m.x <= S[0][0] || m.x >= S[S.length - 1][0]) return;
+        var r = railY(m.x, R + 2.2), sf = surface(m.x) - 0.5, floor = Math.min(r.y, sf);
+        if (m.y < floor) return;
+        m.y = floor; m.dead = true;
+        if (full) { spillOver(m, 0); spilling.push(m); spills++; }
+        else { m.s = r.s; m.v = m.vx * 0.6; rolling.push(m); }
       });
       free = free.filter(function (m) { return !m.dead && m.y < scrollY + CH + 80 && m.y < document.documentElement.scrollHeight + 40; });
       // rolling back and forth in the bowl, then settling into the next free slot
       rolling.forEach(function (m) {
-        var p = at(m.s, R + 2.2 + Math.floor(pile.length / 7) * R * 1.2), slope = p.ty; m.v += (G * slope - m.v * 1.6) * dt; m.s += m.v * dt;
-        if (m.s < 2 || m.s > total - 2) { m.v = -m.v * 0.5; m.s = Math.max(2, Math.min(total - 2, m.s)); }
-        var q = at(m.s, R + 2.2 + Math.floor(pile.length / 7) * R * 1.2); m.x = q.x; m.y = q.y; m.life = (m.life || 0) + dt;
-        if ((Math.abs(m.v) < 18 && Math.abs(m.s - total / 2) < total * 0.18) || m.life > 6) { var sl = SL[pile.length]; if (sl) { m.settle = sl; pile.push(m); } m.done = true; }
+        var lift = Math.floor(pile.length / 9) * R * 1.5, p = at(m.s, R + 2.2 + lift), slope = p.ty; m.v += (G * slope - m.v * 1.4) * dt; m.s += m.v * dt;
+        if (m.s < total * 0.04 || m.s > total * 0.96) { m.v = -m.v * 0.5; m.s = Math.max(total * 0.04, Math.min(total * 0.96, m.s)); }
+        var q = at(m.s, R + 2.2 + lift); m.x = q.x; m.y = Math.min(q.y, surface(q.x)); m.life = (m.life || 0) + dt;
+        if ((Math.abs(m.v) < 16 && Math.abs(m.s - total / 2) < total * 0.2) || m.life > 5) { var sl = SL[pile.length]; if (sl) { m.settle = sl; pile.push(m); } else { spillOver(m, 0); spilling.push(m); } m.done = true; }
       });
       rolling = rolling.filter(function (m) { return !m.done; });
       pile.forEach(function (m) { var s = m.settle; m.x += (s.x - m.x) * 0.2; m.y += (s.y - m.y) * 0.2; });
-      // once full and a few have spilled, everything tumbles out over the rim and off the page
-      if (full && spills >= 6 && !emptying) { emptying = true; pile.forEach(function (m, i) { m.vx = (m.x < (S[0][0] + S[S.length - 1][0]) / 2 ? -1 : 1) * rnd(70, 200); m.vy = -rnd(120, 320); m.out = true; free.push(m); }); pile = []; spills = 0; setTimeout(function () { emptying = false; }, 2500); }
+      // overflowing marbles roll up and over the rim, then drop away outside the bowl and off the page
+      spilling.forEach(function (m) {
+        var sp = m.sp; sp.t += dt; if (sp.t < 0) return; var k = Math.min(1, sp.t / 0.9), e = k * k * (3 - 2 * k);
+        m.x = sp.x0 + (sp.x1 - sp.x0) * e; m.y = sp.y0 + (sp.y1 - sp.y0) * e - Math.sin(Math.PI * k) * R * 2.2;
+        if (k >= 1) { m.vx = sp.dir * rnd(25, 55); m.vy = 10; m.out = true; m.dead = false; m.done2 = true; free.push(m); }
+      });
+      spilling = spilling.filter(function (m) { return !m.done2; });
+      // once full and several have overflowed, the whole bowlful tumbles out over both rims
+      if (full && spills >= 8 && !emptying) { emptying = true; pile.slice().sort(function (a, b) { return a.y - b.y; }).forEach(function (m, i) { spillOver(m, i * 0.07); spilling.push(m); }); pile = []; spills = 0; setTimeout(function () { emptying = false; }, 5000); }
       // draw
       cx.clearRect(0, 0, CW, CH); var sy = scrollY;
       drawAnt(now);
-      pile.concat(rolling, free).forEach(function (m) { if (m.y - sy > -20 && m.y - sy < CH + 20) drawBall(m, sy); });
+      pile.concat(rolling, spilling, free).forEach(function (m) { if (m.y - sy > -20 && m.y - sy < CH + 20) drawBall(m, sy); });
     }
     return { el: box, draw: step, always: true };
   }
