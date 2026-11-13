@@ -213,7 +213,7 @@ function eyesParts(list, eyes, white = '#f8f8f0', pupil = '#181020') { eyes.forE
 function mouthParts(list, x, y, w, teeth) { list.push(E(x, y, w, Math.max(1, w * 0.45), '#30101c', { flat: true })); if (teeth) for (let i = -1; i <= 1; i += 2) list.push(Pp([[x + i * w * 0.55 - 1, y - w * 0.35], [x + i * w * 0.55 + 1, y - w * 0.35], [x + i * w * 0.55, y + w * 0.4]], '#fffff0', { flat: true, soft: true })); }
 
 /* ---------- monsters: 11 body plans, many variations ---------- */
-const PLANS = ['blob', 'biped', 'beast', 'winged', 'serpent', 'spider', 'wraith', 'eye', 'plant', 'mushroom', 'golem'];
+const PLANS = ['blob', 'biped', 'beast', 'winged', 'serpent', 'spider', 'wraith', 'eye', 'plant', 'mushroom', 'golem', 'dragon', 'skeleton', 'bat', 'jelly', 'octopus', 'crab', 'scorpion', 'frog', 'griffin', 'ghost', 'cyclops', 'mimic', 'snail', 'sandworm', 'elemental', 'treant', 'devil', 'knight', 'rat', 'angler'];
 function monsterParts(r, plan, P) {
   const B = P.body, Bl = P.belly, A = P.accent, L = [], j = (a) => (r() - 0.5) * a, yes = (p) => r() < p;
   if (plan === 'blob') {
@@ -284,11 +284,146 @@ function monsterParts(r, plan, P) {
     const capR = 15 + j(4); L.push(Pp(Array.from({ length: 13 }, (_, i) => { const a = Math.PI + i / 12 * Math.PI; return [20 + Math.cos(a) * capR, 22 + Math.sin(a) * (11 + j(1))]; }), B)); L.push(E(20, 22, capR, 2.5, tint(B, -0.3), { soft: true }));
     for (let i = 0; i < 5; i++) L.push(E(20 + j(capR * 1.3), 14 + j(8), 1.8 + r() * 1.5, 1.6 + r(), A === Bl ? '#fff' : '#f8f0e0', { soft: true }));
     eyesParts(L, [[17, 29, 1.7], [23, 29, 1.7]]); mouthParts(L, 20, 34, 2, false);
-  } else { // golem
+  } else if (plan === 'golem') {
     const crys = A; L.push(Rr(12, 30, 6, 9, tint(B, -0.15)), Rr(22, 30, 6, 9, tint(B, -0.15)));
     L.push(Rr(3, 14, 7, 18, tint(B, -0.1)), Rr(10, 13, 20, 18, B), Rr(30, 14, 7, 18, B));
     L.push(Rr(14, 18, 12, 8, Bl, { soft: true })); for (let i = 0; i < 3; i++) if (yes(0.7)) L.push(Pp([[8 + i * 12, 14], [10 + i * 12, 5 + j(4)], [13 + i * 12, 14]], crys, { glow: true }));
     L.push(Rr(14, 4, 12, 10, B)); L.push(Rr(16, 8, 8, 2, '#100818', { flat: true }), Rr(17, 8, 2, 2, Bl, { glow: true, flat: true }), Rr(21, 8, 2, 2, Bl, { glow: true, flat: true }));
+  } else if (plan === 'dragon') {
+    L.push(Ln(30, 30, 39, 20 + j(4), 3, B), Pp([[38, 18], [40, 14], [36, 16]], A));
+    L.push(Pp([[22, 18], [31, 1 + j(3)], [34, 9], [39, 5], [32, 22]], tint(A, -0.25)));
+    L.push(Ln(28, 30, 29, 38, 3.5, tint(B, -0.2)), Ln(18, 30, 17, 38, 3.5, tint(B, -0.2)));
+    L.push(E(24, 26, 10, 7, B), E(22, 29.5, 7, 2.6, Bl, { soft: true }));
+    L.push(Ln(17, 23, 10, 12, 5, B), E(8, 11, 6, 4.5, B), E(3, 13, 4, 2.8, Bl));
+    L.push(Pp([[9, 7], [13, 1], [12, 8]], A), Pp([[6, 7], [7, 1], [9, 7]], A));
+    L.push(Pp([[19, 18], [26, 0 + j(3)], [28, 8], [33, 4], [27, 22]], A));
+    eyesParts(L, [[7, 10, 1.6]], '#ffe040'); mouthParts(L, 2, 14.5, 2, true);
+  } else if (plan === 'skeleton') {
+    const bone = '#ece6d4', rag = B;
+    L.push(Ln(17, 28, 15, 38, 2, bone), Ln(23, 28, 25, 38, 2, bone), E(14, 38, 2.5, 1.2, bone), E(26, 38, 2.5, 1.2, bone));
+    L.push(Pp([[13, 26], [27, 26], [29, 33], [11, 33]], rag));
+    L.push(Ln(20, 15, 20, 28, 2.2, bone)); for (let i = 0; i < 4; i++) L.push(Ln(15, 17 + i * 2.5, 25, 17 + i * 2.5, 1.4, bone));
+    L.push(Ln(15, 16, 9, 24, 1.8, bone), Ln(25, 16, 31, 23, 1.8, bone));
+    if (yes(0.6)) L.push(Ln(31, 26, 34, 8, 1.6, '#c8d0e0'), Ln(29, 24, 33, 24, 1.6, A)); else L.push(E(8, 25, 4, 5, A));
+    L.push(E(19, 9, 6.5, 6, bone), Rr(16, 13, 6, 3, bone));
+    L.push(E(16.5, 9, 1.8, 2, '#100818', { flat: true }), E(21.5, 9, 1.8, 2, '#100818', { flat: true }), E(16.5, 9, 0.8, 0.8, Bl, { glow: true, flat: true }), E(21.5, 9, 0.8, 0.8, Bl, { glow: true, flat: true }));
+    for (let i = 0; i < 3; i++) L.push(Rr(16.5 + i * 1.8, 13.5, 1, 2, '#100818', { flat: true, soft: true }));
+  } else if (plan === 'bat') {
+    [-1, 1].forEach((s) => L.push(Pp([[20 + s * 4, 16], [20 + s * 19, 6 + j(3)], [20 + s * 18, 18], [20 + s * 14, 15], [20 + s * 12, 21], [20 + s * 8, 18], [20 + s * 5, 24]], tint(B, -0.25))));
+    L.push(E(20, 20, 6.5, 8, B), E(20, 22, 3.5, 4.5, Bl, { soft: true }));
+    L.push(Pp([[15, 14], [14, 4], [18, 12]], B), Pp([[25, 14], [26, 4], [22, 12]], B));
+    L.push(Ln(18, 27, 17, 31, 1.5, A), Ln(22, 27, 23, 31, 1.5, A));
+    eyesParts(L, [[17.5, 16, 1.7], [22.5, 16, 1.7]], '#ff3040'); mouthParts(L, 20, 21, 2, true);
+  } else if (plan === 'jelly') {
+    for (let i = 0; i < 6; i++) { const x = 9 + i * 4.4; L.push(Ln(x, 20, x + j(5), 30, 1.6, Bl, { glow: true }), Ln(x + j(5), 30, x + j(8), 39, 1.4, Bl, { glow: true })); }
+    L.push(Pp(Array.from({ length: 13 }, (_, i) => { const a = Math.PI + i / 12 * Math.PI; return [20 + Math.cos(a) * 14, 21 + Math.sin(a) * 15]; }), B));
+    L.push(E(20, 21, 14, 2.2, tint(B, -0.3), { soft: true })); for (let i = 0; i < 4; i++) L.push(E(14 + i * 4 + j(2), 12 + j(5), 1.5, 1.5, Bl, { glow: true, soft: true }));
+    eyesParts(L, [[16, 15, 1.6], [24, 15, 1.6]]);
+  } else if (plan === 'octopus') {
+    for (let i = 0; i < 8; i++) { const x0 = 11 + i * 2.6, x1 = 3 + i * 4.8 + j(3), x2 = x1 + (i < 4 ? -3 : 3); L.push(Ln(x0, 22, x1, 32, 3, tint(B, -0.1)), Ln(x1, 32, x2, 38, 2.2, tint(B, -0.1))); }
+    L.push(E(20, 14, 11, 12, B)); for (let i = 0; i < 4; i++) L.push(E(14 + i * 4, 8 + (i % 2) * 3, 1.4, 1.4, Bl, { soft: true }));
+    eyesParts(L, [[15.5, 17, 2.6], [24.5, 17, 2.6]]); mouthParts(L, 20, 23, 1.6, false);
+  } else if (plan === 'crab') {
+    for (let i = 0; i < 3; i++) { L.push(Ln(12, 28, 4 - i, 34 + i * 1.5, 2, tint(B, -0.2)), Ln(28, 28, 36 + i, 34 + i * 1.5, 2, tint(B, -0.2))); }
+    L.push(Ln(12, 24, 6, 16, 3, B), Ln(28, 24, 34, 16, 3, B)); L.push(E(5, 14, 5, 4, B), Pp([[1, 12], [5, 9], [3, 14]], A), E(35, 14, 5, 4, B), Pp([[39, 12], [35, 9], [37, 14]], A));
+    L.push(Ln(17, 21, 16, 12, 1.4, B), Ln(23, 21, 24, 12, 1.4, B));
+    L.push(E(20, 26, 13, 7.5, B), E(20, 29, 9, 3, Bl, { soft: true }));
+    eyesParts(L, [[16, 11, 2], [24, 11, 2]]); mouthParts(L, 20, 27, 2, false);
+  } else if (plan === 'scorpion') {
+    const tail = [[30, 30], [34, 25], [35, 18], [32, 12], [26, 9]];
+    tail.forEach(([x, y], i) => L.push(E(x, y, 3.4 - i * 0.2, 3, i % 2 ? B : tint(B, -0.1))));
+    L.push(Pp([[24, 8], [17, 10], [23, 12]], A));
+    for (let i = 0; i < 3; i++) L.push(Ln(14 + i * 5, 32, 11 + i * 5, 38, 1.6, tint(B, -0.25)));
+    L.push(E(20, 31, 11, 5, B), E(9, 30, 5, 4, B), Ln(7, 30, 3, 24, 2.4, B), E(3, 22, 3.4, 2.6, B), Pp([[0, 20], [4, 18], [2, 23]], A));
+    eyesParts(L, [[7, 28, 1.2], [10, 28, 1.2]], '#ff3040');
+  } else if (plan === 'frog') {
+    L.push(E(31, 33, 7, 5, tint(B, -0.15)), E(9, 35, 4, 3, tint(B, -0.15)));
+    L.push(E(20, 28, 14, 10, B), E(20, 32, 9, 5, Bl, { soft: true }));
+    L.push(E(13, 17, 4.5, 4.5, B), E(27, 17, 4.5, 4.5, B)); eyesParts(L, [[13, 16.5, 2.8], [27, 16.5, 2.8]], '#ffe040');
+    L.push(Pp([[8, 26], [20, 30], [32, 26], [20, 28]], '#30101c', { flat: true }));
+    for (let i = 0; i < 4; i++) if (yes(0.6)) L.push(E(14 + i * 4 + j(3), 22 + j(3), 1.4, 1.2, A, { soft: true }));
+  } else if (plan === 'griffin') {
+    L.push(Pp([[32, 20], [40, 14], [39, 24], [33, 26]], A));
+    L.push(Ln(26, 30, 27, 38, 3, '#e8b040'), Ln(18, 30, 17, 38, 3, '#e8b040'));
+    L.push(E(24, 24, 10, 8, B), E(22, 27, 6, 3, Bl, { soft: true }));
+    L.push(Pp([[20, 18], [30, 2 + j(3)], [36, 12], [28, 22]], tint(B, -0.2)));
+    L.push(E(11, 14, 6.5, 6, Bl), Pp([[5, 13], [0, 17], [6, 18]], '#f0c040'));
+    if (yes(0.5)) L.push(Pp([[12, 8], [16, 2], [15, 9]], A));
+    eyesParts(L, [[9, 12, 1.6]], '#ff8020');
+  } else if (plan === 'ghost') {
+    const pts = [[8, 18]]; for (let i = 0; i <= 6; i++) pts.push([8 + i * 4, i % 2 ? 34 : 38 + j(2)]); pts.push([32, 18]);
+    L.push(Pp(pts, B)); L.push(E(20, 17, 12, 13, B)); L.push(E(7, 24, 3, 2.4, B), E(33, 22, 3, 2.4, B));
+    L.push(E(16, 15, 2.2, 3.2, '#100818', { flat: true }), E(24, 15, 2.2, 3.2, '#100818', { flat: true }), E(20, 23, 2.6, 3, '#100818', { flat: true }));
+    if (yes(0.5)) L.push(E(12, 20, 2, 1.2, Bl, { soft: true }), E(28, 20, 2, 1.2, Bl, { soft: true }));
+  } else if (plan === 'cyclops') {
+    L.push(Ln(16, 28, 15, 37, 5, tint(B, -0.15)), Ln(24, 28, 25, 37, 5, tint(B, -0.15)), E(14, 38, 4, 1.8, '#5a3018'), E(26, 38, 4, 1.8, '#5a3018'));
+    L.push(Ln(28, 17, 34, 24, 4.5, B), Ln(34, 24, 37, 8, 4, '#8a5a30'), E(37, 7, 3.4, 4, '#8a5a30'));
+    L.push(E(20, 23, 10, 9, B), Rr(12, 25, 16, 4, A, { soft: true }));
+    L.push(Ln(12, 17, 6, 26, 4.5, B)); L.push(E(19, 10, 7.5, 7, B));
+    L.push(E(19, 9, 3.6, 3.4, '#f8f8f0', { soft: true }), E(18, 9, 1.8, 2, Bl), E(17.6, 9, 0.9, 1.1, '#100818', { flat: true })); mouthParts(L, 19, 14.5, 3, true);
+  } else if (plan === 'mimic') {
+    const wood = '#8a5a2a';
+    L.push(Rr(6, 22, 28, 15, wood), Rr(6, 26, 28, 2, A, { soft: true }), Rr(18, 22, 4, 15, A, { soft: true }));
+    L.push(Pp([[6, 21], [8, 8], [32, 6], [34, 19]], tint(wood, -0.1)), Pp([[8, 12], [32, 10], [32, 12], [8, 14]], A, { soft: true }));
+    L.push(Pp([[8, 21], [34, 19], [34, 23], [6, 23]], '#30101c', { flat: true }));
+    for (let i = 0; i < 6; i++) { L.push(Pp([[8 + i * 4.3, 19.5], [10 + i * 4.3, 19.3], [9 + i * 4.3, 22.5]], '#fffff0', { flat: true, soft: true })); L.push(Pp([[8 + i * 4.3, 23.5], [10 + i * 4.3, 23.5], [9 + i * 4.3, 21.2]], '#fffff0', { flat: true, soft: true })); }
+    L.push(Ln(14, 23, 6, 32, 2.6, '#e05080')); eyesParts(L, [[14, 15, 1.6], [26, 14.5, 1.6]], '#ffd040');
+  } else if (plan === 'snail') {
+    L.push(Ln(4, 34, 34, 35, 7, Bl)); L.push(Ln(6, 31, 3, 22, 1.4, Bl), Ln(9, 31, 8, 22, 1.4, Bl));
+    L.push(E(24, 22, 11, 11, B)); L.push(E(25, 22, 7, 7, tint(B, -0.15), { soft: true }), E(26, 22, 3.6, 3.6, tint(B, 0.15), { soft: true }), E(26.5, 22, 1.4, 1.4, A, { soft: true }));
+    eyesParts(L, [[3, 21, 1.5], [8, 21, 1.5]]); mouthParts(L, 3, 33, 1.4, false);
+  } else if (plan === 'sandworm') {
+    const pts = [[22, 40], [24, 34], [25, 28], [24, 22], [21, 17], [17, 13]];
+    pts.forEach(([x, y], i) => L.push(E(x, y, 6.5 - i * 0.2, 4.2, i % 2 ? B : tint(B, -0.12))));
+    L.push(E(13, 10, 7.5, 7, B), E(11, 9, 5.2, 5, '#30101c', { flat: true }));
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; L.push(Pp([[11 + Math.cos(a) * 5, 9 + Math.sin(a) * 5], [11 + Math.cos(a + 0.2) * 5, 9 + Math.sin(a + 0.2) * 5], [11 + Math.cos(a + 0.1) * 2.6, 9 + Math.sin(a + 0.1) * 2.6]], '#fffff0', { flat: true, soft: true })); }
+    L.push(E(22, 39, 9, 2, tint(Bl, -0.3), { soft: true }));
+  } else if (plan === 'elemental') {
+    const flame = (cx, cy, s, c, o) => Pp([[cx, cy - 16 * s], [cx + 6 * s, cy - 4 * s], [cx + 9 * s, cy + 4 * s], [cx + 5 * s, cy + 12 * s], [cx - 5 * s, cy + 12 * s], [cx - 9 * s, cy + 4 * s], [cx - 5 * s, cy - 6 * s], [cx - 2 * s, cy - 2 * s]], c, o);
+    L.push(flame(7, 24, 0.5, tint(B, -0.1)), flame(33, 24, 0.5, tint(B, -0.1)));
+    L.push(flame(20, 22, 1.25, B)); L.push(flame(20, 26, 0.8, Bl, { glow: true, soft: true }));
+    eyesParts(L, [[16.5, 21, 1.6], [23.5, 21, 1.6]], '#ffffff', '#30101c');
+  } else if (plan === 'treant') {
+    const bark = '#6a4424', leaf = B;
+    L.push(Ln(15, 38, 17, 30, 4, bark), Ln(25, 38, 23, 30, 4, bark));
+    L.push(Rr(13, 13, 14, 20, bark)); L.push(Ln(14, 16, 5, 9, 3, bark), Ln(26, 16, 35, 8, 3, bark), Ln(5, 9, 3, 4, 2, bark), Ln(35, 8, 38, 3, 2, bark));
+    for (let i = 0; i < 6; i++) L.push(E(9 + i * 4.4, 6 + (i % 2) * 3 + j(2), 5.5, 4.5, i % 2 ? leaf : tint(leaf, -0.1)));
+    L.push(E(3, 4, 3.4, 3, leaf), E(38, 3, 3.4, 3, leaf));
+    eyesParts(L, [[17, 19, 1.6], [23, 19, 1.6]], '#ffe040'); mouthParts(L, 20, 26, 2.6, false);
+    if (yes(0.5)) L.push(E(15, 29, 1.5, 1.5, A, { soft: true }));
+  } else if (plan === 'devil') {
+    L.push(Pp([[22, 14], [36, 6], [34, 14], [38, 16], [26, 22]], tint(B, -0.3)));
+    L.push(Ln(28, 30, 37, 34, 1.6, B), Pp([[36, 31], [40, 34], [36, 36]], B));
+    L.push(Ln(17, 28, 16, 37, 3.5, tint(B, -0.15)), Ln(23, 28, 24, 37, 3.5, tint(B, -0.15)), E(16, 38, 2.5, 1.4, '#30101c'), E(24, 38, 2.5, 1.4, '#30101c'));
+    L.push(E(20, 23, 7, 8, B), E(20, 25, 4, 4.5, Bl, { soft: true }));
+    L.push(Ln(9, 4, 9, 36, 1.6, '#c8a040'), Pp([[6, 4], [7, -1], [8, 4], [9, -2], [10, 4], [11, -1], [12, 4]], '#e0e0f0'));
+    L.push(Ln(14, 19, 9, 22, 2.8, B));
+    L.push(E(20, 12, 6.5, 6, B), Pp([[15, 8], [13, 1], [17, 6]], A), Pp([[25, 8], [27, 1], [23, 6]], A));
+    eyesParts(L, [[17.5, 11, 1.6], [22.5, 11, 1.6]], '#ffe040'); mouthParts(L, 19, 15, 2.2, true);
+  } else if (plan === 'knight') {
+    const steel = tint(B, -0.35);
+    L.push(Ln(16, 28, 15, 38, 4.2, steel), Ln(24, 28, 25, 38, 4.2, steel));
+    L.push(Ln(28, 17, 32, 26, 3.6, steel), Ln(31, 26, 36, 3, 2.2, '#d0d8e8'), Ln(29, 24, 33, 26, 2, A));
+    L.push(Pp([[13, 15], [27, 15], [26, 30], [14, 30]], steel), Pp([[17, 17], [23, 17], [20, 28]], B, { soft: true }));
+    L.push(E(13, 16, 4.5, 3.4, steel), E(27, 16, 4.5, 3.4, steel));
+    L.push(Pp([[2, 16], [12, 16], [12, 26], [7, 32], [2, 26]], B), Pp([[5, 19], [9, 19], [9, 24], [7, 27], [5, 24]], A, { soft: true }));
+    L.push(Rr(14, 3, 12, 12, steel), Rr(15, 8, 10, 1.6, '#100818', { flat: true }), Rr(16, 8, 8, 1.6, Bl, { glow: true, flat: true }));
+    L.push(Ln(20, 3, 26, -2, 2.4, A));
+  } else if (plan === 'rat') {
+    L.push(Ln(32, 30, 39, 22, 1.4, '#e8a0b0'), Ln(39, 22, 36, 14, 1.2, '#e8a0b0'));
+    L.push(Ln(27, 31, 29, 38, 2.6, tint(B, -0.2)), Ln(15, 31, 13, 38, 2.6, tint(B, -0.2)));
+    L.push(E(23, 28, 12, 7.5, B), E(20, 31, 8, 3, Bl, { soft: true }));
+    L.push(Pp([[14, 21], [2, 27], [14, 32]], B), E(2.5, 27, 1.6, 1.4, '#e05080'));
+    L.push(E(14, 19, 3.6, 4, B), E(14, 19, 2, 2.4, '#e8a0b0', { soft: true }));
+    L.push(Ln(3, 26, -1, 24, 0.6, '#e8e0d0', { flat: true }), Ln(3, 28, -1, 29, 0.6, '#e8e0d0', { flat: true }));
+    eyesParts(L, [[8, 24, 1.4]], '#ff3040'); L.push(Pp([[4, 28], [6, 28], [5, 31]], '#fffff0', { flat: true, soft: true }));
+  } else { // angler
+    L.push(Pp([[34, 20], [40, 12], [39, 30]], tint(B, -0.2)), Pp([[22, 9], [30, 4], [30, 12]], A), Pp([[22, 33], [30, 37], [28, 31]], A));
+    L.push(E(22, 21, 15, 12, B), E(20, 26, 10, 5, Bl, { soft: true }));
+    L.push(Pp([[6, 18], [16, 22], [6, 29], [9, 23]], '#30101c', { flat: true }));
+    for (let i = 0; i < 4; i++) { L.push(Pp([[7 + i * 2.2, 19 + i], [8.6 + i * 2.2, 19 + i], [7.8 + i * 2.2, 22.5 + i * 0.6]], '#fffff0', { flat: true, soft: true })); L.push(Pp([[7 + i * 2.2, 28 - i * 0.8], [8.6 + i * 2.2, 28 - i * 0.8], [7.8 + i * 2.2, 25 - i * 0.4]], '#fffff0', { flat: true, soft: true })); }
+    L.push(Ln(14, 10, 8, 2, 1.2, tint(B, -0.2)), Ln(8, 2, 3, 6, 1.2, tint(B, -0.2)), E(3, 7.5, 2.6, 2.6, '#fff8a0', { glow: true }));
+    eyesParts(L, [[16, 15, 1.8]], '#ffe040');
   }
   return L;
 }
@@ -350,7 +485,7 @@ function genHeroSprite(h) {
 const SC = {};
 function sr(seedv) { let s = seedv >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 function makeTree(kind, hgt, opt = {}) {
-  const r = sr(opt.seed || ri(1, 1e9)), j = (a) => (r() - 0.5) * a, w = Math.round(hgt * (kind === 'pine' || kind === 'snowpine' ? 0.62 : kind === 'cactus' ? 0.6 : 0.95)), L = [];
+  const r = sr(opt.seed || ri(1, 1e9)), j = (a) => (r() - 0.5) * a, w = Math.round(hgt * (kind === 'pine' || kind === 'snowpine' ? 0.62 : kind === 'cactus' ? 0.6 : kind === 'column' ? 0.42 : kind === 'palm' ? 0.9 : 0.95)), L = [];
   const bark = opt.bark || '#6a4424', leaf = opt.leaf || '#3c9a40', leaf2 = opt.leaf2 || tint(leaf, 0.18), cx = w / 2;
   if (kind === 'round' || kind === 'bush') {
     const trunkTop = kind === 'bush' ? hgt * 0.7 : hgt * 0.45;
@@ -367,7 +502,19 @@ function makeTree(kind, hgt, opt = {}) {
     for (let i = 0; i < 4; i++) { const y = hgt * (0.35 + i * 0.12), s = i % 2 ? 1 : -1, ex = cx + s * w * (0.35 + r() * 0.15), ey = y - hgt * 0.15; L.push(Ln(cx, y, ex, ey, Math.max(1, hgt * 0.05), c), Ln(ex, ey, ex + s * 3, ey - 4, 1, c)); }
   } else if (kind === 'cactus') {
     const g2 = opt.leaf || '#4a9a48'; L.push(Ln(cx, hgt - 1, cx, hgt * 0.15, w * 0.32, g2)); L.push(Ln(cx - w * 0.1, hgt * 0.55, cx - w * 0.38, hgt * 0.5, w * 0.2, g2), Ln(cx - w * 0.38, hgt * 0.5, cx - w * 0.38, hgt * 0.3, w * 0.2, g2)); L.push(Ln(cx + w * 0.1, hgt * 0.45, cx + w * 0.38, hgt * 0.42, w * 0.2, g2), Ln(cx + w * 0.38, hgt * 0.42, cx + w * 0.38, hgt * 0.25, w * 0.2, g2)); if (r() < 0.5) L.push(E(cx, hgt * 0.15, 2, 2, '#f070a0', { soft: true }));
-  } else if (kind === 'rock') { L.push(E(cx, hgt * 0.6, w * 0.48, hgt * 0.4, opt.leaf || '#8c8ca0'), E(cx - w * 0.15, hgt * 0.5, w * 0.2, hgt * 0.15, tint(opt.leaf || '#8c8ca0', 0.2), { soft: true })); }
+  } else if (kind === 'palm') {
+    const tr = opt.bark || '#9a6a3a', lf = opt.leaf || '#3caa48'; let px = cx + w * 0.25, py = hgt - 1;
+    for (let i = 0; i < 5; i++) { const nx = cx + w * 0.25 - i * w * 0.07 - i * i * 0.4, ny = hgt - 1 - (i + 1) * hgt * 0.16; L.push(Ln(px, py, nx, ny, Math.max(2, hgt * 0.09) - i * 0.2, i % 2 ? tr : tint(tr, -0.1))); px = nx; py = ny; }
+    for (let k = 0; k < 6; k++) { const a = -Math.PI * (0.05 + k * 0.18); L.push(Pp([[px, py], [px + Math.cos(a) * hgt * 0.42, py + Math.sin(a) * hgt * 0.2 + hgt * 0.14], [px + Math.cos(a) * hgt * 0.3, py + Math.sin(a) * hgt * 0.12 + hgt * 0.04]], k % 2 ? lf : tint(lf, -0.12))); }
+    L.push(E(px - 1, py + 2, Math.max(1, hgt * 0.04), Math.max(1, hgt * 0.04), '#7a4a1c'), E(px + 2, py + 2.5, Math.max(1, hgt * 0.04), Math.max(1, hgt * 0.04), '#7a4a1c'));
+  } else if (kind === 'column') {
+    const st = opt.leaf || '#c8c4b8', top = hgt * (0.12 + r() * 0.35);
+    L.push(Rr(cx - w * 0.36, hgt - hgt * 0.08, w * 0.72, hgt * 0.08, tint(st, -0.1)));
+    L.push(Pp([[cx - w * 0.24, hgt * 0.92], [cx + w * 0.24, hgt * 0.92], [cx + w * 0.24, top + 3], [cx + w * 0.05, top], [cx - w * 0.1, top + 4], [cx - w * 0.24, top + 1]], st));
+    for (let i = -1; i <= 1; i++) L.push(Ln(cx + i * w * 0.12, top + 6, cx + i * w * 0.12, hgt * 0.9, 0.8, tint(st, -0.18), { flat: true, soft: true }));
+    if (r() < 0.5) L.push(E(cx + w * 0.1, hgt * 0.75, w * 0.12, hgt * 0.06, '#5a8a4a', { soft: true }));
+  } else if (kind === 'rock') {
+ L.push(E(cx, hgt * 0.6, w * 0.48, hgt * 0.4, opt.leaf || '#8c8ca0'), E(cx - w * 0.15, hgt * 0.5, w * 0.2, hgt * 0.15, tint(opt.leaf || '#8c8ca0', 0.2), { soft: true })); }
   return renderParts(w, hgt, L);
 }
 function makeTuft(col, seedv, flower) {
@@ -439,7 +586,7 @@ const SYL2 = ['ak', 'and', 'ara', 'en', 'eth', 'ia', 'in', 'is', 'ok', 'or', 'os
 const EPI = ['the Bold', 'Quickstep', 'of the Fen', 'Ironbelly', 'the Grey', 'Songsworn', 'Kettleborn', 'the Unlucky', 'Two-Coins', 'Mossbeard', 'Brightwater', 'the Loud'];
 const heroName = () => pick(SYL1) + pick(SYL2);
 const ADJ = ['Gloomy', 'Shrieking', 'Vile', 'Glittering', 'Moss-backed', 'Ninefold', 'Pale', 'Ember', 'Brine', 'Howling', 'Crystal', 'Gibbering', 'Rotting', 'Velvet', 'Thorned', 'Drowned', 'Clockwork', 'Bog', 'Star-eyed', 'Copper', 'Hollow', 'Grinning', 'Static', 'Jelly', 'Ashen', 'Feral', 'Lunar', 'Cackling', 'Barnacled', 'Vinyl'];
-const BASE = { blob: ['Ooze', 'Slime', 'Jelly', 'Puffball', 'Blight', 'Gloop'], beast: ['Wolf', 'Boar', 'Hound', 'Lion', 'Bear', 'Drake'], eye: ['Beholder', 'Gazer', 'Eye', 'Orb', 'Watcher'], plant: ['Mandrake', 'Flytrap', 'Bloom', 'Thornling', 'Vinekin'], mushroom: ['Shroom', 'Sporeling', 'Toadstool', 'Myconid', 'Puffcap'], golem: ['Golem', 'Sentinel', 'Colossus', 'Construct', 'Idol'], wraith: ['Wraith', 'Shade', 'Specter', 'Phantom', 'Banshee'], biped: ['Gnoll', 'Ghoul', 'Kobold', 'Troll', 'Goblin', 'Bugbear', 'Hobgob'], winged: ['Harpy', 'Imp', 'Moth', 'Bat', 'Wyvernling', 'Gargoyle'], serpent: ['Wyrm', 'Eel', 'Basilisk', 'Naga', 'Worm', 'Serpent'], spider: ['Spider', 'Crab', 'Beetle', 'Scuttler', 'Tick', 'Crawler'], tall: ['Wraith', 'Shade', 'Golem', 'Treant', 'Lurker', 'Stalker'] };
+const BASE = { dragon: ['Dragon', 'Wyrmling', 'Drakeling', 'Dragonet'], skeleton: ['Skeleton', 'Bonewalker', 'Lich', 'Revenant'], bat: ['Bat', 'Vampire Bat', 'Nightwing', 'Screecher'], jelly: ['Jellyfish', 'Medusa', 'Floater', 'Stinger'], octopus: ['Octopus', 'Kraken', 'Squidling', 'Inkling'], crab: ['Crab', 'Shellback', 'Pincher', 'Hermit'], scorpion: ['Scorpion', 'Deathstalker', 'Tailwhip', 'Stinger'], frog: ['Toad', 'Frog', 'Croaker', 'Bullfrog'], griffin: ['Griffin', 'Roc', 'Cockatrice', 'Hippogriff'], ghost: ['Ghost', 'Spook', 'Poltergeist', 'Boo'], cyclops: ['Cyclops', 'Ogre', 'Giant', 'Ettin'], mimic: ['Mimic', 'Chestbeast', 'Trapbox', 'Coffer'], snail: ['Snail', 'Slug', 'Shellcreep', 'Gastropod'], sandworm: ['Sandworm', 'Burrower', 'Grub', 'Devourer'], elemental: ['Elemental', 'Wisp', 'Ember', 'Flamelet'], treant: ['Treant', 'Barkling', 'Oakheart', 'Ent'], devil: ['Devil', 'Fiend', 'Demon', 'Hellion'], knight: ['Dark Knight', 'Black Knight', 'Grave Knight', 'Doom Knight'], rat: ['Rat', 'Wererat', 'Ratking', 'Rodent'], angler: ['Anglerfish', 'Lanternfish', 'Deepmaw', 'Lurefish'], blob: ['Ooze', 'Slime', 'Jelly', 'Puffball', 'Blight', 'Gloop'], beast: ['Wolf', 'Boar', 'Hound', 'Lion', 'Bear', 'Drake'], eye: ['Beholder', 'Gazer', 'Eye', 'Orb', 'Watcher'], plant: ['Mandrake', 'Flytrap', 'Bloom', 'Thornling', 'Vinekin'], mushroom: ['Shroom', 'Sporeling', 'Toadstool', 'Myconid', 'Puffcap'], golem: ['Golem', 'Sentinel', 'Colossus', 'Construct', 'Idol'], wraith: ['Wraith', 'Shade', 'Specter', 'Phantom', 'Banshee'], biped: ['Gnoll', 'Ghoul', 'Kobold', 'Troll', 'Goblin', 'Bugbear', 'Hobgob'], winged: ['Harpy', 'Imp', 'Moth', 'Bat', 'Wyvernling', 'Gargoyle'], serpent: ['Wyrm', 'Eel', 'Basilisk', 'Naga', 'Worm', 'Serpent'], spider: ['Spider', 'Crab', 'Beetle', 'Scuttler', 'Tick', 'Crawler'], tall: ['Wraith', 'Shade', 'Golem', 'Treant', 'Lurker', 'Stalker'] };
 const TITLE = ['', '', '', ' Lord', ' Spawn', ' Queen', ' of the Fen', ' Elder', ' Brute', ' Chanter'];
 const SIZES = [['Tiny', 20, 0.4], ['Small', 26, 0.7], ['Medium', 32, 1], ['Large', 40, 1.6], ['Huge', 50, 2.5], ['Gargantuan', 62, 3.6]];
 
@@ -485,7 +632,7 @@ function encounter() {
   S.foes = [];
   for (let i = 0; i < n; i++) S.foes.push({ type: t, hp: t.hp, max: t.hp, alive: true, x: 0, y: 0, flash: 0 });
   if (n <= 2 && rnd() < 0.45 && t.mult < 2) { t2 = newMonsterType(); const m = clamp(Math.round(2.5 / t2.mult), 1, 3); for (let i = 0; i < m; i++) S.foes.push({ type: t2, hp: t2.hp, max: t2.hp, alive: true, x: 0, y: 0, flash: 0 }); }
-  layoutFoes(); S.bg = makeBattleBg(pick(BIOMES));
+  layoutFoes(); S.bg = makeBattleBg(S.biome || pick(BIOMES));
   S.phase = 'battle'; S.battles++; S.turnQ = []; S.turnT = 900; S.log = [];
   if (!S.bigBattle || S.foes.length > S.bigBattle.n) S.bigBattle = { n: S.foes.length, name: t.name, song: S.curSong };
   const names = [t, t2].filter(Boolean).map((x) => `${S.foes.filter((f) => f.type === x).length} ${upper(x.name)}`).join(' & ');
@@ -572,11 +719,17 @@ function partyWiped() {
 function floater(p, s, col) { S.floaters.push({ x: p.x, y: p.y, s, col, t: 0 }); }
 
 /* ---------- music hooks ---------- */
+function newRegion() {
+  S.biome = pick(BIOMES.filter((b) => b !== S.biome)); S.walkBg = makeBattleBg(S.biome);
+  if (S.songs[S.curSong]) S.songs[S.curSong].region = REGION[S.biome];
+  chronicle(`The road led into ${REGION[S.biome]}.`); S.regionT = 0;
+}
 function songStart(title) {
   acct(); S.songs.push({ title: title || `Track ${S.songs.length + 1}`, foes: [], at: Date.now(), secs: 0, uri: null });
   S.curSong = S.songs.length - 1; S.playing = true; if (typeof VZ !== 'undefined') VZ.bpm = 86 + rnd() * 60;
   S.party.forEach((h) => { h.lvlBySong[S.curSong] = h.lvl; });
   S.banner = { text: '♪ ' + (title || `TRACK ${S.songs.length}`), t: 0 };
+  newRegion();
   if (S.phase === 'walk' && S.nextEnc - S.walkT > 3) S.nextEnc = S.walkT + 3;
   renderSongs(); setStatus();
 }
@@ -646,7 +799,25 @@ function drawIntro(dt) {
 function drawDie(x, y, v) { g.fillStyle = C[1]; g.fillRect(x, y, 18, 18); g.fillStyle = C[0]; g.fillRect(x, y + 17, 18, 1); g.fillRect(x + 17, y, 1, 18); const P = { 1: [[9, 9]], 2: [[5, 5], [13, 13]], 3: [[5, 5], [9, 9], [13, 13]], 4: [[5, 5], [13, 5], [5, 13], [13, 13]], 5: [[5, 5], [13, 5], [9, 9], [5, 13], [13, 13]], 6: [[5, 4], [13, 4], [5, 9], [13, 9], [5, 14], [13, 14]] }[v]; g.fillStyle = C[2]; P.forEach(([a, b]) => g.fillRect(x + a - 1, y + b - 1, 3, 3)); }
 
 // 16-bit style field with parallax
+function drawBiomeField(now) {
+  const fx = S.fieldX, bg = S.walkBg, P = bg.P, kit = bg.kit, wrapx = (x, span) => ((x % span) + span) % span, path = PATHC[bg.kind];
+  g.drawImage(bg, 0, 0);
+  for (let i = 0; i < 4; i++) { const t = kit[i % kit.length], x = wrapx(i * 113 - fx * 0.55, W + 180) - 90; g.drawImage(t, Math.round(x), P.hz + 10 - t.height); }
+  // near ground keeps scrolling below the backdrop
+  for (let y = 136, k = 0; y < H; k++) { const hgt = 4 + k * 1.6; g.fillStyle = k % 2 ? tint(P.g1, -0.06) : tint(P.g2, -0.06); g.fillRect(0, y, W, hgt + 1); y += hgt; }
+  g.fillStyle = vgrad(136, H, ['rgba(0,0,0,0)', 'rgba(0,0,0,.25)']); g.fillRect(0, 136, W, H - 136);
+  // the path
+  g.fillStyle = tint(path, -0.35); g.fillRect(0, 127, W, 24); g.fillStyle = vgrad(128, 150, [tint(path, 0.1), path, tint(path, -0.15)]); g.fillRect(0, 128, W, 22);
+  for (let i = 0; i < 40; i++) { const x = wrapx(i * 37 - fx, W + 20) - 10, y = 130 + (i * 7) % 18; g.fillStyle = i % 3 ? tint(path, -0.25) : tint(path, 0.3); g.fillRect(Math.round(x), y, i % 4 ? 1 : 2, 1); }
+  if (bg.kind === 'volcano') for (let i = 0; i < 6; i++) { const x = wrapx(i * 61 - fx, W + 30) - 15; g.fillStyle = `rgba(255,${100 + (i % 3) * 40},30,${0.6 + 0.3 * Math.sin(now / 300 + i)})`; g.fillRect(Math.round(x), 152 + (i * 11) % 40, 8, 1); }
+  if (bg.kind === 'beach') { g.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 6; i++) { const x = wrapx(i * 70 - fx * 1.1, W + 40) - 20; g.fillRect(Math.round(x), 165 + (i * 9) % 25, 14, 1); } }
+  // foreground props pass quickly for depth
+  for (let i = 0; i < 3; i++) { const t = kit[(i + 1) % kit.length], x = wrapx(i * 151 + 60 - fx * 1.4, W + 200) - 100; g.save(); g.globalAlpha = 0.9; g.drawImage(t, Math.round(x), H + 6 - t.height * 1.3, t.width * 1.3, t.height * 1.3); g.restore(); }
+  S.party.forEach((h, i) => { if (!h.alive) return; const bob = Math.abs(Math.sin(now / 160 + i)) * 2; shadow(120 - i * 26 + HW / 2, 146, HW); g.drawImage(h.sprite, 120 - i * 26, 114 - bob, HW, HH); });
+}
+function drawRegionName() { if (!S.biome || S.regionT == null) return; S.regionT += 16; const a = S.regionT < 400 ? S.regionT / 400 : S.regionT > 5200 ? Math.max(0, 1 - (S.regionT - 5200) / 600) : 1; if (a <= 0) return; g.save(); g.globalAlpha = a; txtO(upper(REGION[S.biome]), W - 6, 26, '#ffe878', 'right', 6); g.restore(); }
 function drawField(now, dt) {
+  if (S.walkBg && S.biome !== 'meadow') { drawBiomeField(now); drawRegionName(); return; }
   const fx = S.fieldX;
   const K = sceneryKit(), wrapx = (x, span) => ((x % span) + span) % span;
   g.fillStyle = vgrad(0, 80, ['#2a54c8', '#5a88e0', '#9cc4f4', '#d4ecff']); g.fillRect(0, 0, W, 82);
@@ -667,8 +838,11 @@ function drawField(now, dt) {
   for (let i = 0; i < 16; i++) { const t = K.tufts[i % K.tufts.length], x = wrapx(i * 29 - fx * 1.35, W + 40) - 20; g.drawImage(t, Math.round(x), 188 + (i % 3) * 3, 14, 11); }
   // party marching
   S.party.forEach((h, i) => { if (!h.alive) return; const bob = Math.abs(Math.sin(now / 160 + i)) * 2; shadow(120 - i * 26 + HW / 2, 146, HW); g.drawImage(h.sprite, 120 - i * 26, 114 - bob, HW, HH); });
+  drawRegionName();
 }
-const BIOMES = ['meadow', 'forest', 'cave', 'desert', 'snow', 'swamp', 'dusk'];
+const BIOMES = ['meadow', 'forest', 'cave', 'desert', 'snow', 'swamp', 'dusk', 'volcano', 'beach', 'ruins'];
+const REGION = { meadow: 'The Green Meadows', forest: 'The Whispering Woods', cave: 'The Crystal Caves', desert: 'The Sunscorch Sands', snow: 'The Frostpeak Pass', swamp: 'The Moonlit Mire', dusk: 'The Dusklands', volcano: 'The Ember Wastes', beach: 'The Seashell Shore', ruins: 'The Fallen Citadel' };
+const PATHC = { meadow: '#c8a464', forest: '#8a6a3a', cave: '#5a4850', desert: '#f0d490', snow: '#dce6f4', swamp: '#6a5a3c', dusk: '#7a6440', volcano: '#4a2c24', beach: '#f4e2b0', ruins: '#a8a294' };
 function makeBattleBg(kind) {
   const cnv = makeCanvas(W, 140), o = cnv.getContext('2d'); const prev = g; g = o;
   const P = {
@@ -679,6 +853,9 @@ function makeBattleBg(kind) {
     snow: { sky: ['#5878a8', '#90b0d0', '#e0ecf8'], far: '#a8c0e0', mid: '#e8f0f8', near: '#c8d8e8', g1: '#f0f4ff', g2: '#d8e4f4', hz: 72, pines: 1 },
     swamp: { sky: ['#1c1440', '#40306c', '#7860a0'], far: '#3c3460', mid: '#2c3c34', near: '#1c2c24', g1: '#3c5440', g2: '#2c4434', hz: 72, moon: 1, dead: 1 },
     dusk: { sky: ['#301860', '#a03c78', '#f89058'], far: '#683c78', mid: '#402858', near: '#281840', g1: '#506038', g2: '#405030', hz: 74, sun: 1 },
+    volcano: { sky: ['#1c0606', '#5a1810', '#d8582a'], far: '#3a1c1c', mid: '#2a1414', near: '#1a0c0c', g1: '#4a2a24', g2: '#3a201c', hz: 72, volcano: 1 },
+    beach: { sky: ['#2a7ad0', '#6cbcf0', '#d8f0ff'], far: '#7ab0e0', mid: '#e8d8a0', near: '#c8b070', g1: '#f2dea4', g2: '#e6cf90', hz: 78, sea: 1, sun: 1 },
+    ruins: { sky: ['#3c4c70', '#7a8cb0', '#c8d4e8'], far: '#6a6c90', mid: '#4a5c48', near: '#34442e', g1: '#66784e', g2: '#5a6c44', hz: 72, ruins: 1 },
   }[kind];
   o.fillStyle = vgrad(0, P.hz, P.sky); o.fillRect(0, 0, W, P.hz + 2);
   if (P.sun) { const gr = o.createRadialGradient(250, P.hz - 18, 2, 250, P.hz - 18, 46); gr.addColorStop(0, '#fff8d0'); gr.addColorStop(0.25, 'rgba(255,230,140,.9)'); gr.addColorStop(1, 'rgba(255,200,120,0)'); o.fillStyle = gr; o.fillRect(190, P.hz - 70, 120, 80); }
@@ -688,8 +865,11 @@ function makeBattleBg(kind) {
   const ph = rnd() * 9;
   for (let x = 0; x < W; x++) { const h = 18 + 12 * Math.sin(x * 0.035 + ph) + 6 * Math.sin(x * 0.11 + ph * 2); o.fillStyle = P.far; o.fillRect(x, P.hz - h, 1, h); if (kind === 'snow' && h > 24) { o.fillStyle = '#fff'; o.fillRect(x, P.hz - h, 1, 3); } }
   o.fillStyle = vgrad(P.hz - 30, P.hz, ['rgba(255,255,255,0)', 'rgba(255,255,255,.18)']); o.fillRect(0, P.hz - 30, W, 30);
+  if (P.volcano) { const vx = ri(70, 250); o.fillStyle = '#2a1010'; o.beginPath(); o.moveTo(vx - 70, P.hz); o.lineTo(vx - 12, P.hz - 52); o.lineTo(vx + 12, P.hz - 52); o.lineTo(vx + 70, P.hz); o.fill(); const gl = o.createRadialGradient(vx, P.hz - 54, 2, vx, P.hz - 54, 40); gl.addColorStop(0, 'rgba(255,170,60,.9)'); gl.addColorStop(1, 'rgba(255,80,20,0)'); o.fillStyle = gl; o.fillRect(vx - 40, P.hz - 94, 80, 80); o.fillStyle = '#ff7a20'; o.fillRect(vx - 3, P.hz - 52, 2, 22); o.fillRect(vx + 2, P.hz - 52, 2, 14); for (let i = 0; i < 8; i++) { o.fillStyle = `rgba(60,40,40,${0.35 - i * 0.03})`; o.beginPath(); o.ellipse(vx + i * 6, P.hz - 66 - i * 7, 8 + i * 2, 5 + i, 0, 0, 7); o.fill(); } }
+  if (P.sea) { o.fillStyle = vgrad(P.hz - 22, P.hz, ['#3c8ad8', '#2a6cb8']); o.fillRect(0, P.hz - 22, W, 26); for (let i = 0; i < 40; i++) { o.fillStyle = 'rgba(255,255,255,.55)'; o.fillRect(ri(0, W), ri(P.hz - 20, P.hz), ri(3, 9), 1); } o.fillStyle = 'rgba(255,255,255,.8)'; for (let x = 0; x < W; x += 2) o.fillRect(x, P.hz + 1 + Math.round(Math.sin(x * 0.1) * 1.5), 2, 1); }
   // mid hills
-  for (let x = 0; x < W; x++) { const h = 8 + 5 * Math.sin(x * 0.06 + ph * 3); o.fillStyle = P.mid; o.fillRect(x, P.hz - h + 4, 1, h); }
+  if (!P.sea) for (let x = 0; x < W; x++) { const h = 8 + 5 * Math.sin(x * 0.06 + ph * 3); o.fillStyle = P.mid; o.fillRect(x, P.hz - h + 4, 1, h); }
+  if (P.ruins) { for (let k = 0; k < 2; k++) { const ax = ri(30, 260), aw = ri(34, 50), ah = ri(26, 36); o.fillStyle = '#8a8aa0'; o.fillRect(ax, P.hz - ah, 6, ah); o.fillRect(ax + aw - 6, P.hz - ah + ri(0, 10), 6, ah); o.beginPath(); o.arc(ax + aw / 2, P.hz - ah, aw / 2, Math.PI, 0); o.lineWidth = 6; o.strokeStyle = '#8a8aa0'; o.stroke(); o.fillStyle = '#6a6a80'; o.fillRect(ax + 1, P.hz - ah, 1, ah); } }
   const K = sceneryKit(); SC.bt = SC.bt || {};
   const kit = SC.bt[kind] = SC.bt[kind] || ({
     meadow: [makeTree('round', 26, { leaf: '#3c8c48', seed: 101 }), makeTree('round', 34, { leaf: '#46a046', seed: 102, fruit: '#f05050' }), makeTree('bush', 14, { leaf: '#3c9a3c', seed: 103 })],
@@ -699,8 +879,11 @@ function makeBattleBg(kind) {
     desert: [makeTree('cactus', 30, { seed: 141 }), makeTree('cactus', 22, { seed: 142, leaf: '#5aa850' }), makeTree('rock', 12, { seed: 143, leaf: '#b88858' })],
     dusk: [makeTree('round', 30, { leaf: '#3c3c58', seed: 151, bark: '#2c2030' }), makeTree('pine', 34, { leaf: '#2c2c48', seed: 152, bark: '#2c2030' })],
     cave: [makeTree('rock', 16, { seed: 161, leaf: '#6c5868' }), makeTree('rock', 10, { seed: 162, leaf: '#7c6878' })],
+    volcano: [makeTree('dead', 34, { bark: '#140808', seed: 171 }), makeTree('rock', 14, { seed: 172, leaf: '#3a2626' }), makeTree('rock', 9, { seed: 173, leaf: '#4a2a2a' })],
+    beach: [makeTree('palm', 46, { seed: 181 }), makeTree('palm', 36, { seed: 182, leaf: '#48b850' }), makeTree('rock', 10, { seed: 183, leaf: '#a89a88' })],
+    ruins: [makeTree('column', 40, { seed: 191 }), makeTree('column', 30, { seed: 192, leaf: '#b8b4a8' }), makeTree('round', 34, { leaf: '#3a7a3a', seed: 193 })],
   }[kind]);
-  if (!P.cave) { const n = kind === 'forest' ? 18 : kind === 'meadow' ? 5 : kind === 'desert' ? 4 : 7; for (let i = 0; i < n; i++) { const t = kit[i % kit.length], x = kind === 'forest' ? i * 19 + ri(-6, 6) - 10 : ri(-10, W - 10); o.drawImage(t, x, P.hz + 6 - t.height + ri(-1, 2)); } }
+  if (!P.cave) { const n = kind === 'forest' ? 18 : kind === 'meadow' ? 5 : kind === 'desert' || kind === 'beach' ? 4 : 7; for (let i = 0; i < n; i++) { const t = kit[i % kit.length], x = kind === 'forest' ? i * 19 + ri(-6, 6) - 10 : ri(-10, W - 10); o.drawImage(t, x, P.hz + 6 - t.height + ri(-1, 2)); } }
 
   if (P.cave) { for (let x = 0; x < W; x += ri(8, 16)) { const l = ri(8, 30); o.fillStyle = '#1c1018'; o.beginPath(); o.moveTo(x - 6, 0); o.lineTo(x, l); o.lineTo(x + 6, 0); o.fill(); } for (let i = 0; i < 6; i++) { const x = ri(10, 310), y = ri(P.hz + 6, 130); const gr = o.createRadialGradient(x, y, 1, x, y, 14); gr.addColorStop(0, 'rgba(120,255,230,.55)'); gr.addColorStop(1, 'rgba(120,255,230,0)'); o.fillStyle = gr; o.fillRect(x - 14, y - 14, 28, 28); o.fillStyle = '#b8fff0'; o.fillRect(x - 1, y - 4, 3, 6); } }
   // floor with perspective bands
@@ -713,6 +896,10 @@ function makeBattleBg(kind) {
   if (kind === 'meadow') for (let i = 0; i < 10; i++) o.drawImage(K.flowers[i % K.flowers.length], ri(0, W), ri(P.hz + 10, 132));
   if (kind !== 'cave' && kind !== 'snow') for (let i = 0; i < 3; i++) o.drawImage(K.rocks[i % 2], ri(0, W), ri(P.hz + 14, 130));
   if (kind === 'snow') for (let i = 0; i < 12; i++) { o.fillStyle = '#ffffff'; o.beginPath(); o.ellipse(ri(0, W), ri(P.hz + 10, 136), ri(4, 12), 1.5, 0, 0, 7); o.fill(); }
+  if (P.volcano) for (let i = 0; i < 7; i++) { let x = ri(0, W), y = ri(P.hz + 12, 134); o.strokeStyle = 'rgba(255,120,30,.85)'; o.lineWidth = 1.4; o.beginPath(); o.moveTo(x, y); for (let k = 0; k < 4; k++) { x += ri(4, 12); y += ri(-2, 2); o.lineTo(x, y); } o.stroke(); }
+  if (P.sea) for (let i = 0; i < 9; i++) { const x = ri(0, W), y = ri(P.hz + 10, 134); o.fillStyle = pick(['#f8c0d0', '#fff0e0', '#f0a070']); o.beginPath(); o.arc(x, y, 1.6, Math.PI, 0); o.fill(); }
+  if (P.ruins) for (let i = 0; i < 8; i++) { o.fillStyle = 'rgba(40,40,60,.25)'; o.fillRect(ri(0, W), ri(P.hz + 8, 134), ri(10, 22), 1); }
+  cnv.P = P; cnv.kit = kit; cnv.kind = kind;
   g = prev; return cnv;
 }
 function drawBattle(now, dt) {
@@ -962,7 +1149,7 @@ function makeSheet() {
   const mins = Math.max(1, Math.round((Date.now() - S.started) / 60000));
   const bars = (h) => { const lv = S.songs.map((_, i) => h.lvlBySong[i] || h.lvl); lv.push(h.lvl); const mx = Math.max(...lv); return `<span class="lv" title="Level by song">${lv.map((v) => `<i style="height:${Math.max(3, 22 * v / mx)}px"></i>`).join('')}</span>`; };
   const party = S.party.map((h) => `<tr><td><img src="${spriteURL(h.sprite, 3)}" width="42" height="54" alt=""></td><td><b>${h.fell ? '✝ ' : ''}${esc(upper(h.name))}</b><br><span class="sub">${h.fell ? 'PERISHED AT THE END' : esc(h.epi)}</span></td><td>${esc(h.race)}<br>${esc(h.cls)}</td><td>LV ${h.lvl}<br>${bars(h)}</td><td>HP ${h.max}<br>KILLS ${h.kills}</td><td>STR ${h.stats.STR} DEX ${h.stats.DEX} CON ${h.stats.CON}<br>INT ${h.stats.INT} WIS ${h.stats.WIS} CHA ${h.stats.CHA}</td></tr>`).join('');
-  const songs = S.songs.map((s, i) => { const lines = S.chronicle.filter((c) => c.song === i).map((c) => c.text).slice(0, 3); return `<li><b>${esc(s.title)}</b> <span class="sub">(${fmt(s.secs)})</span>${s.foes.length ? `<br><span class="sub">Faced: ${esc([...new Set(s.foes)].join(', '))}</span>` : ''}${lines.length ? `<br><span class="sub">${esc(lines.join(' '))}</span>` : ''}</li>`; }).join('');
+  const songs = S.songs.map((s, i) => { const lines = S.chronicle.filter((c) => c.song === i).map((c) => c.text).slice(0, 3); return `<li><b>${esc(s.title)}</b> <span class="sub">(${fmt(s.secs)}${s.region ? ' · ' + esc(upper(s.region)) : ''})</span>${s.foes.length ? `<br><span class="sub">Faced: ${esc([...new Set(s.foes)].join(', '))}</span>` : ''}${lines.length ? `<br><span class="sub">${esc(lines.join(' '))}</span>` : ''}</li>`; }).join('');
   const best = S.bestiary.map((t) => { const by = Object.entries(t.slainBy).sort((a, b) => b[1] - a[1])[0]; const sc = Math.max(2, Math.round(48 / t.sprite.h)); return `<div class="card"><img src="${spriteURL(t.sprite.img, sc)}" alt=""><b>${esc(upper(t.name))}</b><small>${esc(t.desc)}<br>LV ${t.lvl} · ${t.slain ? `SLAIN ×${t.slain}${by ? ' BY ' + esc(upper(by[0])) : ''}` : 'ESCAPED'}</small></div>`; }).join('');
   $('#pq-sheet').innerHTML = `
     <h1>PHANTASEA SESSIONS</h1><div class="sub">${MOTTO} · SIX SONGS IS ALL YOU GET</div><div class="sub">THE CHRONICLE OF ${esc(upper(S.party.map((h) => h.name).join(', ')))} · ${esc(upper(date))} · ${mins} MIN · ${S.songs.length} SONGS</div>
@@ -1010,7 +1197,7 @@ function simulateToEnd() {
   const curFights = Math.max(0, Math.round(perSec * cur.secs) - cur.foes.length); for (let k = 0; k < curFights; k++) fightOne();
   while (S.songs.length < MAXSONGS) {
     const len = L;
-    S.songs.push({ title: `Simulated song ${S.songs.length + 1}`, foes: [], at: Date.now(), secs: len, uri: null, sim: true }); S.curSong = S.songs.length - 1;
+    S.songs.push({ title: `Simulated song ${S.songs.length + 1}`, foes: [], at: Date.now(), secs: len, uri: null, sim: true }); S.curSong = S.songs.length - 1; newRegion();
     S.party.forEach((h) => { h.lvlBySong[S.curSong] = h.lvl; });
     const n = Math.max(1, Math.round(perSec * len)); for (let k = 0; k < n; k++) fightOne();
   }
@@ -1243,5 +1430,5 @@ document.addEventListener('keydown', (e) => { if (/input|select|textarea/i.test(
 rollParty(); setStatus(); renderQuest();
 if (document.fonts) document.fonts.load('8px "Press Start 2P"').catch(() => {});
 requestAnimationFrame(frame);
-window.__pq = { S, simulateToEnd, makeStory, newMonsterType, newHero, endSession, setFull, dirge, startFireworks, questResult, totalSecs, renderQuest, musicStarted, setPlaying, makeSheet, encounter, begin };
+window.__pq = { S, newRegion, BIOMES, simulateToEnd, makeStory, newMonsterType, newHero, endSession, setFull, dirge, startFireworks, questResult, totalSecs, renderQuest, musicStarted, setPlaying, makeSheet, encounter, begin };
 })();
