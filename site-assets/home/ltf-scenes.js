@@ -69,6 +69,7 @@
       var e1 = Math.max.apply(null, r1.map(function (c) { return c.getBoundingClientRect().right; }).concat([b.left])) - b.left, e2 = Math.max.apply(null, r2.map(function (c) { return c.getBoundingClientRect().right; }).concat([b.left])) - b.left;
       var w = Math.round(b.width - Math.min(e1, e2) - 6), h = Math.round(Math.max(70, b.height));
       if (w !== W || h !== H) { W = w; H = h; o.c.width = W * DPR; o.c.height = H * DPR; o.c.style.width = W + 'px'; o.c.style.height = H + 'px'; o.x.setTransform(DPR, 0, 0, DPR, 0, 0); }
+      o.c.style.setProperty('left', Math.round(b.width - W) + 'px', 'important'); o.c.style.setProperty('right', 'auto', 'important'); o.c.style.setProperty('top', '0px', 'important');
       rows = { top: b.width - e1 - 8, bot: b.width - e2 - 8 }; // free widths on each row (from the right edge)
     }
     layout(); addEventListener('resize', layout);
