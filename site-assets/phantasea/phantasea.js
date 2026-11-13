@@ -440,44 +440,86 @@ function genMonsterSprite(r, plan, P, px) {
   return { img, w: img.width, h: img.height, eyes };
 }
 
-/* ---------- heroes: chibi 3/4 view, facing the monsters ---------- */
-const HAIRC = ['#e8402c', '#f4c840', '#3c8cf0', '#8a48d0', '#5a3418', '#1c1820', '#ececf4', '#30b070', '#f06cb0', '#e88028'];
-const SKINC = { Human: ['#f6d0a8', '#e0a878', '#b07850', '#7a4c30'], Elf: ['#f8dcc0', '#e8c0a0', '#c8a0d8'], Dwarf: ['#f0c098', '#d09870'], Halfling: ['#f6d0a8', '#d8a070'], Gnome: ['#f8d0b0', '#e8b890'], 'Half-Orc': ['#88b860', '#709850', '#98a868'], Tiefling: ['#d05858', '#a050a0', '#e07868'], Dragonborn: ['#c84838', '#3c8c58', '#c8a030', '#4878c0'] };
-function genHeroSprite(h) {
+/* ---------- heroes: chibi 3/4 view, facing the monsters, with a 4-frame walk ---------- */
+const HAIRC = ['#e8402c', '#f4c840', '#3c8cf0', '#8a48d0', '#5a3418', '#1c1820', '#ececf4', '#30b070', '#f06cb0', '#e88028', '#a8682c', '#3a2a20', '#c8c8d0', '#6ad0e0'];
+const SKINC = { Human: ['#ffe0c4', '#f6d0a8', '#e0a878', '#c88c5c', '#b07850', '#7a4c30', '#5a3420'], Elf: ['#f8dcc0', '#e8c0a0', '#c8a0d8', '#a8c8e8', '#8a6a50'], Dwarf: ['#f0c098', '#d09870', '#a87048', '#6a4428'], Halfling: ['#f6d0a8', '#d8a070', '#b07850', '#7a4c30'], Gnome: ['#f8d0b0', '#e8b890', '#c89070', '#a0c8a0'], 'Half-Orc': ['#88b860', '#709850', '#98a868', '#6a8a7a', '#8a9a50'], Tiefling: ['#d05858', '#a050a0', '#e07868', '#6a5ab0', '#c84880'], Dragonborn: ['#c84838', '#3c8c58', '#c8a030', '#4878c0', '#d0d0e0', '#2a2a3a'] };
+const BOOTS = ['#5a3018', '#2c2420', '#7a4a2a', '#3c3c5a', '#8a2c2c', '#4a5a2a'];
+const STYLES = ['spiky', 'long', 'pony', 'bob', 'mohawk', 'curly', 'bun', 'braids', 'bald', 'side', 'spiky', 'long'];
+const ACCS = ['none', 'none', 'headband', 'glasses', 'scarf', 'earring', 'flower', 'eyepatch', 'freckles'];
+function heroLooks(h) {
+  h.style = pick(STYLES); h.build = pick(['slim', 'avg', 'avg', 'stocky']); h.acc = pick(ACCS); h.boots = pick(BOOTS);
+  h.beard = h.race === 'Dwarf' ? pick(['full', 'full', 'braid']) : rnd() < 0.18 ? pick(['full', 'stubble', 'mustache', 'goatee']) : null;
+  h.pattern = pick(['plain', 'plain', 'sash', 'stripes', 'trim']); h.plume = pick(HAIRC);
+}
+function genHeroSprite(h, f = 0) {
   const k = h.kit, L = [], skin = h.skin, hair = h.hair, c1 = k.c1, c2 = k.c2, legs = k.legs, small = h.race === 'Halfling' || h.race === 'Gnome' || h.race === 'Dwarf';
-  const oy = small ? 2 : 0, hy = 9 + oy; // head centre
-  if (k.cape) L.push(Pp([[6, 14 + oy], [12, 14 + oy], [14, 29], [3, 29]], c2));
+  const ph = f * Math.PI / 2, sw = Math.sin(ph) * 2.2, lift = Math.cos(ph), bob = f % 2 ? -1 : 0; // stride, lift, bounce
+  const oy = (small ? 2 : 0) + bob, hy = 9 + oy, tw = h.build === 'slim' ? 8 : h.build === 'stocky' ? 10.5 : 9, tx = 11 - tw / 2;
+  const boot = h.boots || '#5a3018';
+  if (k.cape) L.push(Pp([[6, 14 + oy], [12, 14 + oy], [14 - sw * 0.3, 29], [3 - sw * 0.5, 29]], c2));
   if (h.style === 'long') L.push(E(8, hy + 4, 5, 8, hair));
-  if (h.style === 'pony') L.push(E(4, hy + 1, 3, 4, hair), Ln(3, hy + 3, 2, hy + 9, 2.5, hair));
-  if (k.robe) L.push(Pp([[6, 16 + oy], [15, 16 + oy], [17, 29], [4, 29]], c1));
-  L.push(Ln(8.5, 22, 8, 27.5, 3.4, legs), Ln(12.5, 22, 13, 27.5, 3.4, legs), E(8, 28.5, 2.4, 1.5, '#5a3018'), E(13.5, 28.5, 2.6, 1.5, '#5a3018'));
-  L.push(Ln(7, 17 + oy, 5, 22, 2.8, tint(c1, -0.15)), E(5, 22.5, 1.5, 1.5, skin));
-  if (k.shield) L.push(E(4.5, 19.5 + oy, 3.5, 4.5, c2), E(4.5, 19.5 + oy, 1.4, 2, '#f4d860', { soft: true }));
-  L.push(Rr(6.5, 14.5 + oy, 9, 8.5 - oy, c1), Rr(10, 15 + oy, 2.2, 7.5 - oy, c2, { soft: true }), Rr(6.5, 21, 9, 1.4, '#6a4020', { flat: true, soft: true }));
-  if (h.race === 'Dwarf') L.push(Pp([[8, hy + 2], [16, hy + 2], [13, hy + 10], [10, hy + 9]], hair));
-  // weapon behind front hand
-  if (k.wpn === 'sword') L.push(Ln(15, 19, 19.5, 6, 1.8, '#d8e0f0'), Ln(13.5, 18, 17.5, 20, 1.6, '#c89030'));
-  if (k.wpn === 'axe') L.push(Ln(15, 22, 18, 6, 1.5, '#8a5a30'), Pp([[17, 5], [21.5, 7], [21, 12], [17.5, 10]], '#d0d8e8'));
-  if (k.wpn === 'staff') L.push(Ln(16, 26, 17, 3, 1.5, '#8a5a30'), E(17, 3, 2, 2, c2 === '#ffffff' ? '#ffd040' : tint(c2, 0.3), { glow: true }));
-  if (k.wpn === 'bow') L.push(Ln(17, 8, 19, 15, 1.2, '#a06a30'), Ln(19, 15, 17, 23, 1.2, '#a06a30'), Ln(17, 8, 17, 23, 0.8, '#f0f0f0', { flat: true }));
-  if (k.wpn === 'dagger') L.push(Ln(15.5, 20, 18.5, 15.5, 1.4, '#e0e8f8'));
-  if (k.wpn === 'lute') L.push(E(14, 20, 3, 2.6, '#c07838'), Ln(15, 19, 19, 13, 1.1, '#6a3c18'));
-  L.push(Ln(14, 17 + oy, 15.5, 20.5, 2.8, c1), E(15.5, 20.5, 1.5, 1.5, k.wpn === 'fist' ? c2 : skin));
+  if (h.style === 'braids') L.push(Ln(6, hy + 1, 5, hy + 11, 2.2, hair), E(5, hy + 11.5, 1.4, 1.4, h.plume));
+  if (h.style === 'pony') L.push(E(4, hy + 1, 3, 4, hair), Ln(3, hy + 3, 2 - sw * 0.3, hy + 9, 2.5, hair));
+  if (h.style === 'curly') L.push(E(10.5, hy - 2, 8, 7, hair));
+  if (h.acc === 'scarf') L.push(Ln(8, 14 + oy, 3 - sw * 0.6, 17 + oy, 2.2, c2));
+  if (k.robe) L.push(Pp([[tx, 16 + oy], [tx + tw, 16 + oy], [17 + sw * 0.2, 29], [4 + sw * 0.2, 29]], c1));
+  // legs: back leg first, a walking stride that swaps each frame
+  const lb = 8.5 - sw, lf = 12.5 + sw, ub = lift > 0 ? 0 : -1.2 * -lift, uf = lift < 0 ? 0 : -1.2 * lift;
+  L.push(Ln(8.5, 22, lb, 27.5 + ub, 3.4, tint(legs, -0.12)), E(lb, 28.5 + ub, 2.4, 1.5, tint(boot, -0.1)));
+  L.push(Ln(12.5, 22, lf, 27.5 + uf, 3.4, legs), E(lf + 0.5, 28.5 + uf, 2.6, 1.5, boot));
+  // back arm swings against the front leg
+  L.push(Ln(7, 17 + oy, 5 + sw * 0.8, 22 + oy, 2.8, tint(c1, -0.15)), E(5 + sw * 0.8, 22.5 + oy, 1.5, 1.5, skin));
+  if (k.shield) L.push(E(4.5 + sw * 0.5, 19.5 + oy, 3.5, 4.5, c2), E(4.5 + sw * 0.5, 19.5 + oy, 1.4, 2, '#f4d860', { soft: true }));
+  // torso
+  L.push(Rr(tx, 14.5 + oy, tw, 8.5 - (small ? 2 : 0), c1));
+  if (h.pattern === 'sash') L.push(Ln(tx + 1, 15 + oy, tx + tw - 1, 21 + oy, 1.6, c2, { soft: true }));
+  else if (h.pattern === 'stripes') for (let i = 0; i < 3; i++) L.push(Rr(tx, 16 + oy + i * 2, tw, 0.9, c2, { flat: true, soft: true }));
+  else if (h.pattern === 'trim') L.push(Rr(tx, 14.5 + oy, tw, 1.2, c2, { soft: true }), Rr(10, 15 + oy, 2.2, 7 - (small ? 2 : 0), c2, { soft: true }));
+  else L.push(Rr(10, 15 + oy, 2.2, 7.5 - (small ? 2 : 0), c2, { soft: true }));
+  L.push(Rr(tx, 21 + bob * 0.5, tw, 1.4, '#6a4020', { flat: true, soft: true }), Rr(10.4, 21 + bob * 0.5, 1.4, 1.4, '#e8c040', { flat: true, soft: true }));
+  if (h.cls === 'Fighter' || h.cls === 'Paladin' || (h.cls === 'Barbarian' && h.build === 'stocky')) L.push(E(tx + 0.5, 15.5 + oy, 2.2, 1.6, tint(c1, 0.25)), E(tx + tw - 0.5, 15.5 + oy, 2.2, 1.6, tint(c1, 0.25)));
+  if (h.beard) { const bc = h.race === 'Dwarf' ? hair : tint(hair, -0.1); if (h.beard === 'full' || h.beard === 'braid') L.push(Pp([[8, hy + 2], [16, hy + 2], [13, hy + (h.beard === 'braid' ? 12 : 9)], [10, hy + 8]], bc)); }
+  // weapon follows the front hand
+  const wx = sw * 0.6;
+  if (k.wpn === 'sword') L.push(Ln(15 + wx, 19 + oy, 19.5 + wx, 6 + oy, 1.8, '#d8e0f0'), Ln(13.5 + wx, 18 + oy, 17.5 + wx, 20 + oy, 1.6, '#c89030'));
+  if (k.wpn === 'axe') L.push(Ln(15 + wx, 22 + oy, 18 + wx, 6 + oy, 1.5, '#8a5a30'), Pp([[17 + wx, 5 + oy], [21.5 + wx, 7 + oy], [21 + wx, 12 + oy], [17.5 + wx, 10 + oy]], '#d0d8e8'));
+  if (k.wpn === 'staff') L.push(Ln(16 + wx, 26 + oy, 17 + wx, 3 + oy, 1.5, '#8a5a30'), E(17 + wx, 3 + oy, 2, 2, c2 === '#ffffff' ? '#ffd040' : tint(c2, 0.3), { glow: true }));
+  if (k.wpn === 'bow') L.push(Ln(17 + wx, 8 + oy, 19 + wx, 15 + oy, 1.2, '#a06a30'), Ln(19 + wx, 15 + oy, 17 + wx, 23 + oy, 1.2, '#a06a30'), Ln(17 + wx, 8 + oy, 17 + wx, 23 + oy, 0.8, '#f0f0f0', { flat: true }));
+  if (k.wpn === 'dagger') L.push(Ln(15.5 + wx, 20 + oy, 18.5 + wx, 15.5 + oy, 1.4, '#e0e8f8'));
+  if (k.wpn === 'lute') L.push(E(14, 20 + oy, 3, 2.6, '#c07838'), Ln(15, 19 + oy, 19, 13 + oy, 1.1, '#6a3c18'));
+  L.push(Ln(14, 17 + oy, 15.5 + wx, 20.5 + oy, 2.8, c1), E(15.5 + wx, 20.5 + oy, 1.5, 1.5, k.wpn === 'fist' ? c2 : skin));
   // head
   if (h.race === 'Elf') L.push(Pp([[14, hy - 1], [19, hy - 4], [15, hy + 1]], skin));
   L.push(E(11, hy, 6, 5.8, skin));
   if (h.race === 'Dragonborn') L.push(E(16, hy + 1.5, 3, 2.2, skin));
   if (h.race === 'Half-Orc') L.push(Pp([[13, hy + 3], [13.8, hy + 1], [14.4, hy + 3]], '#fffff0', { flat: true, soft: true }));
   if (h.race === 'Gnome') L.push(E(16.5, hy + 1, 1.6, 1.4, tint(skin, -0.1)));
+  if (h.beard === 'stubble') L.push(Pp([[10, hy + 2.5], [16, hy + 2], [14.5, hy + 5], [11, hy + 5]], tint(skin, -0.28), { flat: true, soft: true }));
+  if (h.beard === 'mustache') L.push(Rr(12.5, hy + 2.2, 4, 1, hair, { flat: true, soft: true }));
+  if (h.beard === 'goatee') L.push(Pp([[13, hy + 3.5], [15.5, hy + 3.5], [14.3, hy + 6.5]], hair, { soft: true }));
+  if (h.acc === 'freckles') L.push(Rr(12.5, hy + 1.6, 0.8, 0.8, '#c06838', { flat: true, soft: true }), Rr(14.5, hy + 1.8, 0.8, 0.8, '#c06838', { flat: true, soft: true }));
   // hair / headgear
-  if (k.helm) { L.push(Pp([[5, hy - 1], [6, hy - 6], [11, hy - 8], [16, hy - 6], [17, hy - 1], [15, hy - 1], [14, hy - 3], [7, hy - 3], [7, hy + 2]], '#c8d0e0')); L.push(Ln(11, hy - 9, 11, hy - 13, 2, h.plume)); }
+  const crown = h.crown;
+  if (k.helm) { const horned = h.cls === 'Barbarian'; L.push(Pp([[5, hy - 1], [6, hy - 6], [11, hy - 8], [16, hy - 6], [17, hy - 1], [15, hy - 1], [14, hy - 3], [7, hy - 3], [7, hy + 2]], '#c8d0e0')); if (horned) L.push(Pp([[6, hy - 5], [2, hy - 11], [8, hy - 7]], '#f0e6d0'), Pp([[16, hy - 5], [20, hy - 11], [14, hy - 7]], '#f0e6d0')); else L.push(Ln(11, hy - 9, 11, hy - 13, 2, h.plume)); }
   else if (k.hat === 'wizard') L.push(Pp([[3, hy - 2], [19, hy - 2], [13, hy - 5], [10, hy - 16], [7, hy - 5]], c1), Rr(3.5, hy - 3, 15, 1.6, c2, { soft: true }));
+  else if (k.hat === 'cap') L.push(Pp([[5, hy - 2], [7, hy - 7], [14, hy - 7], [18, hy - 3], [17, hy - 1]], c2), Ln(8, hy - 6, 2, hy - 12, 1.4, h.plume));
   else if (k.hood) L.push(Pp([[4, hy + 6], [5, hy - 4], [11, hy - 7], [17, hy - 4], [17, hy - 1], [14, hy - 3], [8, hy - 2], [7, hy + 6]], c1));
   else if (h.style === 'spiky') L.push(Pp([[5, hy + 1], [3, hy - 6], [7, hy - 5], [7, hy - 11], [10, hy - 7], [12, hy - 12], [13, hy - 6], [17, hy - 8], [16, hy - 3], [17, hy - 1], [13, hy - 3], [8, hy - 2], [7, hy + 3]], hair));
   else if (h.style === 'mohawk') L.push(Pp([[8, hy - 4], [9, hy - 10], [12, hy - 9], [14, hy - 4]], hair));
+  else if (h.style === 'curly') { for (let i = 0; i < 5; i++) L.push(E(6 + i * 2.4, hy - 5 + (i % 2), 2.4, 2.2, i % 2 ? hair : tint(hair, 0.1))); L.push(E(5.5, hy, 2.4, 3, hair)); }
+  else if (h.style === 'bun') L.push(Pp([[5, hy + 2], [5, hy - 3], [9, hy - 6], [14, hy - 6], [17, hy - 2], [12, hy - 3], [8, hy - 1], [7, hy + 3]], hair), E(8, hy - 7, 3, 2.6, hair));
+  else if (h.style === 'bald') L.push(E(6, hy + 1, 1.6, 2.4, tint(skin, -0.12), { soft: true }));
+  else if (h.style === 'side') L.push(Pp([[5, hy + 4], [5, hy - 3], [9, hy - 6.5], [15, hy - 6], [18, hy - 1], [16, hy + 1], [13, hy - 3], [8, hy - 1], [7, hy + 5]], hair));
   else L.push(Pp([[5, hy + 3], [5, hy - 3], [9, hy - 6.5], [14, hy - 6], [17, hy - 2], [15, hy - 3], [12, hy - 2], [8, hy - 1], [7, hy + 4]], hair));
+  if (crown && !k.helm && k.hat !== 'wizard') L.push(Pp([[7, hy - 5], [7, hy - 9], [9, hy - 7], [11, hy - 10], [13, hy - 7], [15, hy - 9], [15, hy - 5]], '#f8d040', { glow: true }));
   if (h.race === 'Tiefling') L.push(Pp([[8, hy - 4], [6, hy - 10], [10, hy - 5]], '#3c2c3c'), Pp([[13, hy - 4], [15, hy - 10], [15, hy - 4]], '#3c2c3c'));
-  L.push(Rr(12.5, hy, 1.2, 2, '#181020', { flat: true, soft: true }), Rr(15, hy, 1.2, 2, '#181020', { flat: true, soft: true }));
+  if (h.acc === 'headband' && !k.helm && k.hat !== 'wizard') L.push(Rr(5, hy - 3.5, 12, 1.4, c2, { soft: true }), Ln(5, hy - 3, 2 - sw * 0.4, hy, 1, c2));
+  if (h.acc === 'flower' && !k.helm) L.push(E(6.5, hy - 3, 1.6, 1.6, pick(['#ff5a7a', '#ffd040', '#ffffff']), { soft: true }));
+  if (h.acc === 'earring') L.push(E(9, hy + 2.4, 0.7, 0.7, '#f8d040', { flat: true, soft: true }));
+  // face
+  if (h.acc === 'glasses') L.push(E(12.9, hy + 0.8, 1.5, 1.4, '#2a2a3a', { flat: true, soft: true }), E(15.4, hy + 0.8, 1.5, 1.4, '#2a2a3a', { flat: true, soft: true }), E(12.9, hy + 0.8, 0.9, 0.8, '#bfe8ff', { flat: true, soft: true }), E(15.4, hy + 0.8, 0.9, 0.8, '#bfe8ff', { flat: true, soft: true }));
+  else if (h.acc === 'eyepatch') L.push(Rr(12.5, hy, 1.2, 2, '#181020', { flat: true, soft: true }), E(15.5, hy + 0.9, 1.4, 1.3, '#181020', { flat: true, soft: true }), Ln(9, hy - 2, 17, hy - 1, 0.6, '#181020', { flat: true, soft: true }));
+  else L.push(Rr(12.5, hy, 1.2, 2, '#181020', { flat: true, soft: true }), Rr(15, hy, 1.2, 2, '#181020', { flat: true, soft: true }));
   return renderParts(20, 30, L);
 }
 
@@ -601,11 +643,13 @@ function newHero() {
   const stats = { STR: roll(), DEX: roll(), CON: roll(), INT: roll(), WIS: roll(), CHA: roll() };
   const mod = (v) => Math.floor((v - 10) / 2);
   const hp = info.hd + Math.max(1, mod(stats.CON) + 2) + 6;
-  const h = { name: heroName(), epi: pick(EPI), cls, race, info, stats, lvl: 1, xp: 0, hp, max: hp, kills: 0, dmg: 0, hair: pick(HAIRC), skin: pick(SKINC[race]), style: pick(['spiky', 'long', 'pony', 'bob', 'mohawk', 'spiky']), plume: pick(HAIRC), lvlBySong: [], alive: true };
+  const h = { name: heroName(), epi: pick(EPI), cls, race, info, stats, lvl: 1, xp: 0, hp, max: hp, kills: 0, dmg: 0, hair: pick(HAIRC), skin: pick(SKINC[race]), lvlBySong: [], alive: true, crown: rnd() < 0.03 };
+  heroLooks(h);
   const [c1, c2, legs] = pick(CLASS_COL[cls]);
-  h.kit = Object.assign({}, info.kit, { c1, c2, legs, cape: (cls === 'Paladin' || cls === 'Warlock' || (cls === 'Fighter' && rnd() < 0.5)), hat: (cls === 'Wizard' || (cls === 'Sorcerer' && rnd() < 0.5)) ? 'wizard' : null });
+  h.kit = Object.assign({}, info.kit, { c1, c2, legs, cape: (cls === 'Paladin' || cls === 'Warlock' || (cls === 'Fighter' && rnd() < 0.5)), hat: (cls === 'Wizard' || (cls === 'Sorcerer' && rnd() < 0.5)) ? 'wizard' : ((cls === 'Bard' || cls === 'Ranger') && rnd() < 0.5) ? 'cap' : null });
+  if (cls === 'Barbarian' && rnd() < 0.45) h.kit.helm = true; if (cls === 'Rogue' && rnd() < 0.4) h.kit.hood = false; if (!h.kit.cape && rnd() < 0.15) h.kit.cape = true;
   if (h.kit.hat) h.kit.hood = false; if (cls === 'Fighter' && rnd() < 0.4) h.kit.helm = false;
-  h.sprite = genHeroSprite(h);
+  h.frames = [0, 1, 2, 3].map((f) => genHeroSprite(h, f)); h.sprite = h.frames[0];
   h.atkBonus = Math.max(mod(stats.STR), mod(stats.DEX), info.atk === 'spell' ? Math.max(mod(stats.INT), mod(stats.WIS), mod(stats.CHA)) : -9);
   return h;
 }
@@ -813,7 +857,7 @@ function drawBiomeField(now) {
   if (bg.kind === 'beach') { g.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 6; i++) { const x = wrapx(i * 70 - fx * 1.1, W + 40) - 20; g.fillRect(Math.round(x), 165 + (i * 9) % 25, 14, 1); } }
   // foreground props pass quickly for depth
   for (let i = 0; i < 3; i++) { const t = kit[(i + 1) % kit.length], x = wrapx(i * 151 + 60 - fx * 1.4, W + 200) - 100; g.save(); g.globalAlpha = 0.9; g.drawImage(t, Math.round(x), H + 6 - t.height * 1.3, t.width * 1.3, t.height * 1.3); g.restore(); }
-  S.party.forEach((h, i) => { if (!h.alive) return; const bob = Math.abs(Math.sin(now / 160 + i)) * 2; shadow(120 - i * 26 + HW / 2, 146, HW); g.drawImage(h.sprite, 120 - i * 26, 114 - bob, HW, HH); });
+  S.party.forEach((h, i) => { if (!h.alive) return; const fr = h.frames ? h.frames[Math.floor(now / 140 + i * 1.5) % 4] : h.sprite; shadow(120 - i * 26 + HW / 2, 146, HW); g.drawImage(fr, 120 - i * 26, 114, HW, HH); });
 }
 function drawRegionName() { if (!S.biome || S.regionT == null) return; S.regionT += 16; const a = S.regionT < 400 ? S.regionT / 400 : S.regionT > 5200 ? Math.max(0, 1 - (S.regionT - 5200) / 600) : 1; if (a <= 0) return; g.save(); g.globalAlpha = a; txtO(upper(REGION[S.biome]), W - 6, 26, '#ffe878', 'right', 6); g.restore(); }
 function drawField(now, dt) {
@@ -837,7 +881,7 @@ function drawField(now, dt) {
   // foreground grass passes quicker for depth
   for (let i = 0; i < 16; i++) { const t = K.tufts[i % K.tufts.length], x = wrapx(i * 29 - fx * 1.35, W + 40) - 20; g.drawImage(t, Math.round(x), 188 + (i % 3) * 3, 14, 11); }
   // party marching
-  S.party.forEach((h, i) => { if (!h.alive) return; const bob = Math.abs(Math.sin(now / 160 + i)) * 2; shadow(120 - i * 26 + HW / 2, 146, HW); g.drawImage(h.sprite, 120 - i * 26, 114 - bob, HW, HH); });
+  S.party.forEach((h, i) => { if (!h.alive) return; const fr = h.frames ? h.frames[Math.floor(now / 140 + i * 1.5) % 4] : h.sprite; shadow(120 - i * 26 + HW / 2, 146, HW); g.drawImage(fr, 120 - i * 26, 114, HW, HH); });
   drawRegionName();
 }
 const BIOMES = ['meadow', 'forest', 'cave', 'desert', 'snow', 'swamp', 'dusk', 'volcano', 'beach', 'ruins'];
@@ -915,7 +959,8 @@ function drawBattle(now, dt) {
     if (a && a.actor === h) { const k = a.t / a.dur; if (a.kind === 'bounce') { const tx = a.tgt ? a.tgt.x - p.x - 10 : 60; ox = tx * Math.sin(Math.PI * k); oy = -Math.abs(Math.sin(Math.PI * k * 2)) * 10; } else oy = -Math.abs(Math.sin(Math.PI * k * 3)) * 4; }
     if (h.flash > 0) { h.flash -= dt; if (Math.floor(h.flash / 60) % 2) return; }
     if (!h.alive) { g.save(); g.globalAlpha = 0.35; g.translate(p.x + HW / 2, p.y + HH - 4); g.rotate(-Math.PI / 2); g.drawImage(h.sprite, -HH / 2, -HW / 2, HH, HW); g.restore(); return; }
-    g.drawImage(h.sprite, p.x + ox, p.y + oy, HW, HH);
+    const spr = h.frames ? (a && a.actor === h && a.kind === 'bounce' ? h.frames[Math.floor(a.t / 80) % 4] : h.frames[Math.floor(now / 600 + i) % 2 ? 0 : 0]) : h.sprite;
+    g.drawImage(spr, p.x + ox, p.y + oy + (a && a.actor === h ? 0 : Math.round(Math.sin(now / 500 + i) * 0.6)), HW, HH);
   });
   // foes
   S.foes.forEach((f) => {
