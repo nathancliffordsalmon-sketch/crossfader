@@ -950,7 +950,7 @@ function makeStory() {
   const downs = P.filter((h) => h.downs).sort((a, b) => b.downs - a.downs)[0]; if (downs) out.push(`${downs.name} was struck down ${downs.downs > 1 ? downs.downs + ' times' : 'once'}${downs.downBy ? ` (last by the ${downs.downBy})` : ''} but rose again.`);
   if (S.deaths) out.push(`When hope ran out, the Temple of the Fish raised the whole party ${S.deaths > 1 ? S.deaths + ' times' : 'once'}.`);
   const fell = P.filter((h) => h.fell).map((h) => h.name), lived = P.filter((h) => !h.fell).map((h) => h.name);
-  if (S.result === 'perfect') out.push(`The music ended at exactly 2048 seconds. All four reached the castle and the sky burst into fireworks.`);
+  if (S.result === 'perfect') out.push(`The music ended at exactly the right moment. All four reached the castle and the sky burst into fireworks.`);
   else if (S.result === 'won') out.push(`All four reached the castle as the last song faded.`);
   else if (S.result === 'partial') out.push(`At the end, ${names(fell)} perished on the road. ${names(lived)} reached the castle and carved their names at the gate.`);
   else if (S.result === 'lost') out.push(`When the sixth song ended the music was ${S.dir === 'short' ? 'too short' : 'too long'}, and the whole party perished. Their stones stand in the rain.`);
@@ -984,7 +984,7 @@ function endSession(auto) {
   S.party.forEach((h) => { h.alive = true; h.fell = false; });
   if (r !== 'none' && r !== 'perfect') { const order = S.party.slice().sort(() => rnd() - 0.5); order.slice(0, S.fallenN).forEach((h) => { h.alive = false; h.hp = 0; h.fell = true; }); }
   const fallen = S.party.filter((h) => h.fell).map((h) => h.name);
-  if (r === 'perfect') { startFireworks(true); chronicle('A PERFECT 2048. The castle lit up in fireworks.'); }
+  if (r === 'perfect') { startFireworks(true); chronicle('A perfect ending. The castle lit up in fireworks.'); }
   else if (r === 'won') { startFireworks(false); chronicle('The whole party survived the six songs and reached the castle.'); }
   else if (r === 'partial') { startFireworks(false); chronicle(`${fallen.join(', ')} perished on the road; the rest reached the castle.`); }
   else if (r === 'lost') { startGraveyard(); chronicle('The music ran out and the whole party perished.'); }
@@ -995,10 +995,9 @@ $('#pq-endbtn').addEventListener('click', () => endSession(false));
 function simulateToEnd() {
   if (S.ended) return; if (!S.songs.length) { alertNote('Play at least one song first, then simulate.'); return; }
   acct(); setPlaying(false); if (ctrl && ctrl.pause) try { ctrl.pause(); } catch (e) {}
-  const done = S.songs.slice(0, -1).filter((x) => x.secs > 20), cur = S.songs[S.curSong];
-  const spLen = SP.dur > 30000 ? SP.dur / 1000 : 0;
-  const L = done.length ? done.reduce((a, x) => a + x.secs, 0) / done.length : spLen || Math.max(cur.secs, 210);
-  if (cur) cur.secs = Math.max(cur.secs, spLen || L); // let the current song finish
+  const cur = S.songs[S.curSong];
+  // the pace so far (time heard ÷ songs so far) carries on for every song that's left
+  const L = totalSecs() / S.songs.length;
   const heard = Math.max(60, totalSecs()), perSec = Math.max(S.battles, 1) / heard;
   S.simFrom = S.songs.length - 1;
   const fightOne = () => {
@@ -1010,7 +1009,7 @@ function simulateToEnd() {
   // finish the current song's share of fights, then the rest
   const curFights = Math.max(0, Math.round(perSec * cur.secs) - cur.foes.length); for (let k = 0; k < curFights; k++) fightOne();
   while (S.songs.length < MAXSONGS) {
-    const len = Math.round(L * (0.85 + rnd() * 0.3));
+    const len = L;
     S.songs.push({ title: `Simulated song ${S.songs.length + 1}`, foes: [], at: Date.now(), secs: len, uri: null, sim: true }); S.curSong = S.songs.length - 1;
     S.party.forEach((h) => { h.lvlBySong[S.curSong] = h.lvl; });
     const n = Math.max(1, Math.round(perSec * len)); for (let k = 0; k < n; k++) fightOne();
@@ -1021,9 +1020,9 @@ function simulateToEnd() {
 $('#pq-sim').addEventListener('click', simulateToEnd);
 function questBlock() {
   const r = questResult(), t = totalSecs(), n = S.songs.length;
-  const fallen = S.party.filter((h) => h.fell).map((h) => upper(h.name)), off = Math.round(S.off || 0), by = `${fmt(off)} ${S.dir === 'short' ? 'TOO SHORT' : 'TOO LONG'}`;
-  const msg = { perfect: '★ A PERFECT 2048! THE CASTLE LIT UP IN FIREWORKS ★', won: `THE WHOLE PARTY REACHED THE CASTLE (${by})`, partial: `${S.party.length - fallen.length} OF ${S.party.length} REACHED THE CASTLE · ✝ ${fallen.join(', ')} (${by})`, lost: `✝ THE WHOLE PARTY PERISHED (${by})`, none: 'THE QUEST WAS NOT ATTEMPTED' }[r];
-  return `<div class="q"><b>${msg}</b><br><span class="sub">${t.toFixed(1)} SECONDS HEARD IN ${n} SONG${n === 1 ? '' : 'S'}${r === 'none' ? '' : ` · THE SECRET: 2048 SECONDS (THE 2,048 POSSIBLE SETS OF THE 12 NOTES). ONE HERO FALLS FOR EVERY ${PER} SECONDS AWAY · WITHIN 2 SECONDS = FIREWORKS`}</span></div>`;
+  const fallen = S.party.filter((h) => h.fell).map((h) => upper(h.name)), by = S.dir === 'short' ? 'THE MUSIC RAN SHORT' : 'THE MUSIC RAN LONG';
+  const msg = { perfect: '★ A PERFECT ENDING! THE CASTLE LIT UP IN FIREWORKS ★', won: `THE WHOLE PARTY REACHED THE CASTLE (${by})`, partial: `${S.party.length - fallen.length} OF ${S.party.length} REACHED THE CASTLE · ✝ ${fallen.join(', ')} (${by})`, lost: `✝ THE WHOLE PARTY PERISHED (${by})`, none: 'THE QUEST WAS NOT ATTEMPTED' }[r];
+  return `<div class="q"><b>${msg}</b><br><span class="sub">TIME HEARD ${fmt(t)} IN ${n} SONG${n === 1 ? '' : 'S'}${r === 'none' ? '' : ' · HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.'}</span></div>`;
 }
 /* ---------- the fireworks castle movie ---------- */
 const FW = { parts: [], t: 0, next: 0, stars: [] };
@@ -1085,7 +1084,7 @@ function drawFireworks(dt) {
     const jump = Math.abs(Math.sin(FW.t / 220 + i * 1.3)) * 6; shadow(112 + i * 32 + (i > 1 ? 16 : 0), 168, HW); g.drawImage(h.sprite, 102 + i * 32 + (i > 1 ? 16 : 0), 142 - jump, HW, HH);
   });
   box(20, 4, 280, 30, 0, 7);
-  txt(FW.perfect ? '★ A PERFECT 2048! ★' : S.result === 'partial' ? `${S.party.filter((h) => !h.fell).length} OF ${S.party.length} REACHED THE CASTLE` : 'QUEST COMPLETE!', W / 2, 9, Math.floor(FW.t / 250) % 2 ? 7 : 1, 'center');
+  txt(FW.perfect ? '★ A PERFECT ENDING! ★' : S.result === 'partial' ? `${S.party.filter((h) => !h.fell).length} OF ${S.party.length} REACHED THE CASTLE` : 'QUEST COMPLETE!', W / 2, 9, Math.floor(FW.t / 250) % 2 ? 7 : 1, 'center');
   txt(upper(FW.title).slice(0, 40), W / 2, 22, 3, 'center', 6);
   if (FW.t > 6000) txt('CLICK TO RETURN', W / 2, 190, 15, 'center', 6);
 }
