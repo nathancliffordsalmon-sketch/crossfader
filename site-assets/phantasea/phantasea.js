@@ -18,7 +18,7 @@ const css = `
 #pq *{box-sizing:border-box}
 #pq .pq-title{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:2px 4px 12px}
 #pq .pq-title b{font-size:clamp(14px,3vw,22px);color:#fff;letter-spacing:1px}#pq .pq-title span{font-size:10px;color:#9a8fe0}
-#pq .pq-tv{background:var(--fr);padding:clamp(10px,3.4%,34px);border-radius:10px;box-shadow:inset 0 0 0 3px #4a3f9a,0 10px 30px -10px #000}
+#pq .pq-tv{position:relative;background:var(--fr);padding:clamp(10px,3.4%,34px);border-radius:10px;box-shadow:inset 0 0 0 3px #4a3f9a,0 10px 30px -10px #000}
 #pq canvas#pq-cv{display:block;width:100%;aspect-ratio:320/200;image-rendering:pixelated;image-rendering:crisp-edges;background:#352879;cursor:pointer}
 #pq .pq-hud{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;margin:10px 2px 0;font-size:10px;color:#b8b0f0}
 #pq .pq-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
@@ -37,6 +37,8 @@ const css = `
 #pq .pq-quest{font-size:9px;line-height:1.9;color:#ffe060;margin:12px 2px 0;padding:8px 10px;border:2px solid #433900;border-radius:8px;background:#2a2060}
 #pq .pq-quest i{font-style:normal;color:#9a8fe0}
 #pq-sheet .q{border:3px double currentColor;padding:6px 8px;margin:10px 0 0;text-align:center}
+#pq .pq-fscorner{position:absolute;top:4px;right:4px;z-index:3;font-size:13px!important;line-height:1!important;padding:5px 7px!important;background:rgba(20,16,50,.8)!important}
+#pq .pq-tv.full .pq-fscorner{display:none}
 #pq .pq-logo,#pq .pq-fsinfo,#pq .pq-fsx,#pq .pq-fsbar,#pq #pq-viz{display:none}
 #pq .pq-tv.full #pq-viz{display:block;position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;z-index:0;cursor:pointer}
 #pq .pq-tv.full .pq-logo,#pq .pq-tv.full .pq-fsinfo,#pq .pq-tv.full canvas#pq-cv{position:relative;z-index:1}
@@ -80,7 +82,7 @@ const st = document.createElement('style'); st.textContent = css; document.head.
 root.innerHTML = `
 <div id="pq">
   <div class="pq-title"><b>PHANTASEA SESSIONS</b><span>roll a party · press play · battle to the music</span></div>
-  <div class="pq-tv" id="pq-tv"><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
+  <div class="pq-tv" id="pq-tv"><button class="pq-fscorner" id="pq-fs2" title="Full screen (F)" aria-label="Full screen">⛶</button><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
   <div class="pq-hud"><span id="pq-status">READY.</span><span id="pq-songnow">♪ —</span></div>
   <div class="pq-tabs" role="tablist">
     <button data-tab="sp" aria-pressed="true">Spotify player here</button>
@@ -105,7 +107,7 @@ root.innerHTML = `
     <span style="font-size:9px;color:#9a8fe0">Battle pace</span>
     <button data-pace="0.6" aria-pressed="false">Chill</button><button data-pace="1" aria-pressed="true">Normal</button><button data-pace="1.8" aria-pressed="false">Frantic</button>
     <span style="flex:1"></span>
-    <button id="pq-fs">⛶ Full screen</button><button id="pq-new">New party</button><button id="pq-endbtn" class="end">End session & make my print</button>
+    <button id="pq-fs">⛶ Full screen</button><button id="pq-new">New party</button><button id="pq-sim" title="Use this session's pace to play out the rest of the six songs instantly">⏩ Simulate to the end</button><button id="pq-endbtn" class="end">End session & make my print</button>
   </div>
   <div class="pq-quest" id="pq-quest"></div>
   <div class="pq-songs" id="pq-songs"></div>
@@ -485,6 +487,7 @@ function encounter() {
   if (n <= 2 && rnd() < 0.45 && t.mult < 2) { t2 = newMonsterType(); const m = clamp(Math.round(2.5 / t2.mult), 1, 3); for (let i = 0; i < m; i++) S.foes.push({ type: t2, hp: t2.hp, max: t2.hp, alive: true, x: 0, y: 0, flash: 0 }); }
   layoutFoes(); S.bg = makeBattleBg(pick(BIOMES));
   S.phase = 'battle'; S.battles++; S.turnQ = []; S.turnT = 900; S.log = [];
+  if (!S.bigBattle || S.foes.length > S.bigBattle.n) S.bigBattle = { n: S.foes.length, name: t.name, song: S.curSong };
   const names = [t, t2].filter(Boolean).map((x) => `${S.foes.filter((f) => f.type === x).length} ${upper(x.name)}`).join(' & ');
   say(`ENCOUNTER! ${names}`);
   if (S.curSong >= 0) S.songs[S.curSong].foes.push(...[t, t2].filter(Boolean).map((x) => x.name));
@@ -546,9 +549,9 @@ function foeAct(f) {
   S.anim = { kind: 'bounce', actor: f, foe: true, tgt, t: 0, dur: 600, dmg: dm, col: 2 };
   say(dm ? `${f.type.base} ${pick(['bites', 'claws', 'slams', 'lashes', 'zaps', 'gnaws'])} ${tgt.name} for ${dm}` : `${f.type.base} misses ${tgt.name}`);
 }
-function hurtFoe(f, dm, h) { f.hp -= dm; f.flash = 300; floater({ x: f.x + f.w / 2, y: f.y }, String(dm), 7); h.dmg += dm; if (f.hp <= 0 && f.alive) { f.alive = false; h.kills++; f.type.slain++; f.type.slainBy[h.name] = (f.type.slainBy[h.name] || 0) + 1; } }
+function hurtFoe(f, dm, h) { if (!h.best || dm > h.best.dm) h.best = { dm, foe: f.type.name, song: S.curSong }; f.hp -= dm; f.flash = 300; floater({ x: f.x + f.w / 2, y: f.y }, String(dm), 7); h.dmg += dm; if (f.hp <= 0 && f.alive) { f.alive = false; h.kills++; f.type.slain++; f.type.slainBy[h.name] = (f.type.slainBy[h.name] || 0) + 1; } }
 function resolveAnim(a) {
-  if (a.foe) { if (a.dmg) { a.tgt.hp -= a.dmg; a.tgt.flash = 300; floater(heroPos(S.party.indexOf(a.tgt)), String(a.dmg), 2); if (a.tgt.hp <= 0) { a.tgt.alive = false; a.tgt.hp = 0; say(`${a.tgt.name} falls!`); chronicle(`${a.tgt.name} fell to the ${a.actor.type.name}.`); } } return; }
+  if (a.foe) { if (a.dmg) { a.tgt.hp -= a.dmg; a.tgt.flash = 300; floater(heroPos(S.party.indexOf(a.tgt)), String(a.dmg), 2); if (a.tgt.hp > 0 && a.tgt.hp <= Math.max(2, a.tgt.max * 0.15)) { a.tgt.close = (a.tgt.close || 0) + 1; a.tgt.closeFoe = a.actor.type.name; } if (a.tgt.hp <= 0) { a.tgt.alive = false; a.tgt.hp = 0; a.tgt.downs = (a.tgt.downs || 0) + 1; a.tgt.downBy = a.actor.type.name; say(`${a.tgt.name} falls!`); chronicle(`${a.tgt.name} fell to the ${a.actor.type.name}.`); } } return; }
   if (a.tgt && a.dmg) hurtFoe(a.tgt, a.dmg, a.actor);
 }
 function victory() {
@@ -873,7 +876,7 @@ root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', (
 root.querySelectorAll('[data-pace]').forEach((b) => b.addEventListener('click', () => { S.pace = +b.dataset.pace; root.querySelectorAll('[data-pace]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
 $('#pq-new').addEventListener('click', () => { if (S.songs.length && !confirmNew()) return; resetAll(); });
 function confirmNew() { return window.confirm ? window.confirm('Start over with a new party? This quest will end.') : true; }
-function resetAll() { dirge.stop(); Object.assign(S, { phase: 'intro', introT: 0, gold: 0, foes: [], bestiary: [], songs: [], curSong: -1, log: [], chronicle: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), anim: null, banner: null, ended: false }); FW.parts = []; rollParty(); renderSongs(); setStatus(); $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); }
+function resetAll() { dirge.stop(); Object.assign(S, { phase: 'intro', introT: 0, gold: 0, foes: [], bestiary: [], songs: [], curSong: -1, log: [], chronicle: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), anim: null, banner: null, ended: false, simFrom: null, bigBattle: null, result: null }); FW.parts = []; rollParty(); renderSongs(); setStatus(); $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); }
 let MODE = 'sp';
 // any music starting begins the quest if the party is still being rolled
 function musicStarted(title) {
@@ -934,6 +937,26 @@ $('#pq-tend').addEventListener('click', () => { setPlaying(false); if (S.songs.l
 
 /* ---------- end-of-session print sheet ---------- */
 function spriteURL(c, scale) { const o = makeCanvas(c.width * scale, c.height * scale), x = o.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL('image/png'); }
+function makeStory() {
+  const P = S.party, names = (a) => a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+  const out = [], first = S.songs[0], slain = S.bestiary.reduce((t, b) => t + b.slain, 0);
+  out.push(`${names(P.map((h) => `${h.name} the ${h.race} ${h.cls}`))} set out${first ? ` to the sound of "${first.title}"` : ''}.`);
+  out.push(`Across ${S.songs.length} song${S.songs.length === 1 ? '' : 's'} they fought ${S.battles} battle${S.battles === 1 ? '' : 's'} and slew ${slain} monsters.`);
+  const big = P.filter((h) => h.best).sort((a, b) => b.best.dm - a.best.dm)[0]; if (big) out.push(`The mightiest blow belonged to ${big.name}, who struck the ${big.best.foe} for ${big.best.dm}${S.songs[big.best.song] ? ` during "${S.songs[big.best.song].title}"` : ''}.`);
+  if (S.bigBattle && S.bigBattle.n >= 4) out.push(`Their biggest fight was against ${S.bigBattle.n} foes led by the ${S.bigBattle.name}.`);
+  const tough = S.bestiary.slice().sort((a, b) => b.lvl * b.mult - a.lvl * a.mult)[0]; if (tough && tough.mult >= 1.6) out.push(`The most fearsome creature met was the ${tough.size.toLowerCase()} ${tough.name}${tough.slain ? `, brought down by ${Object.keys(tough.slainBy)[0]}` : ', which escaped'}.`);
+  const killer = P.slice().sort((a, b) => b.kills - a.kills)[0]; if (killer && killer.kills) out.push(`${killer.name} slew the most (${killer.kills}) and reached level ${killer.lvl}.`);
+  const close = P.filter((h) => h.close).sort((a, b) => b.close - a.close)[0]; if (close) out.push(`${close.name} survived ${close.close > 1 ? close.close + ' near-deaths' : 'a near-death'}${close.closeFoe ? `, once at the claws of the ${close.closeFoe}` : ''}.`);
+  const downs = P.filter((h) => h.downs).sort((a, b) => b.downs - a.downs)[0]; if (downs) out.push(`${downs.name} was struck down ${downs.downs > 1 ? downs.downs + ' times' : 'once'}${downs.downBy ? ` (last by the ${downs.downBy})` : ''} but rose again.`);
+  if (S.deaths) out.push(`When hope ran out, the Temple of the Fish raised the whole party ${S.deaths > 1 ? S.deaths + ' times' : 'once'}.`);
+  const fell = P.filter((h) => h.fell).map((h) => h.name), lived = P.filter((h) => !h.fell).map((h) => h.name);
+  if (S.result === 'perfect') out.push(`The music ended at exactly 2048 seconds. All four reached the castle and the sky burst into fireworks.`);
+  else if (S.result === 'won') out.push(`All four reached the castle as the last song faded.`);
+  else if (S.result === 'partial') out.push(`At the end, ${names(fell)} perished on the road. ${names(lived)} reached the castle and carved their names at the gate.`);
+  else if (S.result === 'lost') out.push(`When the sixth song ended the music was ${S.dir === 'short' ? 'too short' : 'too long'}, and the whole party perished. Their stones stand in the rain.`);
+  else out.push('Their journey continues.');
+  return out.join(' ');
+}
 function makeSheet() {
   const date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const mins = Math.max(1, Math.round((Date.now() - S.started) / 60000));
@@ -944,6 +967,7 @@ function makeSheet() {
   $('#pq-sheet').innerHTML = `
     <h1>PHANTASEA SESSIONS</h1><div class="sub">${MOTTO} · SIX SONGS IS ALL YOU GET</div><div class="sub">THE CHRONICLE OF ${esc(upper(S.party.map((h) => h.name).join(', ')))} · ${esc(upper(date))} · ${mins} MIN · ${S.songs.length} SONGS</div>
     <h2>THE PARTY</h2><table>${party}</table>
+    <h2>THE TALE${S.simFrom != null ? ' (SIMULATED FROM SONG ' + (S.simFrom + 1) + ')' : ''}</h2><p style="font-size:8px;line-height:1.9;margin:0">${esc(makeStory())}</p>
     <div class="sub" style="margin-top:6px">${S.battles} BATTLES · ${S.wins} VICTORIES · ${S.deaths} TRIPS TO THE TEMPLE · ${S.gold} GOLD · ${S.bestiary.reduce((s, t) => s + t.slain, 0)} MONSTERS SLAIN</div>
     ${questBlock()}
     <h2>THE SONGS OF THIS QUEST</h2><ol>${songs || '<li>No songs yet</li>'}</ol>
@@ -968,6 +992,33 @@ function endSession(auto) {
   if (!document.fullscreenElement && !$('#pq-tv').classList.contains('full')) cv.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 $('#pq-endbtn').addEventListener('click', () => endSession(false));
+function simulateToEnd() {
+  if (S.ended) return; if (!S.songs.length) { alertNote('Play at least one song first, then simulate.'); return; }
+  acct(); setPlaying(false); if (ctrl && ctrl.pause) try { ctrl.pause(); } catch (e) {}
+  const done = S.songs.slice(0, -1).filter((x) => x.secs > 20), cur = S.songs[S.curSong];
+  const spLen = SP.dur > 30000 ? SP.dur / 1000 : 0;
+  const L = done.length ? done.reduce((a, x) => a + x.secs, 0) / done.length : spLen || Math.max(cur.secs, 210);
+  if (cur) cur.secs = Math.max(cur.secs, spLen || L); // let the current song finish
+  const heard = Math.max(60, totalSecs()), perSec = Math.max(S.battles, 1) / heard;
+  S.simFrom = S.songs.length - 1;
+  const fightOne = () => {
+    encounter(); let guard = 0;
+    while (S.phase === 'battle' && guard++ < 800) { battleStep(); if (S.anim) { const a = S.anim; S.anim = null; resolveAnim(a); } }
+    if (S.phase === 'temple') S.party.forEach((h) => { h.alive = true; h.hp = h.max; });
+    S.phase = 'walk'; S.foes = [];
+  };
+  // finish the current song's share of fights, then the rest
+  const curFights = Math.max(0, Math.round(perSec * cur.secs) - cur.foes.length); for (let k = 0; k < curFights; k++) fightOne();
+  while (S.songs.length < MAXSONGS) {
+    const len = Math.round(L * (0.85 + rnd() * 0.3));
+    S.songs.push({ title: `Simulated song ${S.songs.length + 1}`, foes: [], at: Date.now(), secs: len, uri: null, sim: true }); S.curSong = S.songs.length - 1;
+    S.party.forEach((h) => { h.lvlBySong[S.curSong] = h.lvl; });
+    const n = Math.max(1, Math.round(perSec * len)); for (let k = 0; k < n; k++) fightOne();
+  }
+  S.floaters = []; S.log = []; S.banner = null; renderSongs();
+  endSession(false);
+}
+$('#pq-sim').addEventListener('click', simulateToEnd);
 function questBlock() {
   const r = questResult(), t = totalSecs(), n = S.songs.length;
   const fallen = S.party.filter((h) => h.fell).map((h) => upper(h.name)), off = Math.round(S.off || 0), by = `${fmt(off)} ${S.dir === 'short' ? 'TOO SHORT' : 'TOO LONG'}`;
@@ -1061,7 +1112,7 @@ function vizAudio(dt) {
     for (let i = 0; i < n; i++) { const f = i / n, wob = 0.5 + 0.5 * Math.sin(t * (1.3 + f * 4) + i * 1.7) * Math.sin(t * 0.7 + i * 0.4); raw[i] = clamp((0.62 - f * 0.4) * (0.45 + 0.55 * wob) + (f < 0.18 ? kick * 0.5 : 0) + (f > 0.7 ? hat * 0.25 : 0) + (S.energy - 0.5) * 0.2, 0, 1); }
   }
   let lv = 0, bs = 0, tr = 0; for (let i = 0; i < n; i++) { VZ.spec[i] = Math.max(raw[i], VZ.spec[i] * Math.pow(0.88, dt / 16)); VZ.peak[i] = Math.max(VZ.spec[i], VZ.peak[i] - dt * 0.0005); lv += VZ.spec[i]; if (i < 6) bs += VZ.spec[i]; if (i > n * 0.65) tr += VZ.spec[i]; }
-  VZ.level = lv / n; VZ.bass = bs / 6; VZ.treb = tr / (n * 0.35);
+  VZ.level = lv / n; VZ.smooth = VZ.smooth || new Float32Array(n); for (let i = 0; i < n; i++) VZ.smooth[i] += (VZ.spec[i] - VZ.smooth[i]) * Math.min(1, dt / 600); VZ.bass = bs / 6; VZ.treb = tr / (n * 0.35);
   VZ.bavg = VZ.bavg * 0.97 + VZ.bass * 0.03; VZ.beat = Math.max(0, VZ.beat - dt / 300);
   if (VZ.bass > VZ.bavg * 1.25 + 0.06 && VZ.t - VZ.lastBeat > 280) { VZ.lastBeat = VZ.t; VZ.beat = 1; vizOnBeat(); }
 }
@@ -1140,18 +1191,18 @@ function drawVizWeather(R, dt) {
   vg.fillStyle = storm ? '#3c4450' : '#f0f4fa'; for (let x = 0; x < R.W; x += 2) { const hgt = 3 + Math.sin(x * 0.1) * 1.5 + (storm ? VZ.spec[Math.floor(x / R.W * 40)] * 6 : 2); vg.fillRect(x, R.H - hgt, 2, hgt); }
 }
 function drawVizSky(R, dt) {
-  VZ.skyT = (VZ.skyT + dt / 1000 * (0.006 + VZ.level * 0.03)) % 1; const T = VZ.skyT, day = Math.sin(T * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5;
+  VZ.skyT = (VZ.skyT + dt / 1000 * (0.0035 + VZ.level * 0.004)) % 1; const T = VZ.skyT, day = Math.sin(T * Math.PI * 2 - Math.PI / 2) * 0.5 + 0.5;
   const top = mix('#060820', '#2a6cd8', day), mid = mix('#1c1640', T > 0.5 ? '#f08c58' : '#7ab0f0', day), bot = mix('#2a1c40', T > 0.5 ? '#ffd090' : '#c8e4ff', day);
   vg.fillStyle = vgradOn(vg, 0, R.H, [top, mid, bot]); vg.fillRect(0, 0, R.W, R.H);
   if (!VZ.stars) VZ.stars = Array.from({ length: 160 }, () => [Math.random() * R.W, Math.random() * R.H * 0.8, Math.random()]);
-  if (day < 0.5) VZ.stars.forEach(([x, y, s], i) => { const tw = (0.4 + VZ.spec[i % 40] * 1.2) * (1 - day * 2); vg.fillStyle = `rgba(255,255,255,${clamp(tw * (0.3 + s), 0, 1)})`; vg.fillRect(Math.floor(x), Math.floor(y), s > 0.85 ? 2 : 1, s > 0.85 ? 2 : 1); });
+  if (day < 0.5) VZ.stars.forEach(([x, y, s], i) => { const tw = (0.5 + VZ.smooth[i % 40] * 0.9) * (1 - day * 2); vg.fillStyle = `rgba(255,255,255,${clamp(tw * (0.3 + s), 0, 1)})`; vg.fillRect(Math.floor(x), Math.floor(y), s > 0.85 ? 2 : 1, s > 0.85 ? 2 : 1); });
   // aurora at night: the spectrum as curtains
-  if (day < 0.45) for (let b = 0; b < 3; b++) { vg.beginPath(); for (let x = 0; x <= R.W; x += 3) { const i = Math.floor(x / R.W * 39), y = R.H * (0.18 + b * 0.08) + Math.sin(x * 0.03 + VZ.t / 900 + b) * 8; vg.moveTo(x, y); vg.lineTo(x, y + 6 + VZ.spec[i] * 40); } vg.strokeStyle = [`rgba(80,255,170,${0.35 * (1 - day * 2)})`, `rgba(120,160,255,${0.3 * (1 - day * 2)})`, `rgba(220,120,255,${0.25 * (1 - day * 2)})`][b]; vg.lineWidth = 2; vg.stroke(); }
+  if (day < 0.45) for (let b = 0; b < 3; b++) { vg.beginPath(); for (let x = 0; x <= R.W; x += 3) { const i = Math.floor(x / R.W * 39), y = R.H * (0.18 + b * 0.08) + Math.sin(x * 0.03 + VZ.t / 4000 + b) * 8; vg.moveTo(x, y); vg.lineTo(x, y + 6 + VZ.smooth[i] * 34); } vg.strokeStyle = [`rgba(80,255,170,${0.35 * (1 - day * 2)})`, `rgba(120,160,255,${0.3 * (1 - day * 2)})`, `rgba(220,120,255,${0.25 * (1 - day * 2)})`][b]; vg.lineWidth = 2; vg.stroke(); }
   const ang = T * Math.PI * 2, cxs = R.W / 2 + Math.cos(ang - Math.PI / 2) * R.W * 0.48, cys = R.H * 0.9 + Math.sin(ang - Math.PI / 2) * R.H * 0.82;
-  const sunR = 10 + VZ.bass * 6, gl = vg.createRadialGradient(cxs, cys, 1, cxs, cys, sunR * 3); gl.addColorStop(0, 'rgba(255,250,210,1)'); gl.addColorStop(0.3, 'rgba(255,220,120,.7)'); gl.addColorStop(1, 'rgba(255,180,80,0)'); vg.fillStyle = gl; vg.fillRect(cxs - sunR * 3, cys - sunR * 3, sunR * 6, sunR * 6);
+  const sunR = 10 + VZ.smooth[2] * 5, gl = vg.createRadialGradient(cxs, cys, 1, cxs, cys, sunR * 3); gl.addColorStop(0, 'rgba(255,250,210,1)'); gl.addColorStop(0.3, 'rgba(255,220,120,.7)'); gl.addColorStop(1, 'rgba(255,180,80,0)'); vg.fillStyle = gl; vg.fillRect(cxs - sunR * 3, cys - sunR * 3, sunR * 6, sunR * 6);
   const mx = R.W / 2 - Math.cos(ang - Math.PI / 2) * R.W * 0.48, my = R.H * 0.9 - Math.sin(ang - Math.PI / 2) * R.H * 0.82; vg.fillStyle = '#f0f0ff'; vg.beginPath(); vg.arc(mx, my, 8, 0, 7); vg.fill(); vg.fillStyle = 'rgba(180,180,210,.6)'; vg.beginPath(); vg.arc(mx + 2, my + 2, 2, 0, 7); vg.arc(mx - 3, my - 1, 1.5, 0, 7); vg.fill();
-  for (let i = 0; i < 8; i++) { const x = ((i * 89 + VZ.t / 1000 * (4 + VZ.level * 30) * (1 + i % 3)) % (R.W + 120)) - 60, y = R.H * 0.08 + (i * 29) % (R.H * 0.5); vg.fillStyle = `rgba(255,255,255,${0.25 + day * 0.6})`; vg.beginPath(); vg.ellipse(x, y, 26 + (i % 3) * 8, 7, 0, 0, 7); vg.ellipse(x + 14, y - 4, 14, 7, 0, 0, 7); vg.fill(); }
-  vg.fillStyle = mix('#0c0818', '#2c5c3c', day); for (let x = 0; x < R.W; x++) { const h = 8 + Math.sin(x * 0.02) * 5 + Math.sin(x * 0.07) * 3 + VZ.spec[Math.floor(x / R.W * 40)] * 10; vg.fillRect(x, R.H - h, 1, h); }
+  for (let i = 0; i < 8; i++) { const x = ((i * 89 + VZ.t / 1000 * (0.8 + VZ.level * 1.2) * (1 + (i % 3) * 0.35)) % (R.W + 120)) - 60, y = R.H * 0.08 + (i * 29) % (R.H * 0.5); vg.fillStyle = `rgba(255,255,255,${0.25 + day * 0.6})`; vg.beginPath(); vg.ellipse(x, y, 26 + (i % 3) * 8, 7, 0, 0, 7); vg.ellipse(x + 14, y - 4, 14, 7, 0, 0, 7); vg.fill(); }
+  vg.fillStyle = mix('#0c0818', '#2c5c3c', day); for (let x = 0; x < R.W; x++) { const h = 8 + Math.sin(x * 0.02) * 5 + Math.sin(x * 0.07) * 3 + VZ.smooth[Math.floor(x / R.W * 40)] * 6; vg.fillRect(x, R.H - h, 1, h); }
 }
 function drawViz(dt) {
   vizAudio(dt); if (!isFull()) return;
@@ -1178,7 +1229,7 @@ function setFull(on) {
   if (on) { if (tv.requestFullscreen) tv.requestFullscreen().catch(() => {}); else if (tv.webkitRequestFullscreen) tv.webkitRequestFullscreen(); }
   else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
 }
-$('#pq-fs').addEventListener('click', () => setFull(true));
+$('#pq-fs').addEventListener('click', () => setFull(true)); $('#pq-fs2').addEventListener('click', (e) => { e.stopPropagation(); setFull(true); });
 $('#pq-fsx').addEventListener('click', () => setFull(false));
 cv.addEventListener('dblclick', () => setFull(!isFull()));
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && isFull()) { tv.classList.remove('full'); } });
@@ -1188,5 +1239,5 @@ document.addEventListener('keydown', (e) => { if (/input|select|textarea/i.test(
 rollParty(); setStatus(); renderQuest();
 if (document.fonts) document.fonts.load('8px "Press Start 2P"').catch(() => {});
 requestAnimationFrame(frame);
-window.__pq = { S, newMonsterType, newHero, endSession, setFull, dirge, startFireworks, questResult, totalSecs, renderQuest, musicStarted, setPlaying, makeSheet, encounter, begin };
+window.__pq = { S, simulateToEnd, makeStory, newMonsterType, newHero, endSession, setFull, dirge, startFireworks, questResult, totalSecs, renderQuest, musicStarted, setPlaying, makeSheet, encounter, begin };
 })();
