@@ -1108,15 +1108,15 @@ function vizAudio(dt) {
     an.getByteFrequencyData(VZ.fbuf); const B = VZ.fbuf.length;
     for (let i = 0; i < n; i++) { const a = Math.floor(Math.pow(i / n, 2) * B * 0.7) + 1, b = Math.max(a + 1, Math.floor(Math.pow((i + 1) / n, 2) * B * 0.7) + 1); let s = 0; for (let k = a; k < b; k++) s += VZ.fbuf[k]; raw[i] = clamp(s / (b - a) / 210 * (1 + i / n * 0.8), 0, 1); }
   } else if (S.playing) {
-    VZ.ph += dt / 1000 * VZ.bpm / 60; const fr = VZ.ph % 1, kick = Math.exp(-fr * 7), hat = Math.exp(-((VZ.ph * 2) % 1) * 14), t = VZ.t / 1000;
-    for (let i = 0; i < n; i++) { const f = i / n, wob = 0.5 + 0.5 * Math.sin(t * (1.3 + f * 4) + i * 1.7) * Math.sin(t * 0.7 + i * 0.4); raw[i] = clamp((0.62 - f * 0.4) * (0.45 + 0.55 * wob) + (f < 0.18 ? kick * 0.5 : 0) + (f > 0.7 ? hat * 0.25 : 0) + (S.energy - 0.5) * 0.2, 0, 1); }
+    VZ.ph += dt / 1000 * VZ.bpm / 60; const fr = VZ.ph % 1, kick = Math.exp(-fr * 3.5), hat = Math.exp(-((VZ.ph * 2) % 1) * 8), t = VZ.t / 1000;
+    for (let i = 0; i < n; i++) { const f = i / n, wob = 0.5 + 0.5 * Math.sin(t * (0.35 + f * 0.8) + i * 0.6) * Math.sin(t * 0.22 + i * 0.25); raw[i] = clamp((0.62 - f * 0.4) * (0.45 + 0.55 * wob) + (f < 0.18 ? kick * 0.28 : 0) + (f > 0.7 ? hat * 0.1 : 0) + (S.energy - 0.5) * 0.2, 0, 1); }
   }
-  let lv = 0, bs = 0, tr = 0; for (let i = 0; i < n; i++) { VZ.spec[i] = Math.max(raw[i], VZ.spec[i] * Math.pow(0.88, dt / 16)); VZ.peak[i] = Math.max(VZ.spec[i], VZ.peak[i] - dt * 0.0005); lv += VZ.spec[i]; if (i < 6) bs += VZ.spec[i]; if (i > n * 0.65) tr += VZ.spec[i]; }
+  let lv = 0, bs = 0, tr = 0; for (let i = 0; i < n; i++) { { const up = 1 - Math.pow(0.55, dt / 16), dn = 1 - Math.pow(0.95, dt / 16); VZ.spec[i] += (raw[i] - VZ.spec[i]) * (raw[i] > VZ.spec[i] ? up : dn); } VZ.peak[i] = Math.max(VZ.spec[i], VZ.peak[i] - dt * 0.00022); lv += VZ.spec[i]; if (i < 6) bs += VZ.spec[i]; if (i > n * 0.65) tr += VZ.spec[i]; }
   VZ.level = lv / n; VZ.smooth = VZ.smooth || new Float32Array(n); for (let i = 0; i < n; i++) VZ.smooth[i] += (VZ.spec[i] - VZ.smooth[i]) * Math.min(1, dt / 600); VZ.bass = bs / 6; VZ.treb = tr / (n * 0.35);
   VZ.bavg = VZ.bavg * 0.97 + VZ.bass * 0.03; VZ.beat = Math.max(0, VZ.beat - dt / 300);
-  if (VZ.bass > VZ.bavg * 1.25 + 0.06 && VZ.t - VZ.lastBeat > 280) { VZ.lastBeat = VZ.t; VZ.beat = 1; vizOnBeat(); }
+  if (VZ.bass > VZ.bavg * 1.25 + 0.06 && VZ.t - VZ.lastBeat > 450) { VZ.lastBeat = VZ.t; VZ.beat = 1; vizOnBeat(); }
 }
-function vizOnBeat() { if (VZ.modes[VZ.mode] === 'LIGHTNING' && Math.random() < 0.75) { VZ.flash = 1; VZ.bolts.push(makeBolt()); } }
+function vizOnBeat() { if (VZ.modes[VZ.mode] === 'LIGHTNING' && VZ.t - (VZ.lastBolt || -1e9) > 2600 && Math.random() < 0.6) { VZ.lastBolt = VZ.t; VZ.flash = 1; VZ.bolts.push(makeBolt()); } }
 function vizRects() {
   const tr = tv.getBoundingClientRect(), gr = cv.getBoundingClientRect(), s = vcv.width / Math.max(1, tr.width);
   return { gx: (gr.left - tr.left) * s, gy: (gr.top - tr.top) * s, gw: gr.width * s, gh: gr.height * s, W: vcv.width, H: vcv.height };
@@ -1132,55 +1132,60 @@ function makeBolt() {
 }
 const WA = ['#00c800', '#20d800', '#58e000', '#98e800', '#d8e800', '#f8d000', '#f8a000', '#f86000', '#f82800'];
 function drawVizStandard(R, dt) {
-  vg.fillStyle = '#05060c'; vg.fillRect(0, 0, R.W, R.H);
-  vg.fillStyle = 'rgba(40,60,90,.35)'; for (let x = 0; x < R.W; x += 6) vg.fillRect(x, 0, 1, R.H); for (let y = 0; y < R.H; y += 6) vg.fillRect(0, y, R.W, 1);
+  { const gr = vg.createRadialGradient(R.gx + R.gw / 2, R.gy + R.gh / 2, 10, R.gx + R.gw / 2, R.gy + R.gh / 2, Math.max(R.W, R.H) * 0.7); gr.addColorStop(0, `rgba(30,70,50,${0.55 + VZ.smooth[3] * 0.3})`); gr.addColorStop(1, '#04050a'); vg.fillStyle = gr; vg.fillRect(0, 0, R.W, R.H); }
+  vg.fillStyle = 'rgba(60,90,120,.18)'; for (let x = 0; x < R.W; x += 6) vg.fillRect(x, 0, 1, R.H); for (let y = 0; y < R.H; y += 6) vg.fillRect(0, y, R.W, 1);
   const n = VZ.spec.length, sides = [
     { len: R.gy, along: R.W, at: (i, w) => [i * w, R.gy], dir: [0, -1] },
     { len: R.H - R.gy - R.gh, along: R.W, at: (i, w) => [i * w, R.gy + R.gh], dir: [0, 1] },
     { len: R.gx, along: R.H, at: (i, w) => [R.gx, i * w], dir: [-1, 0] },
     { len: R.W - R.gx - R.gw, along: R.H, at: (i, w) => [R.gx + R.gw, i * w], dir: [1, 0] }];
   sides.forEach((sd, si) => {
-    if (sd.len < 3) return; const bars = Math.max(8, Math.floor(sd.along / 5)), w = sd.along / bars;
+    if (sd.len < 3) return; const bars = Math.max(8, Math.floor(sd.along / 6)), w = sd.along / bars;
     for (let i = 0; i < bars; i++) {
       const b = Math.floor(Math.abs(((i + 0.5) / bars) * 2 - 1) * (n - 1)), v = VZ.spec[(si % 2 ? n - 1 - b : b)], pk = VZ.peak[(si % 2 ? n - 1 - b : b)];
       const segs = Math.floor(v * sd.len / 2.5), [x0, y0] = sd.at(i, w);
+      { const gl = Math.min(sd.len, sd.len * (0.25 + v * 0.9)); vg.fillStyle = `rgba(80,230,120,${0.07 + v * 0.12})`; if (sd.dir[0] === 0) vg.fillRect(x0, sd.dir[1] < 0 ? y0 - gl : y0, w, gl); else vg.fillRect(sd.dir[0] < 0 ? x0 - gl : x0, y0, gl, w); }
       for (let k = 0; k < segs; k++) { vg.fillStyle = WA[Math.min(WA.length - 1, Math.floor(k / Math.max(1, sd.len / 2.5) * WA.length))]; const d = 1 + k * 2.5; if (sd.dir[0] === 0) vg.fillRect(x0 + 0.5, y0 + sd.dir[1] * d - (sd.dir[1] < 0 ? 2 : 0), w - 1, 2); else vg.fillRect(x0 + sd.dir[0] * d - (sd.dir[0] < 0 ? 2 : 0), y0 + 0.5, 2, w - 1); }
       const pd = 1 + Math.floor(pk * sd.len / 2.5) * 2.5; vg.fillStyle = '#d8d8f0'; if (sd.dir[0] === 0) vg.fillRect(x0 + 0.5, y0 + sd.dir[1] * pd - (sd.dir[1] < 0 ? 1 : 0), w - 1, 1); else vg.fillRect(x0 + sd.dir[0] * pd, y0 + 0.5, 1, w - 1);
     }
   });
   // oscilloscope ring hugging the game frame
   vg.strokeStyle = 'rgba(120,255,160,.85)'; vg.lineWidth = 1; vg.beginPath(); const per = 2 * (R.gw + R.gh), steps = 260;
-  for (let i = 0; i <= steps; i++) { let d = i / steps * per, x, y, nx, ny; if (d < R.gw) { x = R.gx + d; y = R.gy; nx = 0; ny = -1; } else if ((d -= R.gw) < R.gh) { x = R.gx + R.gw; y = R.gy + d; nx = 1; ny = 0; } else if ((d -= R.gh) < R.gw) { x = R.gx + R.gw - d; y = R.gy + R.gh; nx = 0; ny = 1; } else { d -= R.gw; x = R.gx; y = R.gy + R.gh - d; nx = -1; ny = 0; } const a = 3 + Math.sin(i * 0.9 + VZ.t / 60) * VZ.spec[i % VZ.spec.length] * 6; if (i) vg.lineTo(x + nx * a, y + ny * a); else vg.moveTo(x + nx * a, y + ny * a); }
+  for (let i = 0; i <= steps; i++) { let d = i / steps * per, x, y, nx, ny; if (d < R.gw) { x = R.gx + d; y = R.gy; nx = 0; ny = -1; } else if ((d -= R.gw) < R.gh) { x = R.gx + R.gw; y = R.gy + d; nx = 1; ny = 0; } else if ((d -= R.gh) < R.gw) { x = R.gx + R.gw - d; y = R.gy + R.gh; nx = 0; ny = 1; } else { d -= R.gw; x = R.gx; y = R.gy + R.gh - d; nx = -1; ny = 0; } const a = 3 + Math.sin(i * 0.22 + VZ.t / 700) * VZ.smooth[i % VZ.smooth.length] * 7; if (i) vg.lineTo(x + nx * a, y + ny * a); else vg.moveTo(x + nx * a, y + ny * a); }
   vg.stroke();
 }
 const FIREPAL = (() => { const p = []; for (let i = 0; i < 37; i++) { const t = i / 36; p.push(t < 0.25 ? [Math.round(t * 4 * 160), 0, 0] : t < 0.55 ? [160 + Math.round((t - 0.25) / 0.3 * 95), Math.round((t - 0.25) / 0.3 * 120), 0] : t < 0.85 ? [255, 120 + Math.round((t - 0.55) / 0.3 * 120), Math.round((t - 0.55) / 0.3 * 40)] : [255, 240, 40 + Math.round((t - 0.85) / 0.15 * 215)]); } return p; })();
 function drawVizFire(R) {
   const w = R.W, h = R.H; if (!VZ.fire || VZ.fw !== w || VZ.fh !== h) { VZ.fire = new Uint8Array(w * h); VZ.fw = w; VZ.fh = h; VZ.img = vg.createImageData(w, h); }
-  const f = VZ.fire, heat = Math.round(14 + VZ.level * 26 + VZ.beat * 8);
-  for (let x = 0; x < w; x++) { const v = Math.min(36, Math.round(heat * (0.75 + 0.25 * Math.sin(x * 0.3 + VZ.t / 200)) * (0.7 + VZ.spec[Math.floor(x / w * VZ.spec.length)] * 0.6))); f[(h - 1) * w + x] = v; }
+  VZ.fireTick = !VZ.fireTick; if (VZ.fireTick) { vg.putImageData(VZ.img, 0, 0); return; }
+  const f = VZ.fire, heat = Math.round(20 + VZ.smooth.reduce((a, b) => a + b, 0) / VZ.smooth.length * 16 + VZ.beat * 3);
+  for (let x = 0; x < w; x++) { const v = Math.min(36, Math.round(heat * (0.75 + 0.25 * Math.sin(x * 0.3 + VZ.t / 200)) * (0.7 + VZ.smooth[Math.floor(x / w * VZ.smooth.length)] * 0.6))); f[(h - 1) * w + x] = v; }
   const gy = Math.floor(R.gy) - 1; if (gy > 2) for (let x = Math.floor(R.gx); x < R.gx + R.gw; x++) f[gy * w + x] = Math.min(36, Math.round(heat * 0.85 * (0.5 + VZ.spec[Math.floor((x - R.gx) / R.gw * VZ.spec.length)] * 0.8)));
-  for (const sx of [Math.floor(R.gx) - 1, Math.ceil(R.gx + R.gw)]) if (sx > 0 && sx < w) for (let y = Math.floor(R.gy); y < R.gy + R.gh; y++) if (Math.random() < 0.5) f[y * w + sx] = Math.min(36, Math.round(heat * 0.7));
-  const cool = 0.35 + (1 - VZ.level) * 0.5;
+  for (const sx of [Math.floor(R.gx) - 1, Math.ceil(R.gx + R.gw)]) if (sx > 0 && sx < w) for (let y = Math.floor(R.gy); y < R.gy + R.gh; y++) f[y * w + sx] = Math.min(36, Math.round(heat * 0.8));
+  for (const sx of [0, 1, 2, w - 3, w - 2, w - 1]) for (let y = Math.floor(h * 0.08); y < h; y++) f[y * w + sx] = Math.min(36, Math.round(heat * (0.55 + 0.25 * Math.sin(y * 0.07 + VZ.t / 900))));
+  const cool = 0.2 + (1 - VZ.level) * 0.22;
   for (let y = 1; y < h; y++) for (let x = 0; x < w; x++) { const src = y * w + x, v = f[src]; if (!v) { f[src - w] = 0; continue; } const rn = Math.random(), dx = Math.round(rn * 3) - 1; const dst = src - w + dx; if (dst >= 0) f[dst] = Math.max(0, v - (rn < cool ? 1 : 0)); }
-  const d = VZ.img.data; for (let i = 0; i < w * h; i++) { const c = FIREPAL[f[i]]; d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = 255; }
+  const d = VZ.img.data, pulse = 0.8 + VZ.smooth[2] * 0.4; for (let i = 0; i < w * h; i++) { const v = f[i]; if (v < 3) { const yk = Math.floor(i / w) / h, bg = yk * yk; d[i * 4] = Math.min(255, (18 + 70 * bg) * pulse) | 0; d[i * 4 + 1] = (4 + 14 * bg * pulse) | 0; d[i * 4 + 2] = (8 + 6 * bg) | 0; } else { const c = FIREPAL[v]; d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; } d[i * 4 + 3] = 255; }
   vg.putImageData(VZ.img, 0, 0);
 }
 function drawVizLightning(R, dt) {
   const t = VZ.t / 1000; vg.fillStyle = vgradOn(vg, 0, R.H, ['#06061a', '#141838', '#1c1430']); vg.fillRect(0, 0, R.W, R.H);
-  for (let i = 0; i < 14; i++) { const x = ((i * 53 + t * (6 + i % 3 * 3)) % (R.W + 80)) - 40, y = (i * 37) % (R.H * 0.9); vg.fillStyle = `rgba(${60 + VZ.flash * 150},${70 + VZ.flash * 150},${110 + VZ.flash * 140},.35)`; vg.beginPath(); vg.ellipse(x, y, 30 + (i % 4) * 8, 9 + (i % 3) * 3, 0, 0, 7); vg.fill(); }
-  if (VZ.flash > 0) { vg.fillStyle = `rgba(200,210,255,${VZ.flash * 0.55})`; vg.fillRect(0, 0, R.W, R.H); VZ.flash = Math.max(0, VZ.flash - dt / 220); }
+  for (let i = 0; i < 26; i++) { const x = ((i * 53 + t * (2 + i % 3)) % (R.W + 120)) - 60, y = (i * 37) % (R.H * 0.95); vg.fillStyle = `rgba(${60 + VZ.flash * 150},${70 + VZ.flash * 150},${110 + VZ.flash * 140},.35)`; vg.beginPath(); vg.ellipse(x, y, 42 + (i % 4) * 12, 12 + (i % 3) * 4, 0, 0, 7); vg.ellipse(x + 20, y - 6, 26, 10, 0, 0, 7); vg.fill(); }
+  if (VZ.flash > 0) { vg.fillStyle = `rgba(200,210,255,${VZ.flash * 0.3})`; vg.fillRect(0, 0, R.W, R.H); VZ.flash = Math.max(0, VZ.flash - dt / 650); }
   vg.fillStyle = 'rgba(150,170,230,.5)'; for (let i = 0; i < 80 + VZ.level * 120; i++) { const x = (i * 97 + t * 40 * (1 + i % 3)) % R.W, y = (i * 61 + t * 220 * (1 + (i % 4) * 0.3)) % R.H; vg.fillRect(Math.floor(x), Math.floor(y), 1, 3); }
   VZ.bolts = VZ.bolts.filter((b) => (b.life -= dt) > 0);
   VZ.bolts.forEach((b) => { const a = b.life / 380; [[4, `rgba(140,160,255,${a * 0.35})`], [2, `rgba(200,210,255,${a * 0.8})`], [1, `rgba(255,255,255,${a})`]].forEach(([wd, col]) => { vg.strokeStyle = col; vg.lineWidth = wd; vg.beginPath(); b.pts.forEach(([x, y], i) => i ? vg.lineTo(x, y) : vg.moveTo(x, y)); vg.stroke(); vg.beginPath(); b.branch.forEach(([x, y], i) => i ? vg.lineTo(x, y) : vg.moveTo(x, y)); vg.stroke(); }); });
-  // electric crawl on the frame, driven by treble
-  vg.strokeStyle = `rgba(160,200,255,${0.25 + VZ.treb * 0.7})`; vg.lineWidth = 1; vg.beginPath(); for (let i = 0; i < 40; i++) { const k = Math.random(), side = i % 4; const x = side === 0 || side === 2 ? R.gx + k * R.gw : side === 1 ? R.gx + R.gw : R.gx, y = side === 1 || side === 3 ? R.gy + k * R.gh : side === 0 ? R.gy : R.gy + R.gh; vg.moveTo(x, y); vg.lineTo(x + (Math.random() - 0.5) * 8, y + (Math.random() - 0.5) * 8); } vg.stroke();
+  // soft electric glow travelling around the frame, brighter with treble
+  { const per = 2 * (R.gw + R.gh), glow = 0.15 + VZ.smooth[30] * 0.5; vg.strokeStyle = `rgba(150,190,255,${glow})`; vg.lineWidth = 2; vg.strokeRect(R.gx - 1.5, R.gy - 1.5, R.gw + 3, R.gh + 3);
+    for (let i = 0; i < 6; i++) { let d = ((VZ.t / 9 + i * per / 6) % per), x, y; if (d < R.gw) { x = R.gx + d; y = R.gy; } else if ((d -= R.gw) < R.gh) { x = R.gx + R.gw; y = R.gy + d; } else if ((d -= R.gh) < R.gw) { x = R.gx + R.gw - d; y = R.gy + R.gh; } else { d -= R.gw; x = R.gx; y = R.gy + R.gh - d; }
+      const g2 = vg.createRadialGradient(x, y, 0, x, y, 7); g2.addColorStop(0, `rgba(220,235,255,${0.5 + glow})`); g2.addColorStop(1, 'rgba(150,190,255,0)'); vg.fillStyle = g2; vg.fillRect(x - 7, y - 7, 14, 14); } }
 }
 function vgradOn(ctx, y0, y1, stops) { const gr = ctx.createLinearGradient(0, y0, 0, y1); stops.forEach((c, i) => gr.addColorStop(i / (stops.length - 1), c)); return gr; }
 function drawVizWeather(R, dt) {
-  const t = VZ.t / 1000, storm = VZ.level > 0.38, wind = (VZ.spec[10] - 0.3) * 3 + Math.sin(t * 0.4) * 0.6 + VZ.beat * 1.5;
-  vg.fillStyle = vgradOn(vg, 0, R.H, storm ? ['#2c3448', '#4c5868', '#6c7480'] : ['#7c8ca8', '#b0bccc', '#d8dee8']); vg.fillRect(0, 0, R.W, R.H);
+  const t = VZ.t / 1000; VZ.stormK = VZ.stormK == null ? 0 : VZ.stormK; const tgtS = VZ.level > 0.42 ? 1 : VZ.level < 0.3 ? 0 : VZ.stormK > 0.5 ? 1 : 0; VZ.stormK += (tgtS - VZ.stormK) * Math.min(1, dt / 2500); const storm = VZ.stormK > 0.5; VZ.wind = (VZ.wind || 0) + (((VZ.smooth[10] - 0.3) * 2.5 + Math.sin(t * 0.25) * 0.6) - (VZ.wind || 0)) * Math.min(1, dt / 1500); const wind = VZ.wind;
+  { const k = VZ.stormK; vg.fillStyle = vgradOn(vg, 0, R.H, [mix('#7c8ca8', '#2c3448', k), mix('#b0bccc', '#4c5868', k), mix('#d8dee8', '#6c7480', k)]); } vg.fillRect(0, 0, R.W, R.H);
   for (let i = 0; i < 10; i++) { const x = ((i * 71 + t * (8 + wind * 6)) % (R.W + 100)) - 50, y = 4 + (i * 13) % (R.H * 0.3); vg.fillStyle = storm ? 'rgba(40,46,60,.7)' : 'rgba(255,255,255,.8)'; vg.beginPath(); vg.ellipse(x, y, 34, 9, 0, 0, 7); vg.ellipse(x + 18, y - 5, 18, 8, 0, 0, 7); vg.fill(); }
-  const want = Math.floor(120 + VZ.level * 520); while (VZ.parts.length < want) VZ.parts.push({ x: Math.random() * R.W, y: Math.random() * R.H, v: 0.5 + Math.random(), s: Math.random() });
+  const want = Math.floor(160 + VZ.smooth.reduce((a, b) => a + b, 0) / VZ.smooth.length * 420); while (VZ.parts.length < want) VZ.parts.push({ x: Math.random() * R.W, y: Math.random() * R.H, v: 0.5 + Math.random(), s: Math.random() });
   VZ.parts.length = Math.min(VZ.parts.length, want);
   VZ.parts.forEach((p) => {
     if (storm) { p.y += dt * 0.25 * p.v; p.x += dt * 0.05 * wind; vg.fillStyle = 'rgba(180,200,240,.75)'; vg.fillRect(Math.floor(p.x), Math.floor(p.y), 1, 4); }
