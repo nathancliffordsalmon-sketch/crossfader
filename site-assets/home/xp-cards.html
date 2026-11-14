@@ -1,4 +1,47 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Press+Start+2P&family=VT323&display=swap">
 <style>
+/* shared game-card look (same as the home page) */
+@keyframes ltfBob{50%{transform:translateY(-4px) rotate(-4deg)}}
+@keyframes ltfBobD{0%,100%{transform:rotate(45deg)}50%{transform:translateY(-4px) rotate(41deg)}}
+.ltf-gcard{position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:112px;padding:14px 16px;border-radius:14px;overflow:hidden;border:1.6px solid #2b1055;box-shadow:5px 5px 0 #2b1055;transition:transform .15s,box-shadow .15s;isolation:isolate;text-decoration:none!important}
+.ltf-gcard:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 #2b1055}
+.ltf-gcard::before{content:"";position:absolute;inset:0;z-index:-1;background-size:cover;background-position:center}
+.ltf-gcard::after{content:"";position:absolute;inset:0;z-index:-1}
+.ltf-gcard .gt{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ltf-gcard b{font:24px/1 "Luckiest Guy",sans-serif;letter-spacing:.5px;white-space:nowrap}
+.ltf-gcard small{font:17px/1.1 VT323,monospace;color:#f2f0ff}
+.ltf-gcard .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.ltf-gcard .chips i{font:14px/1 VT323,monospace;font-style:normal;padding:2px 6px 1px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);color:#fff}
+.ltf-gcard .orb{flex:0 0 auto;display:grid;place-items:center;width:50px;height:50px;border-radius:50%;font-size:30px;line-height:1;box-shadow:inset -6px -8px 0 rgba(0,0,0,.25),0 0 0 3px rgba(255,255,255,.18);animation:ltfBob 3s ease-in-out infinite}
+.ltf-gcard:hover .orb{animation-duration:.9s}
+.ltf-g-pqs .orb{animation-name:ltfBobD}
+.ltf-g-rts::before{background-image:url("/wp-content/uploads/2026/11/rubber-tree-sessions.webp");background-position:center 30%}
+.ltf-g-rts::after{background:linear-gradient(90deg,rgba(28,18,10,.92) 0,rgba(28,18,10,.72) 58%,rgba(28,18,10,.15) 100%)}
+.ltf-g-rts b{color:#9be36b;text-shadow:2px 2px 0 #1f4a12,4px 4px 0 #120a04}
+.ltf-g-rts .orb{background:radial-gradient(circle at 35% 30%,#ffb04a,#e8701c 60%,#8a3a0c)}
+.ltf-g-rts .chips i{border-color:rgba(155,227,107,.45)}
+.ltf-g-pqs::before{background-image:url("https://cdn.jsdelivr.net/gh/nathancliffordsalmon-sketch/crossfader@84bb5e7badd16408f243b93b4afc219246e81e06/site-assets/phantasea-thumb.jpg");background-position:center 45%;image-rendering:pixelated}
+.ltf-g-pqs::after{background:linear-gradient(90deg,rgba(20,12,56,.94) 0,rgba(36,24,80,.78) 58%,rgba(36,24,80,.2) 100%),repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.ltf-g-pqs b{font:17px/1.1 "Press Start 2P",monospace;color:#fff4b0;letter-spacing:1px;text-shadow:0 2px 0 #f89020,0 4px 0 #d04818,2px 6px 0 #1c1040}
+.ltf-g-pqs .motto{font:9px/1.4 "Press Start 2P",monospace;color:#ffd040;letter-spacing:.5px}
+.ltf-g-pqs .orb{background:radial-gradient(circle at 35% 30%,#a99cff,#6c5eb5 55%,#2b1d6b);border-radius:12px;transform:rotate(45deg)}
+.ltf-g-pqs .orb span{transform:rotate(-45deg);font:16px/1 "Press Start 2P",monospace;color:#fff;text-shadow:2px 2px 0 #1c1040}
+.ltf-g-pqs .chips i{border-color:rgba(255,208,64,.5)}
+.ltf-g-fsg{background:linear-gradient(#3a5ad8,#1a2a8a 55%,#0c1650);border:2px solid #fff;box-shadow:0 0 0 2px #2b1055,5px 5px 0 2px #2b1055}
+.ltf-g-fsg:hover{box-shadow:0 0 0 2px #2b1055,7px 7px 0 2px #2b1055}
+.ltf-g-fsg::after{background:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 20%,#cfe8ff,transparent),radial-gradient(1px 1px at 85% 70%,#fff,transparent),radial-gradient(1px 1px at 40% 80%,#cfe8ff,transparent)}
+.ltf-g-fsg b{color:#fff;text-shadow:2px 2px 0 #0c1650,3px 3px 0 #000}
+.ltf-g-fsg small::before{content:"\261E  ";color:#4fc3ff}
+.ltf-g-fsg .orb{background:none;box-shadow:none;width:46px;height:62px;border-radius:0}
+.ltf-g-fsg .orb svg{width:46px;height:62px;filter:drop-shadow(0 0 8px #4fc3ff)}
+.ltf-g-fsg .chips i{background:rgba(12,22,80,.7);border-color:#fff}
+.ltf-g-ad::before{background:repeating-linear-gradient(45deg,#ffd36a 0 14px,#ffc93d 14px 28px)}
+.ltf-g-ad{outline:3px dashed #c0122c;outline-offset:-9px}
+.ltf-g-ad b{color:#c0122c;text-shadow:2px 2px 0 #fff}
+.ltf-g-ad small{color:#2b1055!important;font-weight:600}
+.ltf-g-ad .orb{background:#c0122c;color:#ffd36a;font:900 28px/1 "Luckiest Guy",sans-serif}
+.ltf-g-ad .adtag{position:absolute;top:8px;right:10px;font:9px/1 "Press Start 2P",monospace;background:#c0122c;color:#fff;padding:3px 5px;border-radius:3px;letter-spacing:1px}
+@media (prefers-reduced-motion:reduce){.ltf-gcard .orb{animation:none}}
 /* Experience Music: every experience as a game card (shares .ltf-gcard with the home page) */
 #ltf-xp-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:22px 0 10px}
 #ltf-xp-cards .ltf-gcard{min-height:128px;color:#fff}
