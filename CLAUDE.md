@@ -29,3 +29,6 @@ Also add a slim **Quick Play** bar at the top (Random Spotify playlist / C64 / R
 ### Reference implementations
 - `site-assets/island/island.js` (Island Sessions): all sources, quick play bar, full screen.
 - `site-assets/rko/fishing-gm.js`: adding game music to an existing page as an add-on.
+
+### Fishing hook
+The Fishing page's inline game (base64 in `#cif-src`) calls `window.cifHook({ctx, lvl, fish, beat, t, floor, solid, note, parts, texts})` every frame just before drawing the HUD. `site-assets/rko/fishing-blaster.js` (the Boombox Kid) uses it. Keep that call if you rebuild the Fishing game.
