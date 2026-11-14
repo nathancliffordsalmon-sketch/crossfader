@@ -699,24 +699,72 @@ function smokeThink(dt, d) {
   }
 }
 
-/* ---------------- a pirate ship on the horizon ---------------- */
-S.ship = null; S.nextShip = 45 + rnd() * 60;
+/* ---------------- ships on the horizon: a fleet of classic sailing-ship types ---------------- */
+// L = half hull length, hh = hull height, masts = [x, height, sails, rig], st/bw = stern & bow castle heights, guns = gun decks
+const SHIPS = [
+  { name: 'sloop', L: 10, hh: 3, masts: [[1, 18, 2, 'aft']], jib: 1, st: 1, bw: 0, guns: 0, hull: '#6a4020', w: 0.9 },
+  { name: 'pinnace', L: 12, hh: 3, masts: [[-4, 14, 2, 'sq'], [4, 18, 2, 'sq']], jib: 1, st: 2, bw: 0, guns: 0, hull: '#5a3a1c', w: 0.9 },
+  { name: 'brigantine', L: 13, hh: 4, masts: [[-4, 20, 2, 'aft'], [5, 22, 3, 'sq']], jib: 1, st: 2, bw: 1, guns: 1, hull: '#4a2a14', w: 1 },
+  { name: 'barque', L: 15, hh: 4, masts: [[-8, 16, 1, 'aft'], [0, 22, 3, 'sq'], [8, 20, 3, 'sq']], jib: 1, st: 3, bw: 1, guns: 0, hull: '#6a4a2a', w: 0.8 },
+  { name: 'fluyt', L: 16, hh: 5, masts: [[-9, 14, 2, 'aft'], [0, 22, 3, 'sq'], [9, 19, 3, 'sq']], jib: 0, st: 5, bw: 1, guns: 0, hull: '#7a4a24', round: 1, w: 0.8 },
+  { name: 'merchantman', L: 17, hh: 5, masts: [[-9, 16, 2, 'sq'], [0, 24, 3, 'sq'], [9, 20, 3, 'sq']], jib: 1, st: 4, bw: 2, guns: 1, hull: '#5a3418', w: 0.9 },
+  { name: 'frigate', L: 19, hh: 5, masts: [[-10, 20, 3, 'sq'], [0, 27, 3, 'sq'], [10, 23, 3, 'sq']], jib: 1, st: 3, bw: 1, guns: 1, stripe: '#d4af37', hull: '#2a1a10', w: 1 },
+  { name: 'galleon', L: 19, hh: 6, masts: [[-11, 16, 2, 'aft'], [-1, 26, 3, 'sq'], [9, 22, 3, 'sq']], jib: 1, st: 8, bw: 4, guns: 1, stripe: '#a01a2a', hull: '#4a2410', w: 0.9 },
+  { name: 'war galleon', L: 21, hh: 7, masts: [[-12, 18, 2, 'aft'], [-2, 28, 3, 'sq'], [9, 24, 3, 'sq']], jib: 1, st: 9, bw: 4, guns: 2, stripe: '#d4af37', hull: '#3a1a0a', w: 0.6 },
+  { name: 'ship of the line', L: 23, hh: 8, masts: [[-12, 24, 3, 'sq'], [0, 30, 3, 'sq'], [12, 26, 3, 'sq']], jib: 1, st: 5, bw: 2, guns: 3, stripe: '#e8d8a0', hull: '#2a1a10', w: 0.5 }
+];
+const NATIONS = [
+  { name: 'pirate', w: 1.3, flag: (x, y, dim) => { R(x, y, 7, 5, dim('#111')); P(x + 3, y + 1, dim('#fff')); R(x + 2, y + 3, 3, 1, dim('#fff')); } },
+  { name: 'English', w: 1, flag: (x, y, dim) => { R(x, y, 7, 5, dim('#ffffff')); R(x + 3, y, 1, 5, dim('#c8102e')); R(x, y + 2, 7, 1, dim('#c8102e')); } },
+  { name: 'Spanish', w: 1, flag: (x, y, dim) => { R(x, y, 7, 5, dim('#c60b1e')); R(x, y + 1, 7, 3, dim('#ffc400')); } },
+  { name: 'French', w: 1, flag: (x, y, dim) => { R(x, y, 7, 5, dim('#f4f0e6')); P(x + 3, y + 2, dim('#d4af37')); } },
+  { name: 'Dutch', w: 1, flag: (x, y, dim) => { R(x, y, 7, 2, dim('#ff7a1a')); R(x, y + 2, 7, 1, dim('#ffffff')); R(x, y + 3, 7, 2, dim('#1e4b9a')); } }
+];
+function wpick(a) { let t = a.reduce((s, x) => s + (x.w || 1), 0) * rnd(); for (const x of a) { t -= (x.w || 1); if (t <= 0) return x; } return a[0]; }
+S.ships = []; S.nextShip = 40 + rnd() * 50;
 function shipThink(dt) {
-  if (!S.ship && S.t > S.nextShip) { const dir = rnd() < 0.5 ? 1 : -1; S.ship = { x: dir > 0 ? -40 : W + 40, dir, v: 5 + rnd() * 3 }; }
-  if (S.ship) { S.ship.x += S.ship.dir * S.ship.v * dt; if (S.ship.x < -60 || S.ship.x > W + 60) { S.ship = null; S.nextShip = S.t + 140 + rnd() * 160; } }
+  if (S.t > S.nextShip && S.ships.length < 2) {
+    const dir = rnd() < 0.5 ? 1 : -1, t = wpick(SHIPS), nat = wpick(NATIONS), far = rnd() < 0.4;
+    S.ships.push({ x: dir > 0 ? -50 : W + 50, dir, v: (far ? 3 : 5) + rnd() * 3, t, nat, far });
+    toast((nat.name === 'pirate' ? 'A pirate ' : (/^[aeiou]/i.test(nat.name) ? 'An ' : 'A ') + nat.name + ' ') + t.name + ' is sailing by');
+    S.nextShip = S.t + 110 + rnd() * 150;
+  }
+  S.ships.forEach((sh) => { sh.x += sh.dir * sh.v * dt; });
+  S.ships = S.ships.filter((sh) => sh.x > -70 && sh.x < W + 70);
 }
 function drawShip(d) {
-  const sh = S.ship; if (!sh) return; const night = 1 - d;
-  const dim = (c) => mix('#0e1428', c, 0.3 + d * 0.7), bob = Math.round(Math.sin(S.t * 1.4) * 0.8);
-  g.save(); g.translate(Math.round(sh.x), HORIZON + 3 + bob); g.scale(sh.dir, 1);
-  const hull = dim('#4a2a14'), hullL = dim('#7a4a24'), sail = dim('#efe6d0'), mast = dim('#2a1a0a');
-  R(-17, -5, 34, 5, hull); R(-15, 0, 30, 1, hull); R(-17, -5, 34, 1, hullL); R(10, -9, 8, 4, hull); R(-19, -7, 4, 2, hull); for (let i = -14; i < 14; i += 5) P(i, -3, dim('#ffd27a'));
-  [[-8, 22], [2, 26], [11, 16]].forEach(([mx, h]) => { R(mx, -5 - h, 1, h, mast); const sw = Math.round(Math.sin(S.t * 1.1 + mx) * 0.6); R(mx - 5, -3 - h + 3, 11 + sw, 6, sail); R(mx - 4, -3 - h + 10, 9 + sw, 5, sail); });
-  R(2, -35, 6, 4, dim('#111')); P(4, -34, dim('#fff')); P(5, -33, dim('#fff'));
-  R(-21, -6, 5, 1, mast);
-  if (night > 0.3) { R(15, -11, 2, 2, '#ffd27a'); g.globalAlpha = 0.25 * night; circle(16, -10, 4, '#ffd27a'); g.globalAlpha = 1; }
-  g.restore();
-  g.globalAlpha = 0.4; R(sh.x - 18, HORIZON + 4 + bob, 36, 1, mix('#20305a', '#d9f6ff', d)); g.globalAlpha = 1;
+  const night = 1 - d;
+  S.ships.slice().sort((a, b) => (b.far ? 1 : 0) - (a.far ? 1 : 0)).forEach((sh) => {
+    const t = sh.t, dim = (c) => mix('#0e1428', c, (sh.far ? 0.2 : 0.3) + d * (sh.far ? 0.55 : 0.7)), bob = Math.round(Math.sin(S.t * 1.4 + sh.x * 0.05) * 0.8);
+    const base = HORIZON + (sh.far ? 1 : 3) + bob, L = t.L, hh = t.hh;
+    g.save(); g.translate(Math.round(sh.x), base); g.scale(sh.dir, 1); // +x is the bow, so the ship always points where it's sailing
+    if (sh.far) g.scale(0.7, 0.7);
+    const hull = dim(t.hull), hullL = dim('#8a5a2e'), sail = dim(sh.nat.name === 'pirate' && rnd() < 0 ? '#3a3a3a' : '#efe6d0'), sailS = dim('#cfc4a8'), mast = dim('#2a1a0a');
+    // hull: tapered keel, raised stern castle (aft = -x) and forecastle (bow = +x)
+    for (let y = 0; y < hh; y++) { const inset = Math.round((hh - y) * 0.6); R(-L + inset * (t.round ? 0.5 : 1), -y - 1, 2 * L - inset * 2 + 2, 1, hull); }
+    R(-L, -hh - 1, 2 * L + 2, 1, hullL);
+    if (t.st) { R(-L, -hh - 1 - t.st, Math.max(5, Math.round(L * 0.45)), t.st, hull); R(-L, -hh - 1 - t.st, Math.max(5, Math.round(L * 0.45)), 1, hullL); if (t.st > 3) for (let k = 0; k < 3; k++) P(-L + 1 + k * 2, -hh - t.st + 1, dim('#ffd27a')); }
+    if (t.bw) { R(L - 6, -hh - 1 - t.bw, 7, t.bw, hull); R(L - 6, -hh - 1 - t.bw, 7, 1, hullL); }
+    if (t.stripe) R(-L + 1, -hh + 1, 2 * L, 1, dim(t.stripe));
+    for (let gd = 0; gd < t.guns; gd++) for (let x = -L + 4; x < L - 2; x += 3) P(x, -hh + 2 + gd * 2 - (t.stripe ? 0 : 1), dim('#111'));
+    // bowsprit and jib
+    R(L + 1, -hh - 2, 1, 1, mast); R(L + 2, -hh - 3, 2, 1, mast); R(L + 4, -hh - 4, 3, 1, mast);
+    const fore = t.masts[t.masts.length - 1];
+    if (t.jib) for (let k = 0; k < fore[1] - 6; k++) { const yy = -hh - 4 - k, xx = fore[0] + 1 + Math.round(k * 0.0), w = Math.round((L + 6 - fore[0]) * (1 - k / (fore[1] - 4))); if (w > 0) R(fore[0] + 2, yy, w, 1, k % 4 === 0 ? sailS : sail); }
+    // masts and sails
+    t.masts.forEach(([mx, h, n, rig], mi) => {
+      R(mx, -hh - 1 - h, 1, h, mast);
+      const sw = Math.round(Math.sin(S.t * 1.1 + mx) * 0.6);
+      if (rig === 'sq') { const step = Math.floor((h - 3) / n); for (let k = 0; k < n; k++) { const w = Math.max(4, Math.round(L * 0.55) - k * 2) + sw, sh2 = Math.max(3, step - 1), top = -hh - 1 - h + 2 + k * step; R(mx - Math.floor(w / 2), top + (n - 1 - k) * 0, w, sh2, sail); R(mx - Math.floor(w / 2), top, w, 1, mast); } }
+      else { for (let k = 0; k < h - 3; k++) { const w = Math.round(2 + k * 0.45); R(mx - w, -hh - 1 - h + 2 + k, w, 1, k % 5 === 0 ? sailS : sail); } R(mx - Math.round(2 + (h - 3) * 0.45), -hh - 3, Math.round(2 + (h - 3) * 0.45) + 1, 1, mast); }
+    });
+    // flag on the tallest mast, streaming aft
+    const tall = t.masts.reduce((a, b) => (b[1] > a[1] ? b : a));
+    sh.nat.flag(tall[0] - 7, -hh - 1 - tall[1] - 1 + (Math.floor(S.t * 3) % 2 ? 0 : 0), dim);
+    if (night > 0.3) { R(-L - 1, -hh - t.st - 3, 2, 2, '#ffd27a'); g.globalAlpha = 0.25 * night; circle(-L, -hh - t.st - 2, 4, '#ffd27a'); g.globalAlpha = 1; }
+    g.restore();
+    g.globalAlpha = 0.4; R(sh.x - L, base + 1, 2 * L, 1, mix('#20305a', '#d9f6ff', d)); g.globalAlpha = 1;
+  });
 }
 
 /* ---------------- visitors: pirates, a three-headed monkey, a robot ---------------- */
@@ -987,5 +1035,5 @@ $('#isl-print-btn').addEventListener('click', () => {
   $('#isl-print').innerHTML = `<img alt="The island" src="${big.toDataURL('image/png')}"><h2>A message in a bottle from ${HERO}'s island</h2><p>Dear friend, the tide brought me ${songs.length} song${songs.length === 1 ? '' : 's'} today. The cats approved. Here is what washed ashore:</p><ol>${songs.map((s) => `<li>${esc(s.title)}</li>`).join('')}</ol><p class="foot">Island Sessions · likethefish.ca · ${new Date().toLocaleDateString()}</p>`;
   window.print();
 });
-window.islDebug = { S, hero, CATS, spawnRaft, songStart, setPlaying };
+window.islDebug = { S, hero, CATS, spawnRaft, songStart, setPlaying, SHIPS, NATIONS };
 })();
