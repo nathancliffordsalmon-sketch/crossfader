@@ -38,6 +38,12 @@ const css = `
 #pq .pq-songs{font-size:9px;line-height:1.9;color:#c8c0ff;margin:12px 2px 0;max-height:160px;overflow:auto}
 #pq .pq-quest{font-size:9px;line-height:1.9;color:#ffe060;margin:12px 2px 0;padding:8px 10px;border:2px solid #433900;border-radius:8px;background:#2a2060}
 #pq .pq-quest i{font-style:normal;color:#9a8fe0}
+#pq .pq-shop{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 2px 0;padding:8px 10px;border:2px solid #6f4f25;border-radius:8px;background:#2a1c10;font-size:9px;color:#ffd890}
+#pq .pq-shop b{color:#ffe060;margin-right:4px}
+#pq .pq-shop button{font-size:9px;padding:6px 8px;background:#433900;border-color:#b8c76f}
+#pq .pq-shop button:hover{background:#6f4f25}
+#pq .pq-shop button:disabled{opacity:.45;cursor:default}
+#pq .pq-shopnote{flex:1 1 100%;color:#c8b080;font-size:8px;line-height:1.7}
 #pq-sheet .q{border:3px double currentColor;padding:6px 8px;margin:10px 0 0;text-align:center}
 #pq .pq-fscorner{position:absolute;top:4px;right:4px;z-index:3;font-size:13px!important;line-height:1!important;padding:5px 7px!important;background:rgba(20,16,50,.8)!important}
 #pq .pq-tv.full .pq-fscorner{display:none}
@@ -101,6 +107,7 @@ root.innerHTML = `
   <div class="pq-title"><b>PHANTASEA SESSIONS</b><span>roll a party · press play · battle to the music</span></div>
   <div class="pq-tv" id="pq-tv"><button class="pq-fscorner" id="pq-fs2" title="Full screen (F)" aria-label="Full screen">⛶</button><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button><button id="pq-cast" title="Show this on your TV">📺 Share to TV</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><div class="pq-rot" aria-hidden="true">↻ TURN YOUR PHONE SIDEWAYS FOR THE BIG SCREEN</div><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
   <div class="pq-hud"><span id="pq-status">READY.</span><span id="pq-songnow">♪ —</span></div>
+  <div class="pq-shop" id="pq-shop"></div>
   <div class="pq-tabs" role="tablist">
     <button data-tab="sp" aria-pressed="true">Spotify player here</button>
     <button data-tab="gm" aria-pressed="false">🎮 Game music</button>
@@ -673,7 +680,7 @@ const SIZES = [['Tiny', 20, 0.4], ['Small', 26, 0.7], ['Medium', 32, 1], ['Large
 
 /* ---------- state ---------- */
 const S = {
-  phase: 'intro', introT: 0, party: [], gold: 0, foes: [], bestiary: [], songs: [], curSong: -1, playing: false, pace: 1, energy: 0.5,
+  phase: 'intro', introT: 0, party: [], gold: 0, earned: 0, spent: 0, wpn: 0, arm: 0, scrolls: 0, scrollsBought: 0, scrollsUsed: 0, early: false, proj: null, foes: [], bestiary: [], songs: [], curSong: -1, playing: false, pace: 1, energy: 0.5,
   walkT: 0, nextEnc: 8, log: [], turnQ: [], turnT: 0, anim: null, banner: null, floaters: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), fieldX: 0, rolling: null, chronicle: [],
 };
 function newHero() {
@@ -682,7 +689,7 @@ function newHero() {
   const stats = { STR: roll(), DEX: roll(), CON: roll(), INT: roll(), WIS: roll(), CHA: roll() };
   const mod = (v) => Math.floor((v - 10) / 2);
   const hp = info.hd + Math.max(1, mod(stats.CON) + 2) + 6;
-  const h = { name: heroName(), epi: pick(EPI), cls, race, info, stats, lvl: 1, xp: 0, hp, max: hp, kills: 0, dmg: 0, hair: pick(HAIRC), skin: pick(SKINC[race]), lvlBySong: [], alive: true, crown: rnd() < 0.03 };
+  const h = { name: heroName(), epi: pick(EPI), cls, race, info, stats, lvl: 1, xp: 0, hp, max: hp, kills: 0, dmg: 0, hair: pick(HAIRC), skin: pick(SKINC[race]), lvlBySong: [], alive: true, crown: rnd() < 0.03, voice: pick(['rhyme', 'bard', 'terse', 'teen', 'beach']) };
   heroLooks(h);
   const [c1, c2, legs] = pick(CLASS_COL[cls]);
   h.kit = Object.assign({}, info.kit, { c1, c2, legs, cape: (cls === 'Paladin' || cls === 'Warlock' || (cls === 'Fighter' && rnd() < 0.5)), hat: (cls === 'Wizard' || (cls === 'Sorcerer' && rnd() < 0.5)) ? 'wizard' : ((cls === 'Bard' || cls === 'Ranger') && rnd() < 0.5) ? 'cap' : null });
@@ -823,6 +830,86 @@ const NT = [
   (c, pk) => { const h = c.P.filter((x) => x.dmg > 0).sort((a, b) => b.dmg - a.dmg)[0]; return h ? `${h.name} has dealt ${commas(h.dmg)} damage so far. ${pk(['Nobody argues with that.', 'The others are impressed.', 'They want it to be more.', 'The monsters have noticed.'], 'w')}` : ''; },
   (c, pk) => { const h = c.P.filter((x) => (x.taken || 0) > 0).sort((a, b) => b.taken - a.taken)[0]; return h ? `${h.name} has taken ${commas(h.taken)} damage and ${pk(['is still standing', 'is covered in bandages', 'calls it "character building"', 'blames the Bard'], 'w')}.` : ''; },
 ];
+
+/* walking chatter: every hero talks in one of the Rubber Tree Sessions voices, and they love likethefish.ca */
+const VOICE_NAME = { rhyme: 'speaks in whimsical rhyme', bard: 'speaks like the Bard', terse: 'speaks plain and true', teen: 'talks like a teen narrator', beach: 'talks beach easy' };
+const TALK = {
+  rhyme: { say: [
+    'Have you heard of the site, likethefish dot ca? / It has playlists for night and for breakfast by day!',
+    'In the Rubber Tree Sessions a ficus will grow; / the more that you play, the more leaves it will show!',
+    'There’s a fish who tells fortunes, an oracle, see? / Drop fish in her tank and she’ll pick songs for thee!',
+    'At Final Songasy the knights fight with tunes; / they swing to the beat under musical moons!',
+    'The RetroAmp glows with its little green bars; / it bops to the music like tiny pop stars!',
+    'In Fishing the fishies drop down with a plop, / they dance and they sing and then BOOM, they go POP!',
+    'Name That Tune! Name That Tune! Can you guess it in time? / Four choices, ten songs, and a point for each rhyme!',
+    'The Orange Highlights art hangs bright on a wall, / with a little old fellow who marks the best of all!',
+    'When this quest is all done and the castle is won, / I’ll grow me a tree there and play it for fun!',
+    'There’s a list called Experience Music, I’m told, / of new ways to listen, both silly and bold!'],
+    re: ['Oh {X}, that’s a rhyme that is sure to go far! / Let’s finish this quest and go strum a guitar!', 'A splendid suggestion, a marvellous view! / I’ll visit it, {X}, when this battle is through!', 'Then hush now and march, for the music is near, / and the castle is waiting, I’m sure of it, dear!', 'Why {X}, what a thought, what a wonderful thing! / It makes me so happy I just have to sing!'],
+    walk: ['Left foot, right foot, a beat and a bop; / this road is so long but the tunes never stop!', 'The monsters are grumpy, the monsters are mean, / but we’re the most musical party they’ve seen!', 'My boots are all muddy, my cloak has a tear, / but I’d walk to this song simply anywhere!'] },
+  bard: { say: [
+    'Hast thou beheld the scrolls of likethefish.ca? Its playlists number more than the stars.',
+    'They speak of a Rubber Tree that groweth by music alone. A marvel, if true.',
+    'In a far land dwelleth a Fish Oracle. She weigheth thy choices in a tank and nameth thy songs.',
+    'At Final Songasy two knights do duel with melodies. I would fain witness it.',
+    'The RetroAmp, I am told, doth light ten bands of colour for every song.',
+    'There is a game called Fishing, where small fish fall like rain and perish in fireworks. Most noble.',
+    'Name That Tune! A contest of the ear. I should win it, being a bard of sorts.',
+    'Upon likethefish.ca hangeth art in orange highlights. ’Tis said a small man marketh the best parts.',
+    'When this quest is done I shall write it upon likethefish.ca, that all may read of us.',
+    'Music Bingo, they call it. Five in a row, and the whole tavern doth shout.'],
+    re: ['Thy words are wise, {X}. When this quest is done, we shall go thither.', 'Forsooth, {X}, I have heard the same in many a tavern.', 'Peace, {X}. First the castle, then the music.', 'Thou speakest true, {X}, and thy voice is sweet as a lute.'],
+    walk: ['How the road doth stretch before us, like a song that will not end.', 'Mark well this music, friends. It shall carry us home.', 'I have walked many roads, but never to so fine a tune.'] },
+  terse: { say: [
+    'likethefish.ca. Lots of playlists. Good ones.',
+    'There is a tree on that site. You play music. It grows.',
+    'A fish picks your songs there. It is an oracle. It is a fish.',
+    'Final Songasy. Knights. Music. Hitting.',
+    'RetroAmp has bars. They go up and down.',
+    'Fishing. Little fish fall. Then they explode. Nice.',
+    'Name That Tune. Ten songs. Guess them.',
+    'The orange highlights art. Someone marked the good bits.',
+    'After this I am going home to play music.',
+    'Music Bingo. I like bingo. I like music.'],
+    re: ['Noted, {X}.', 'Sure.', 'Later, {X}. Walk now.', 'Agreed.', 'Good.'],
+    walk: ['Long road.', 'Good song.', 'Still walking.', 'Boots hurt. Keep going.'] },
+  teen: { say: [
+    'Okay so likethefish.ca has like a million playlists and honestly they’re all kind of perfect.',
+    'There’s this Rubber Tree thing where you play songs and a tree grows. It’s so weirdly calming.',
+    'There’s a Fish Oracle that picks your playlist and I swear it read my soul.',
+    'Final Songasy is two knights fighting with songs. It’s so dumb and I love it.',
+    'RetroAmp looks like my dad’s old stereo but cooler. Don’t tell him.',
+    'Fishing is these little fish that fall and dance and then go boom. I can’t even.',
+    'I played Name That Tune and got destroyed. Like, embarrassingly.',
+    'Did you see the Orange Highlights art? There’s a little guy with a highlighter. He’s so cute.',
+    'When we get home I’m making a playlist about this whole trip. It’s gonna slap.',
+    'Music Bingo with my friends got so loud we got shushed. Worth it.'],
+    re: ['Same, {X}. Literally same.', 'Okay but that’s actually so real.', '{X}, you’re making me want to go home and play it.', 'I’m not crying, the wind is just strong.', 'Wait, {X}, that’s actually genius.'],
+    walk: ['How are we still walking. My feet are literally screaming.', 'This song is lowkey carrying the whole quest.', 'If one more slime looks at me I’m going home.'] },
+  beach: { say: [
+    'Ever been to likethefish.ca, man? Playlists for every kind of day. So chill.',
+    'There’s a Rubber Tree you grow with tunes. No rush. It just vibes and grows.',
+    'Got a fish oracle over there. Ask her for a playlist, she just knows, man.',
+    'Final Songasy’s got knights swingin’ swords to the beat. Gnarly.',
+    'RetroAmp’s got those little lights bouncin’. Like waves, man.',
+    'Fishing’s wild. Little fishies fall, dance a bit, then pop like fireworks. Beautiful.',
+    'Name That Tune, dude. Ten songs. I named like two. Still had fun.',
+    'Those Orange Highlights pictures, man. Real sunny. Like a beach day on a wall.',
+    'When we get home I’m puttin’ on a playlist and doin’ absolutely nothin’.',
+    'Music Bingo by the bonfire, man. Best night ever.'],
+    re: ['Right on, {X}.', 'Totally, {X}. Totally.', 'Sounds like a sunset, man.', 'Let’s check it out after the castle, dude.', 'Easy, {X}. Real easy.'],
+    walk: ['No hurry, team. The castle ain’t goin’ anywhere.', 'This tune’s got a real nice swell to it.', 'Feels like we’re walkin’ on sand, man. Warm sand.'] },
+};
+const tv_ = (h) => TALK[h.voice] || TALK.terse;
+NT.push(
+  (c, pk) => { const a = pk(c.alive, 'h'), b = c.alive.filter((x) => x !== a); if (!b.length) return ''; const o = pk(b, 'g'); return `${a.name}: "${pk(tv_(a).say, 's')}" ${o.name}: "${pk(tv_(o).re, 'r').replace('{X}', a.name)}"`; },
+  (c, pk) => { const a = pk(c.alive, 'h'), b = c.alive.filter((x) => x !== a); if (!b.length) return ''; const o = pk(b, 'g'); return `${a.name}: "${pk(tv_(a).say, 's')}" ${o.name}: "${pk(tv_(o).re, 'r').replace('{X}', a.name)}"`; },
+  (c, pk) => { const a = pk(c.alive, 'h'); return `${a.name}: "${pk(tv_(a).say, 's')}"`; },
+  (c, pk) => { const a = pk(c.alive, 'h'); return `${a.name}: "${pk(tv_(a).walk, 'w')}"`; },
+  (c, pk) => { const a = pk(c.alive, 'h'); return `${a.name}: "${pk(tv_(a).walk, 'w')}"`; },
+  (c, pk) => { const a = pk(c.alive, 'h'), b = c.alive.filter((x) => x !== a); if (!b.length) return ''; const o = pk(b, 'g'); return `${o.name}: "${pk(tv_(o).walk, 'w')}" ${a.name}: "${pk(tv_(a).re, 'r').replace('{X}', o.name)}"`; },
+  (c, pk) => c.song ? `${pk(c.alive, 'h').name}: "${pk(['Add this one to a likethefish.ca playlist.', 'This song belongs on likethefish.ca.', 'Somebody put this on the Rubber Tree, it would grow a whole branch.'], 'l')}"` : '',
+);
 function narGen(pool, c, tag) {
   for (let tries = 0; tries < 18; tries++) {
     const ti = mr(pool.length), ch = [];
@@ -884,6 +971,8 @@ function narBegin() {
   S.steps = S.steps || 0; S.chaps = S.chaps || [];
   const P = S.party, names = P.map((h) => `${h.name} the ${h.race} ${h.cls}`);
   narSay([`Hear now the tale of ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}.`, `Four heroes meet at the crossroads: ${names.join(', ')}.`, `The bards will sing of ${P.map((h) => h.name).join(', ')}. Their story begins now.`][mr(3)]);
+  narSay('Go, journey for your homeland. Your village awaits, and every coin you carry home will help it.', true);
+  narSay(P.map((h) => `${h.name} ${VOICE_NAME[h.voice] || 'speaks plainly'}`).join('. ') + '.');
   narSay(['Six songs stand between them and the castle. Listen well, or perish.', 'The road is long, the music is loud, and the monsters are hungry.', 'Somewhere past the sixth song, a castle waits.'][mr(3)]);
 }
 function narReset() { NR.q = []; NR.cur = null; NR.cool = 3; NR.epi = null; }
@@ -905,6 +994,8 @@ function narWalk(rawDt, dt) {
   narBox(cur.lines, shown);
   if (shown > len && cur.t > len * 28 + 3800) { NR.cur = null; NR.cool = 1.5 + Math.random() * 2.5; }
 }
+// true once the current story page has fully typed out and been on screen a moment
+function narReady() { const c = NR.cur; if (!c) return true; return c.t > c.lines.join('').length * 28 + 1500; }
 /* the saga, for the end screen and the chronicle sheet */
 function narSaga() {
   narCloseChap();
@@ -968,28 +1059,28 @@ function heroAct(h, i) {
   const hit = rnd() < 0.72 + h.atkBonus * 0.04 + (h.inspired ? 0.1 : 0);
   if (h.inspired) h.inspired--;
   if (info.aoe && rnd() < 0.4) {
-    let tot = 0; foes.forEach((f) => { const dm = d(Math.min(6, 1 + Math.ceil(h.lvl / 2)), 6); hurtFoe(f, dm, h); tot += dm; });
+    let tot = 0; foes.forEach((f) => { const dm = wpnDm(d(Math.min(6, 1 + Math.ceil(h.lvl / 2)), 6)); hurtFoe(f, dm, h); tot += dm; });
     S.anim = { kind: 'cast', actor: h, ai: i, t: 0, dur: 900, col: 8, aoe: true }; say(`${h.name} casts ${info.spell}! ${tot} dmg`); return;
   }
-  let dm = 0; if (hit || crit) { dm = d(1, info.hd - 2) + Math.max(0, h.atkBonus) + Math.floor(h.lvl / 2); if (crit) dm *= 2; if (info.twice) dm += d(1, 4); }
+  let dm = 0; if (hit || crit) { dm = d(1, info.hd - 2) + Math.max(0, h.atkBonus) + Math.floor(h.lvl / 2); if (crit) dm *= 2; if (info.twice) dm += d(1, 4); dm = wpnDm(dm); }
   S.anim = { kind: info.atk === 'melee' ? 'bounce' : 'shoot', actor: h, ai: i, tgt, t: 0, dur: info.atk === 'melee' ? 620 : 560, dmg: dm, crit, col: info.atk === 'spell' ? 14 : 15 };
   const verb = info.atk === 'spell' ? `casts ${info.spell} at` : info.atk === 'ranged' ? 'shoots' : pick(['hits', 'slashes', 'strikes', 'smacks', 'bonks']);
   say(dm ? `${h.name} ${verb} ${tgt.type.base} for ${dm}${crit ? '!!' : ''}` : `${h.name} misses!`);
 }
 function foeAct(f) {
   const alive = S.party.filter((h) => h.alive); const tgt = pick(alive);
-  const hit = rnd() < 0.62; const dm = hit ? Math.max(1, ri(Math.ceil(f.type.dmg / 2), f.type.dmg)) : 0;
+  const hit = rnd() < 0.62 - 0.04 * S.arm; const dm = hit ? armDm(Math.max(1, ri(Math.ceil(f.type.dmg / 2), f.type.dmg))) : 0;
   S.anim = { kind: 'bounce', actor: f, foe: true, tgt, t: 0, dur: 600, dmg: dm, col: 2 };
   say(dm ? `${f.type.base} ${pick(['bites', 'claws', 'slams', 'lashes', 'zaps', 'gnaws'])} ${tgt.name} for ${dm}` : `${f.type.base} misses ${tgt.name}`);
 }
 function hurtFoe(f, dm, h) { if (!h.best || dm > h.best.dm) h.best = { dm, foe: f.type.name, song: S.curSong }; if (!S.chBest || dm > S.chBest.dm) S.chBest = { dm, h: h.name, foe: f.type.name }; f.hp -= dm; f.flash = 300; floater({ x: f.x + f.w / 2, y: f.y }, String(dm), 7); h.dmg += dm; if (f.hp <= 0 && f.alive) { f.alive = false; h.kills++; S.lastBlow = h.name; f.type.slain++; f.type.slainBy[h.name] = (f.type.slainBy[h.name] || 0) + 1; } }
 function resolveAnim(a) {
-  if (a.foe) { if (a.dmg) { a.tgt.taken = (a.tgt.taken || 0) + a.dmg; a.tgt.hp -= a.dmg; a.tgt.flash = 300; floater(heroPos(S.party.indexOf(a.tgt)), String(a.dmg), 2); if (a.tgt.hp > 0 && a.tgt.hp <= Math.max(2, a.tgt.max * 0.15)) { a.tgt.close = (a.tgt.close || 0) + 1; a.tgt.closeFoe = a.actor.type.name; } if (a.tgt.hp <= 0) { a.tgt.alive = false; a.tgt.hp = 0; a.tgt.downs = (a.tgt.downs || 0) + 1; a.tgt.downBy = a.actor.type.name; say(`${a.tgt.name} falls!`); narNote('fall', a.tgt, a.actor.type); chronicle(`${a.tgt.name} fell to the ${a.actor.type.name}.`); } } return; }
+  if (a.foe) { if (a.dmg) { a.tgt.taken = (a.tgt.taken || 0) + a.dmg; a.tgt.hp -= a.dmg; a.tgt.flash = 300; floater(heroPos(S.party.indexOf(a.tgt)), String(a.dmg), 2); if (a.tgt.hp > 0 && a.tgt.hp <= Math.max(2, a.tgt.max * 0.15)) { a.tgt.close = (a.tgt.close || 0) + 1; a.tgt.closeFoe = a.actor.type.name; } if (a.tgt.hp <= 0 && S.scrolls > 0) { S.scrolls--; S.scrollsUsed++; a.tgt.hp = Math.ceil(a.tgt.max / 2); floater(heroPos(S.party.indexOf(a.tgt)), 'RISE!', 13); say(`${a.tgt.name} is raised by a scroll!`); chronicle(`${a.tgt.name} fell to the ${a.actor.type.name}, but a resurrection scroll raised them.`); renderShop(); } else if (a.tgt.hp <= 0) { a.tgt.alive = false; a.tgt.hp = 0; a.tgt.downs = (a.tgt.downs || 0) + 1; a.tgt.downBy = a.actor.type.name; say(`${a.tgt.name} falls!`); narNote('fall', a.tgt, a.actor.type); chronicle(`${a.tgt.name} fell to the ${a.actor.type.name}.`); } } return; }
   if (a.tgt && a.dmg) hurtFoe(a.tgt, a.dmg, a.actor);
 }
 function victory() {
   const types = [...new Set(S.foes.map((f) => f.type))]; const xp = types.reduce((s, t) => s + t.xp * S.foes.filter((f) => f.type === t).length, 0);
-  const gold = ri(5, 25) * Math.max(1, Math.round(xp / 30)); S.gold += gold; S.wins++;
+  const gold = ri(5, 25) * Math.max(1, Math.round(xp / 30)); S.gold += gold; S.earned += gold; S.wins++;
   const alive = S.party.filter((h) => h.alive);
   alive.forEach((h) => { h.xp += Math.round(xp / alive.length); const need = h.lvl * 100; if (h.xp >= need) { h.xp -= need; h.lvl++; const up = Math.max(2, Math.ceil(h.info.hd / 2) + Math.floor((h.stats.CON - 10) / 2)); h.max += up; h.hp = h.max; say(`${h.name} reaches level ${h.lvl}!`); narNote('lvl', h); chronicle(`${h.name} the ${h.cls} reached level ${h.lvl}.`); } });
   S.party.forEach((h) => { if (!h.alive && rnd() < 0.5) { h.alive = true; h.hp = Math.ceil(h.max / 3); } else if (h.alive) h.hp = Math.min(h.max, h.hp + Math.ceil(h.max * 0.15)); });
@@ -1030,13 +1121,48 @@ function fmt(t) { t = Math.round(t); return Math.floor(t / 60) + ':' + String(t 
 function songsLeftText() { const n = S.songs.length, l = MAXSONGS - n; return !n ? `${MAXSONGS} SONGS TO SURVIVE` : l <= 0 ? 'FINAL SONG!' : `${l} SONG${l === 1 ? '' : 'S'} LEFT`; }
 const PER = 200; // one hero perishes for every 200 seconds the session lands away from 2048
 const MOTTO = 'SEX CARMINA TIBI TANTUM DANTUR';
-function questResult() { const t = totalSecs(), n = S.songs.length; if (!n) return 'none'; const off = Math.abs(t - GOAL); S.off = off; S.dir = t < GOAL ? 'short' : 'long'; S.fallenN = Math.min(S.party.length, Math.floor(off / PER)); return off <= EXACT ? 'perfect' : S.fallenN === 0 ? 'won' : S.fallenN >= S.party.length ? 'lost' : 'partial'; }
+function questResult() { let t = totalSecs(); const n = S.songs.length; if (!n) return 'none'; S.proj = null; if (S.early && n < MAXSONGS) { S.proj = { n, heard: t, avg: t / n, total: t / n * MAXSONGS }; t = S.proj.total; } const off = Math.abs(t - GOAL); S.off = off; S.dir = t < GOAL ? 'short' : 'long'; S.fallenN = Math.min(S.party.length, Math.floor(off / PER)); return off <= EXACT ? 'perfect' : S.fallenN === 0 ? 'won' : S.fallenN >= S.party.length ? 'lost' : 'partial'; }
 let questTick = 0;
+/* ---------- the travelling merchant: spend gold to fight better, but every coin spent is a coin the village never sees ---------- */
+const SHOP = [
+  { k: 'scrolls', key: '1', icon: '✚', name: 'Resurrect scroll', max: 9, desc: 'Raises a hero at half health the moment they fall (one use)' },
+  { k: 'wpn', key: '2', icon: '⚔', name: 'Bigger weapons', max: 3, desc: '+35% damage for the whole party per level, so fights end faster' },
+  { k: 'arm', key: '3', icon: '⛨', name: 'Bigger armour', max: 3, desc: 'Monsters hit less often and 18% softer per level' },
+];
+const wpnDm = (v) => v ? Math.max(1, Math.round(v * (1 + 0.35 * S.wpn))) : 0;
+const armDm = (v) => Math.max(1, Math.round(v * (1 - 0.18 * S.arm)));
+// gold one song brings in, measured from this run so far (before any music, a sensible guess)
+function songGold() { const heard = totalSecs(), n = S.songs.length; const per = n && heard > 60 ? heard / n : GOAL / MAXSONGS; const rate = heard > 90 && S.earned > 0 ? S.earned / heard : 0.4; return Math.max(30, per * rate); }
+function shopOwned(it) { return it.k === 'scrolls' ? S.scrollsBought : S[it.k]; }
+function shopPrice(it) { return Math.max(60, Math.round(2 * songGold() * (1 + 0.35 * shopOwned(it)) / 5) * 5); }
+function buy(k) {
+  const it = SHOP.find((x) => x.k === k); if (!it || S.ended || S.phase === 'intro' || S.phase === 'roll') return;
+  if (S[it.k] >= it.max) return;
+  const p = shopPrice(it); if (S.gold < p) { alertNote(`${it.name} costs ${p} gold. You have ${S.gold}.`); return; }
+  S.gold -= p; S.spent += p; S[it.k]++; if (it.k === 'scrolls') S.scrollsBought++;
+  S.banner = { text: `BOUGHT: ${upper(it.name)}${it.k === 'scrolls' ? '' : ' LV ' + S[it.k]}`, t: 0 };
+  narSay(pick([`The party hands over ${p} gold for ${it.name.toLowerCase()}. Somewhere, the village sighs.`, `${it.name} bought for ${p} gold. Stronger now, but the purse is lighter.`, `A merchant bites the coins, then hands over the ${it.name.toLowerCase()}.`]), true);
+  chronicle(`Bought ${it.name.toLowerCase()} for ${p} gold.`); shopSig = ''; renderShop(); setStatus();
+}
+let shopSig = '';
+function renderShop() {
+  const el = $('#pq-shop'); if (!el) return;
+  const items = SHOP.map((it) => { const have = S[it.k], p = shopPrice(it), maxed = have >= it.max; return { it, have, p, maxed, off: maxed || S.gold < p || S.ended || S.phase === 'intro' || S.phase === 'roll' }; });
+  const sig = items.map((x) => [x.have, x.p, x.off ? 1 : 0].join(',')).join('|') + '|' + S.gold;
+  if (sig === shopSig) return; shopSig = sig;
+  el.innerHTML = `<b>🛒 TRAVELLING MERCHANT · ${commas(S.gold)} GOLD</b>` + items.map((x) => `<button data-buy="${x.it.k}"${x.off ? ' disabled' : ''} title="${esc(x.it.desc)} (key ${x.it.key})">${x.it.icon} ${esc(x.it.name)} ${x.it.k === 'scrolls' ? '×' + x.have : 'LV ' + x.have} · ${x.maxed ? 'MAX' : commas(x.p) + 'G'}</button>`).join('') +
+    `<span class="pq-shopnote">Each item costs about two songs of gold, and the price rises each time. Spend to fight faster and survive, or save it all to make your village prosper. A trip to the Temple still costs half the purse.</span>`;
+}
+$('#pq-shop').addEventListener('click', (e) => { const b = e.target.closest('[data-buy]'); if (b) buy(b.dataset.buy); });
+document.addEventListener('keydown', (e) => { if (/input|select|textarea/i.test(e.target.tagName)) return; const it = SHOP.find((x) => x.key === e.key); if (it) buy(it.k); });
+function shopLine() { return SHOP.map((it) => `${it.key}:${it.k === 'scrolls' ? 'SCROLL' : it.k === 'wpn' ? 'WEAPON' : 'ARMOUR'} ${S[it.k] >= it.max ? 'MAX' : shopPrice(it) + 'G'}`).join(' · '); }
+
 function renderQuest() {
   const t = totalSecs(), n = S.songs.length, left = GOAL - t;
   const lt = songsLeftText();
-  const html = `${MOTTO} — SIX SONGS IS ALL YOU GET. LISTEN WELL, OR PERISH.<br>${lt} · TIME HEARD ${fmt(t)}${S.ended ? ' · QUEST OVER' : ''}<br><i>HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</i>`;
-  $('#pq-quest').innerHTML = html; $('#pq-fsinfo').innerHTML = `${lt} · TIME HEARD ${fmt(t)}<br><span style="color:#c8c0ff">HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</span>`;
+  const html = `${MOTTO} — SIX SONGS IS ALL YOU GET. LISTEN WELL, OR PERISH.<br>${lt} · TIME HEARD ${fmt(t)}${S.ended ? ' · QUEST OVER' : ''}${S.proj ? ` · ENDED EARLY: ${S.proj.n} SONG${S.proj.n === 1 ? '' : 'S'} AVERAGING ${fmt(S.proj.avg)} = ${fmt(S.proj.total)} OVER SIX` : ''}<br><i>HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</i>`;
+  renderShop();
+  $('#pq-quest').innerHTML = html; $('#pq-fsinfo').innerHTML = `${lt} · TIME HEARD ${fmt(t)}<br><span style="color:#c8c0ff">HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</span><br><span style="color:#ffd890">${commas(S.gold)} GOLD · SHOP KEYS ${shopLine()}</span>`;
 }
 function renderSongs() { $('#pq-songs').innerHTML = S.songs.length ? 'SONGS THIS QUEST (' + S.songs.length + '):<br>' + S.songs.map((s, i) => `${i + 1}. ${esc(s.title)}`).join('<br>') : ''; }
 function setStatus() {
@@ -1080,7 +1206,8 @@ function drawIntro(dt) {
   txt('PHANTASEA', W / 2, ly - 1, '#fff4b0', 'center', 24);
   txt('SESSIONS', W / 2, ly + 30, '#d8d0ff', 'center', 8);
   if (t > 1300) { const a = Math.min(1, (t - 1300) / 900); g.save(); g.globalAlpha = a; box(26, 82, 268, 34, 6, 7); txtO(MOTTO, W / 2, 90, '#ffe878', 'center', 7); txt('SIX SONGS IS ALL YOU GET', W / 2, 104, '#c8c0ff', 'center', 6); g.restore(); }
-  if (t > 3000 && Math.floor(t / 500) % 2) txtO('CLICK TO ROLL YOUR PARTY', W / 2, 184, '#fff', 'center', 6);
+  if (t > 2600) { const a = Math.min(1, (t - 2600) / 900); g.save(); g.globalAlpha = a; box(22, 122, 276, 34, 0, 7); txtO('GO, JOURNEY FOR YOUR HOMELAND', W / 2, 130, '#ffffff', 'center', 7); txt('YOUR VILLAGE AWAITS', W / 2, 143, '#ffd040', 'center', 6); g.restore(); }
+  if (t > 3600 && Math.floor(t / 500) % 2) txtO('CLICK TO ROLL YOUR PARTY', W / 2, 184, '#fff', 'center', 6);
 }
 function drawDie(x, y, v) { g.fillStyle = C[1]; g.fillRect(x, y, 18, 18); g.fillStyle = C[0]; g.fillRect(x, y + 17, 18, 1); g.fillRect(x + 17, y, 1, 18); const P = { 1: [[9, 9]], 2: [[5, 5], [13, 13]], 3: [[5, 5], [9, 9], [13, 13]], 4: [[5, 5], [13, 5], [5, 13], [13, 13]], 5: [[5, 5], [13, 5], [9, 9], [5, 13], [13, 13]], 6: [[5, 4], [13, 4], [5, 9], [13, 9], [5, 14], [13, 14]] }[v]; g.fillStyle = C[2]; P.forEach(([a, b]) => g.fillRect(x + a - 1, y + b - 1, 3, 3)); }
 
@@ -1252,14 +1379,15 @@ function frame(now) {
   const speed = S.pace * (0.6 + S.energy * 0.9);
   const dt = S.playing ? rawDt * speed : 0;
   acct(); if (++questTick % 15 === 0) renderQuest(); if (typeof drawViz === 'function') try { drawViz(rawDt); } catch (e) {}
-  if (S.phase === 'fireworks') { drawFireworks(rawDt); narEpilogue(rawDt); requestAnimationFrame(frame); return; }
-  if (S.phase === 'graveyard') { drawGraveyard(rawDt); narEpilogue(rawDt); requestAnimationFrame(frame); return; }
-  if (S.phase === 'intro') { drawIntro(rawDt); if (S.introT > 6500) S.phase = 'roll'; requestAnimationFrame(frame); return; }
+  if (S.phase === 'fireworks') { drawFireworks(rawDt); narEpilogue(rawDt); if (FW.t > 15000) startVillage(); requestAnimationFrame(frame); return; }
+  if (S.phase === 'graveyard') { drawGraveyard(rawDt); narEpilogue(rawDt); if (GY.t > 16000) startVillage(); requestAnimationFrame(frame); return; }
+  if (S.phase === 'village') { drawVillage(rawDt); requestAnimationFrame(frame); return; }
+  if (S.phase === 'intro') { drawIntro(rawDt); if (S.introT > 9000) S.phase = 'roll'; requestAnimationFrame(frame); return; }
   if (S.phase === 'roll') drawRoll(now);
   else if (S.phase === 'walk') {
     S.walkT += dt / 1000; S.fieldX += dt * 0.04; S.steps = (S.steps || 0) + dt * 0.0125;
     drawField(now, dt); narWalk(rawDt, dt);
-    if (S.walkT >= S.nextEnc && S.playing) encounter();
+    if (S.walkT >= S.nextEnc && S.playing && (narReady() || S.walkT > S.nextEnc + 14)) { NR.cur = null; encounter(); }
   } else if (S.phase === 'battle') {
     if (S.anim) { S.anim.t += dt; if (S.anim.t >= S.anim.dur) { const a = S.anim; S.anim = null; resolveAnim(a); S.turnT = 260; } }
     else if (S.playing) { S.turnT -= dt; if (S.turnT <= 0) battleStep(); }
@@ -1273,7 +1401,7 @@ function frame(now) {
 }
 
 /* ---------- controls ---------- */
-function begin() { if (S.phase === 'intro') S.phase = 'roll'; if (S.phase !== 'roll') return; S.phase = 'walk'; S.walkT = 0; S.nextEnc = 5; narBegin(); chronicle(`The party gathered: ${S.party.map((h) => `${h.name} ${h.epi} (${h.race} ${h.cls})`).join(', ')}.`); setStatus(); }
+function begin() { if (S.phase === 'intro') S.phase = 'roll'; if (S.phase !== 'roll') return; S.phase = 'walk'; S.walkT = 0; S.nextEnc = 5; narBegin(); S.banner = { text: 'GO, JOURNEY FOR YOUR HOMELAND!', t: 0 }; renderShop(); chronicle(`The party gathered: ${S.party.map((h) => `${h.name} ${h.epi} (${h.race} ${h.cls})`).join(', ')}.`); setStatus(); }
 /* ---------- the graveyard (and a sad song: Chopin's Funeral March, public domain, played on a SID-style synth) ---------- */
 const GY = { t: 0, rain: [] };
 function startGraveyard() {
@@ -1336,11 +1464,11 @@ function drawGraveyard(dt) {
   txt('THE PARTY HAS PERISHED', W / 2, 9, 10, 'center');
   txt(S.dir === 'short' ? 'THE MUSIC ENDED TOO SOON' : 'THEY LINGERED TOO LONG', W / 2, 22, 15, 'center', 6);
   if (dirge.blocked() && Math.floor(GY.t / 600) % 2) txt('CLICK FOR THE FUNERAL MARCH', W / 2, 190, 7, 'center', 6);
-  else if (GY.t > 8000) txt('CLICK TO RISE AGAIN', W / 2, 190, 15, 'center', 6);
+  else if (GY.t > 8000) txt('CLICK TO GO HOME TO THE VILLAGE', W / 2, 190, 15, 'center', 6);
 }
 cv.addEventListener('click', () => {
   if (S.phase === 'intro') { S.phase = 'roll'; return; }
-  if (S.phase === 'graveyard') { if (dirge.blocked()) { dirge.resume(); return; } if (GY.t > 8000) { dirge.stop(); S.party.forEach((h) => { h.alive = true; h.hp = h.max; }); S.phase = 'walk'; } return; } if (S.phase === 'roll') { rollParty(); } else if (S.phase === 'fireworks' && FW.t > 6000) { S.party.forEach((h) => { h.alive = true; h.fell = false; h.hp = h.max; }); S.phase = 'walk'; } });
+  if (S.phase === 'graveyard') { if (dirge.blocked()) { dirge.resume(); return; } if (GY.t > 8000) startVillage(); return; } if (S.phase === 'village') { if (VL.t > 5000) { dirge.stop(); S.party.forEach((h) => { h.alive = true; h.fell = false; h.hp = h.max; }); S.phase = 'walk'; } return; } if (S.phase === 'roll') { rollParty(); } else if (S.phase === 'fireworks' && FW.t > 6000) { startVillage(); } });
 document.addEventListener('keydown', (e) => { if (S.phase === 'roll' && e.key === 'Enter' && !/input|select|textarea/i.test(e.target.tagName)) { e.preventDefault(); begin(); } });
 root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
   root.querySelectorAll('[data-tab]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
@@ -1358,7 +1486,7 @@ function acctSync() {
 root.querySelectorAll('[data-pace]').forEach((b) => b.addEventListener('click', () => { S.pace = +b.dataset.pace; root.querySelectorAll('[data-pace]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
 $('#pq-new').addEventListener('click', () => { if (S.songs.length && !confirmNew()) return; resetAll(); });
 function confirmNew() { return window.confirm ? window.confirm('Start over with a new party? This quest will end.') : true; }
-function resetAll() { dirge.stop(); Object.assign(S, { phase: 'intro', introT: 0, gold: 0, foes: [], bestiary: [], songs: [], curSong: -1, log: [], chronicle: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), anim: null, banner: null, ended: false, simFrom: null, bigBattle: null, result: null, steps: 0, chaps: [], chBest: null, saga: null, lastBlow: null }); narReset(); FW.parts = []; rollParty(); renderSongs(); setStatus(); $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); }
+function resetAll() { dirge.stop(); Object.assign(S, { phase: 'intro', introT: 0, gold: 0, earned: 0, spent: 0, wpn: 0, arm: 0, scrolls: 0, scrollsBought: 0, scrollsUsed: 0, early: false, proj: null, foes: [], bestiary: [], songs: [], curSong: -1, log: [], chronicle: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), anim: null, banner: null, ended: false, simFrom: null, bigBattle: null, result: null, steps: 0, chaps: [], chBest: null, saga: null, lastBlow: null }); narReset(); FW.parts = []; rollParty(); renderSongs(); setStatus(); shopSig = ''; renderShop(); $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); }
 let MODE = 'sp';
 // any music starting begins the quest if the party is still being rolled
 function musicStarted(title) {
@@ -1502,6 +1630,9 @@ function makeStory() {
   else if (S.result === 'won') out.push(`All four reached the castle as the last song faded.`);
   else if (S.result === 'partial') out.push(`At the end, ${names(fell)} perished on the road. ${names(lived)} reached the castle and carved their names at the gate.`);
   else if (S.result === 'lost') out.push(`When the sixth song ended the music was ${S.dir === 'short' ? 'too short' : 'too long'}, and the whole party perished. Their stones stand in the rain.`);
+  if (S.proj) out.push(`The quest was ended after ${plural(S.proj.n, 'song')}, so the fates counted all six songs at the ${fmt(S.proj.avg)} average: ${fmt(S.proj.total)} in all.`);
+  if (S.spent) out.push(`They spent ${commas(S.spent)} gold at the merchant${S.wpn ? `, swinging level ${S.wpn} weapons` : ''}${S.arm ? `, wearing level ${S.arm} armour` : ''}${S.scrollsUsed ? `, and ${plural(S.scrollsUsed, 'resurrection scroll')} brought heroes back` : ''}.`);
+  if (S.result && S.result !== 'none') { const v = villageInfo(); out.push(v.story); }
   else out.push('Their journey continues.');
   return out.join(' ');
 }
@@ -1529,7 +1660,8 @@ function endSession(auto) {
   if (S.ended) return;
   setPlaying(false); S.ended = true; if (ctrl && ctrl.pause) try { ctrl.pause(); } catch (e) {}
   if (mic) $('#pq-mic').click();
-  const r = questResult(); S.result = r;
+  S.early = !auto && S.songs.length > 0 && S.songs.length < MAXSONGS;
+  const r = questResult(); S.result = r; VL.done = false;
   S.party.forEach((h) => { h.alive = true; h.fell = false; });
   if (r !== 'none' && r !== 'perfect') { const order = S.party.slice().sort(() => rnd() - 0.5); order.slice(0, S.fallenN).forEach((h) => { h.alive = false; h.hp = 0; h.fell = true; }); }
   const fallen = S.party.filter((h) => h.fell).map((h) => h.name);
@@ -1572,8 +1704,139 @@ function questBlock() {
   const r = questResult(), t = totalSecs(), n = S.songs.length;
   const fallen = S.party.filter((h) => h.fell).map((h) => upper(h.name)), by = S.dir === 'short' ? 'THE MUSIC RAN SHORT' : 'THE MUSIC RAN LONG';
   const msg = { perfect: '★ A PERFECT ENDING! THE CASTLE LIT UP IN FIREWORKS ★', won: `THE WHOLE PARTY REACHED THE CASTLE (${by})`, partial: `${S.party.length - fallen.length} OF ${S.party.length} REACHED THE CASTLE · ✝ ${fallen.join(', ')} (${by})`, lost: `✝ THE WHOLE PARTY PERISHED (${by})`, none: 'THE QUEST WAS NOT ATTEMPTED' }[r];
-  return `<div class="q"><b>${msg}</b><br><span class="sub">TIME HEARD ${fmt(t)} IN ${n} SONG${n === 1 ? '' : 'S'}${r === 'none' ? '' : ' · HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.'}</span></div>`;
+  const v = villageInfo();
+  return `<div class="q"><b>${msg}</b><br><span class="sub">TIME HEARD ${fmt(t)} IN ${n} SONG${n === 1 ? '' : 'S'}${S.proj ? ` · ENDED EARLY, SO EACH OF THE SIX SONGS COUNTS AS THE ${fmt(S.proj.avg)} AVERAGE = ${fmt(S.proj.total)}` : ''}${r === 'none' ? '' : ' · HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.'}</span></div>` +
+    (r === 'none' ? '' : `<div class="q"><b>THE HOMECOMING: ${esc(v.title)}</b><br><span class="sub">${commas(v.gold)} GOLD CAME HOME${S.proj ? ' (PROJECTED OVER SIX SONGS)' : ''} · ${commas(S.spent)} SPENT AT THE MERCHANT · ${v.happy ? 'THE VILLAGERS REJOICED' : v.mood === 'hope' ? 'THE VILLAGERS CLAPPED AND HOPED FOR MORE' : 'THE VILLAGERS WEPT'}</span></div>`);
 }
+/* ---------- the homecoming: the village grows (or crumbles) with the gold carried home ---------- */
+const VL = { t: 0, done: false, people: [], conf: [], rain: [], info: null };
+const VTIERS = [
+  { title: 'THE VILLAGE LIES IN RUIN', sky: ['#3a3a48', '#55556a', '#7a7a8a'], grass: '#4a4a3a', story: 'They came home to a village in ruins: broken roofs, cold chimneys, and no gold to mend them. The villagers wept in the rain.' },
+  { title: 'A STRUGGLING LITTLE VILLAGE', sky: ['#4a5a7a', '#7a8aa8', '#b0b8c8'], grass: '#5a7040', story: 'They came home to a struggling little village. The gold patched a few roofs, and the villagers clapped politely and hoped for more next time.' },
+  { title: 'A BUSY MARKET VILLAGE', sky: ['#2c5cd8', '#5c90f0', '#b8e0ff'], grass: '#5cb040', story: 'They came home to a busy market village, chimneys smoking and stalls full. The villagers cheered and threw their hats in the air.' },
+  { title: 'A THRIVING TOWN', sky: ['#2848c0', '#5888e8', '#ffd8a0'], grass: '#58b844', story: 'Their gold turned the village into a thriving town with a windmill and banners on every roof. The villagers danced in the square all night.' },
+  { title: 'A GOLDEN CITY', sky: ['#3040b8', '#c060a0', '#ffd060'], grass: '#68c84c', story: 'So much gold came home that the village became a golden city, with golden roofs and a great fish fountain. The villagers rejoiced, sang and set off fireworks of their own.' },
+];
+// gold that came home, counted in "songs of gold" (what one song earned this run). Ending early counts six songs at the same pace.
+function villageInfo() {
+  const n = Math.max(1, S.songs.length), proj = S.proj && S.proj.n ? MAXSONGS / S.proj.n : 1;
+  const gold = Math.max(0, Math.round(S.gold * proj)), per = songGold(), songs = gold / per;
+  let tier = songs < 0.6 ? 0 : songs < 1.6 ? 1 : songs < 2.8 ? 2 : songs < 4.2 ? 3 : 4;
+  if (!S.songs.length) tier = 1;
+  const lost = S.result === 'lost';
+  const mood = lost || tier === 0 ? 'sad' : tier === 1 ? 'hope' : 'joy';
+  const T = VTIERS[tier];
+  let story = T.story;
+  if (lost) story = `With the whole party fallen, only word of their deeds reached home. ${tier >= 2 ? 'Their gold built a fine village, but the villagers' : 'The villagers'} gathered at the gate and wept for their heroes.`;
+  return { tier, gold, songs, mood, happy: mood === 'joy', title: T.title, story, T, n };
+}
+function startVillage() {
+  if (S.phase === 'village') return;
+  const v = villageInfo(); VL.info = v; VL.t = 0; VL.conf = []; VL.done = true;
+  if (v.mood !== 'sad') dirge.stop();
+  const count = [4, 6, 9, 12, 16][v.tier];
+  const SH = ['#c03028', '#3060c0', '#30a040', '#d0a020', '#8040a0', '#d06020', '#208080', '#a0a0a0'];
+  VL.people = Array.from({ length: count }, (_, i) => ({ x: 14 + (i + 0.5) * (292 / count) + ri(-4, 4), shirt: pick(SH), skin: pick(['#f0c8a0', '#d8a070', '#a86840', '#704020']), hair: pick(['#201008', '#604020', '#c0a040', '#a03010', '#e0e0e0']), ph: rnd() * 6, kid: rnd() < 0.25 }));
+  VL.rain = v.mood === 'sad' ? Array.from({ length: 80 }, () => [ri(0, W), ri(0, H), 2 + rnd() * 2]) : [];
+  S.phase = 'village';
+  chronicle(`They came home. ${v.story}`);
+}
+function vHouse(x, w, h, base, wall, roof, o) {
+  o = o || {};
+  const top = base - h;
+  g.fillStyle = vgrad(top, base, [tint(wall, 0.15), wall, tint(wall, -0.3)]); g.fillRect(x, top, w, h);
+  g.fillStyle = tint(wall, -0.45); g.fillRect(x + w - 2, top, 2, h);
+  // roof
+  g.fillStyle = roof; g.beginPath(); g.moveTo(x - 3, top + 1); g.lineTo(x + w / 2, top - Math.round(w * 0.45)); g.lineTo(x + w + 3, top + 1); g.closePath(); g.fill();
+  g.fillStyle = tint(roof, -0.35); g.beginPath(); g.moveTo(x + w / 2, top - Math.round(w * 0.45)); g.lineTo(x + w + 3, top + 1); g.lineTo(x + w / 2, top + 1); g.closePath(); g.fill();
+  if (o.ruin) { g.fillStyle = '#000'; g.fillRect(x + w * 0.3, top - w * 0.2, w * 0.25, w * 0.22); g.fillRect(x + 2, top + 3, 3, 6); g.fillStyle = '#2a2a2a'; g.fillRect(x + w - 5, top + h - 6, 4, 6); }
+  // door + windows
+  g.fillStyle = o.ruin ? '#1a1410' : '#5a3418'; g.fillRect(x + w / 2 - 3, base - 9, 6, 9);
+  const lit = !o.ruin && (Math.sin(VL.t / 500 + x) > -0.5);
+  g.fillStyle = o.ruin ? '#101010' : lit ? '#ffe070' : '#403020';
+  g.fillRect(x + 3, top + 4, 4, 4); g.fillRect(x + w - 8, top + 4, 4, 4);
+  if (o.two) { g.fillRect(x + 3, top + 12, 4, 4); g.fillRect(x + w - 8, top + 12, 4, 4); }
+  // chimney + smoke
+  if (o.smoke) { g.fillStyle = tint(wall, -0.4); g.fillRect(x + w - 8, top - w * 0.3, 4, 8); for (let k = 0; k < 4; k++) { const st = ((VL.t / 900 + k * 0.25 + x * 0.01) % 1); g.fillStyle = `rgba(230,230,240,${0.5 * (1 - st)})`; g.beginPath(); g.arc(x + w - 6 + st * 8, top - w * 0.3 - st * 22, 2 + st * 3, 0, Math.PI * 2); g.fill(); } }
+  if (o.flag) { g.fillStyle = '#2a1a10'; g.fillRect(x + w / 2, top - w * 0.45 - 12, 1, 12); g.fillStyle = o.flag; const wv = Math.sin(VL.t / 200 + x) > 0 ? 1 : 0; g.fillRect(x + w / 2 + 1, top - w * 0.45 - 12, 7 + wv, 4); }
+}
+function vPerson(p, i, base, mood) {
+  const k = p.kid ? 0.75 : 1, t = VL.t / 1000;
+  let jump = 0, armUp = false, bow = 0;
+  if (mood === 'joy') { jump = Math.abs(Math.sin(t * 5 + p.ph)) * 7; armUp = Math.sin(t * 5 + p.ph) > 0; }
+  else if (mood === 'hope') { jump = Math.abs(Math.sin(t * 3 + p.ph)) * 2; armUp = Math.sin(t * 6 + p.ph) > 0.6; }
+  else bow = 2;
+  const x = Math.round(p.x), y = Math.round(base - jump), bh = Math.round(9 * k), hh = Math.round(5 * k);
+  shadow(x + 3, base + 1, 8);
+  g.fillStyle = '#302018'; g.fillRect(x, y - 4, 2, 4); g.fillRect(x + 4, y - 4, 2, 4);              // legs
+  g.fillStyle = p.shirt; g.fillRect(x - 1, y - 4 - bh, 8, bh);                                       // body
+  g.fillStyle = p.skin;
+  if (armUp) { g.fillRect(x - 3, y - 4 - bh - 6, 2, 7); g.fillRect(x + 7, y - 4 - bh - 6, 2, 7); }
+  else { g.fillRect(x - 3, y - 4 - bh + 1, 2, 6); g.fillRect(x + 7, y - 4 - bh + 1, 2, 6); }
+  g.fillRect(x, y - 4 - bh - hh + bow, 6, hh);                                                       // head
+  g.fillStyle = p.hair; g.fillRect(x, y - 4 - bh - hh + bow, 6, 2);
+  if (mood === 'sad' && Math.floor(VL.t / 700 + i) % 3 === 0) { g.fillStyle = '#80c0ff'; g.fillRect(x + 4, y - 4 - bh - 1 + bow + ((VL.t / 60) % 4), 1, 2); } // a tear
+  if (mood === 'joy') { g.fillStyle = '#000'; g.fillRect(x + 1, y - 4 - bh - 2, 4, 1); }             // big smile
+}
+function drawVillage(dt) {
+  VL.t += dt; const v = VL.info || villageInfo(), T = v.T, base = 140, sad = v.mood === 'sad';
+  g.fillStyle = vgrad(0, 110, T.sky); g.fillRect(0, 0, W, 112);
+  if (!sad) { g.fillStyle = v.tier >= 4 ? '#fff0a0' : '#fff8d0'; g.beginPath(); g.arc(272, 30, 12, 0, Math.PI * 2); g.fill(); }
+  else { g.fillStyle = '#5a5a68'; for (let i = 0; i < 5; i++) { const x = ((i * 80 + VL.t / 60) % (W + 80)) - 60; g.fillRect(x, 14 + (i % 2) * 10, 70, 10); g.fillRect(x + 10, 8 + (i % 2) * 10, 40, 8); } }
+  // hills and ground
+  g.fillStyle = tint(T.grass, -0.25); for (let x = 0; x < W; x++) { const h = 14 + 7 * Math.sin(x * 0.03) + 4 * Math.sin(x * 0.11); g.fillRect(x, 112 - h, 1, h); }
+  g.fillStyle = vgrad(108, H, [T.grass, tint(T.grass, -0.35)]); g.fillRect(0, 108, W, H - 108);
+  g.fillStyle = sad ? '#6a5a48' : '#c8a464'; g.fillRect(0, base - 2, W, 10);                          // village road
+  // the houses, by how much gold came home
+  const tier = v.tier;
+  if (tier === 0) {
+    [[30, 26, 18], [120, 30, 16], [220, 24, 18]].forEach(([x, w, h], i) => vHouse(x, w, h, base - 2, '#5a5048', '#3a3028', { ruin: true }));
+    g.fillStyle = '#2a2018'; g.fillRect(286, 76, 4, 62); g.fillRect(278, 88, 9, 2); g.fillRect(289, 96, 10, 2);  // dead tree
+  } else if (tier === 1) {
+    [[18, 24, 16], [78, 26, 18], [170, 24, 16], [248, 28, 18]].forEach(([x, w, h], i) => vHouse(x, w, h, base - 2, '#b89870', i % 2 ? '#8a6a30' : '#7a5a28', { smoke: i === 1 }));
+  } else if (tier === 2) {
+    [[10, 28, 20], [62, 30, 22], [156, 30, 20], [214, 28, 22], [270, 30, 20]].forEach(([x, w, h], i) => vHouse(x, w, h, base - 2, '#e0c898', ['#b83820', '#3858a0', '#b83820', '#407a30', '#b83820'][i], { smoke: true }));
+    // market stall
+    g.fillStyle = '#6a4020'; g.fillRect(112, 118, 2, 20); g.fillRect(146, 118, 2, 20); g.fillStyle = '#d0c0a0'; g.fillRect(112, 128, 36, 10);
+    for (let i = 0; i < 6; i++) { g.fillStyle = i % 2 ? '#fff' : '#d03030'; g.fillRect(110 + i * 7, 112, 7, 7); }
+    g.fillStyle = '#e0a020'; g.fillRect(118, 125, 4, 3); g.fillStyle = '#60b040'; g.fillRect(126, 125, 5, 3); g.fillStyle = '#d04040'; g.fillRect(135, 125, 4, 3);
+  } else {
+    const gold = tier >= 4, roofs = gold ? ['#f0c020', '#ffd840', '#f0c020', '#ffd840', '#f0c020', '#ffd840'] : ['#b83820', '#3858a0', '#407a30', '#b83820', '#6a3a90', '#3858a0'];
+    [[6, 30, 26, 1], [46, 28, 20, 0], [92, 34, 30, 1], [196, 32, 28, 1], [238, 28, 22, 0], [278, 34, 30, 1]].forEach(([x, w, h, two], i) => vHouse(x, w, h, base - 2, gold ? '#f4e8c8' : '#e8d4a8', roofs[i], { smoke: true, two: !!two, flag: ['#d03030', '#3060d0', '#30a040', '#e0c020'][i % 4] }));
+    // windmill
+    const mx = 150, my = 74; g.fillStyle = '#e8dcc0'; g.beginPath(); g.moveTo(mx - 7, base - 2); g.lineTo(mx - 4, my); g.lineTo(mx + 4, my); g.lineTo(mx + 7, base - 2); g.fill();
+    g.save(); g.translate(mx, my); g.rotate(VL.t / 600); g.fillStyle = '#7a5a30'; for (let k = 0; k < 4; k++) { g.rotate(Math.PI / 2); g.fillRect(-1, 0, 3, 22); g.fillStyle = '#f0f0e0'; g.fillRect(1, 6, 5, 14); g.fillStyle = '#7a5a30'; } g.restore();
+    // bunting across the square
+    for (let i = 0; i < 28; i++) { const x = 4 + i * 11.3, y = 86 + 6 * Math.sin(i * 0.45); g.fillStyle = ['#d03030', '#f0c020', '#3060d0', '#30a040'][i % 4]; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 7, y); g.lineTo(x + 3.5, y + 6); g.fill(); }
+    if (gold) { // the great fish fountain
+      g.fillStyle = '#a0a8b8'; g.fillRect(132, 128, 56, 10); g.fillStyle = '#58a8e8'; g.fillRect(134, 129, 52, 4);
+      g.fillStyle = '#ffd040'; g.beginPath(); g.ellipse(160, 112, 10, 6, 0, 0, Math.PI * 2); g.fill(); g.beginPath(); g.moveTo(150, 112); g.lineTo(142, 106); g.lineTo(142, 118); g.fill(); g.fillStyle = '#000'; g.fillRect(165, 110, 2, 2);
+      for (let k = 0; k < 6; k++) { const st = (VL.t / 700 + k / 6) % 1; g.fillStyle = `rgba(180,220,255,${1 - st})`; g.fillRect(170 + st * 14 * (k % 2 ? 1 : -1), 104 + st * st * 26 - st * 12, 2, 2); }
+    }
+  }
+  // the heroes walk home and join the crowd
+  const heroes = S.party.filter((h) => !h.fell), walkIn = Math.min(1, VL.t / 3500);
+  heroes.forEach((h, i) => { const x = -30 + walkIn * (128 + i * 18) ; const jump = v.happy && walkIn >= 1 ? Math.abs(Math.sin(VL.t / 200 + i)) * 5 : 0; shadow(x + HW / 2, base + 6, HW); g.drawImage(h.sprite, Math.round(x), base + 6 - HH - jump, HW, HH); });
+  // villagers
+  VL.people.forEach((p, i) => vPerson(p, i, base + 8, v.mood));
+  // confetti and fireworks for a happy homecoming
+  if (v.happy) {
+    if (rnd() < 0.35 + v.tier * 0.1) VL.conf.push({ x: ri(0, W), y: -4, vx: (rnd() - 0.5) * 0.4, vy: 0.4 + rnd() * 0.5, c: pick(['#ff4040', '#ffd040', '#40c0ff', '#60ff80', '#ff80ff']) });
+    if (v.tier >= 4 && rnd() < 0.03) burst(ri(40, 280), ri(20, 60));
+    VL.conf = VL.conf.filter((c) => { c.x += c.vx * dt / 16; c.y += c.vy * dt / 16; g.fillStyle = c.c; g.fillRect(Math.round(c.x), Math.round(c.y), 2, 2); return c.y < H; });
+    if (FW.parts.length) { const keep = []; for (const p of FW.parts) { p.t += dt; const f = dt / 16; p.x += p.vx * f; p.y += p.vy * f; p.vy += 0.012 * f; if (p.t > p.life) continue; g.fillStyle = C[p.col]; g.fillRect(Math.round(p.x), Math.round(p.y), 1, 1); keep.push(p); } FW.parts = keep; }
+  }
+  if (sad) { g.fillStyle = 'rgba(120,140,170,.8)'; VL.rain.forEach((r) => { r[1] += r[2] * dt / 16; r[0] -= 0.5 * dt / 16; if (r[1] > H) { r[1] = -4; r[0] = ri(0, W + 40); } g.fillRect(Math.round(r[0]), Math.round(r[1]), 1, 4); }); }
+  // titles
+  box(16, 4, 288, 32, 0, sad ? 12 : 7);
+  txt('HOME AT LAST: ' + v.title, W / 2, 9, sad ? 15 : (Math.floor(VL.t / 300) % 2 ? 7 : 1), 'center', v.title.length > 22 ? 6 : 7);
+  txt(sad ? `THE VILLAGERS WEEP. ${commas(v.gold)} GOLD CAME HOME` : v.mood === 'hope' ? `THE VILLAGERS CLAP. ${commas(v.gold)} GOLD CAME HOME` : `THE VILLAGERS REJOICE! ${commas(v.gold)} GOLD CAME HOME`, W / 2, 22, sad ? 14 : 13, 'center', 6);
+  box(4, 160, 312, 36, 0, 1);
+  const lines = wrap(upper(v.story), 46).slice(0, 3), shown = Math.floor(VL.t / 26); let left = shown;
+  lines.forEach((ln, i) => { if (left <= 0) return; txt(ln.slice(0, left), 12, 166 + i * 9, 1, 'left', 6); left -= ln.length; });
+  if (VL.t > 5000 && Math.floor(VL.t / 600) % 2) txt('CLICK TO PLAY ON', 308, 152, 1, 'right', 6);
+}
+
 /* ---------- the fireworks castle movie ---------- */
 const FW = { parts: [], t: 0, next: 0, stars: [] };
 function startFireworks(perfect) {
@@ -1636,12 +1899,12 @@ function drawFireworks(dt) {
   box(20, 4, 280, 30, 0, 7);
   txt(FW.perfect ? '★ A PERFECT ENDING! ★' : S.result === 'partial' ? `${S.party.filter((h) => !h.fell).length} OF ${S.party.length} REACHED THE CASTLE` : 'QUEST COMPLETE!', W / 2, 9, Math.floor(FW.t / 250) % 2 ? 7 : 1, 'center');
   txt(upper(FW.title).slice(0, 40), W / 2, 22, 3, 'center', 6);
-  if (FW.t > 6000) txt('CLICK TO RETURN', W / 2, 190, 15, 'center', 6);
+  if (FW.t > 6000) txt('CLICK TO GO HOME TO THE VILLAGE', W / 2, 190, 15, 'center', 6);
 }
 $('#pq-print').addEventListener('click', () => window.print());
 $('#pq-c64').addEventListener('click', (e) => { const on = $('#pq-sheet').classList.toggle('c64'); e.currentTarget.setAttribute('aria-pressed', String(on)); });
 $('#pq-keep').textContent = 'Back to the game';
-$('#pq-keep').addEventListener('click', () => { if (S.phase === 'graveyard') { dirge.stop(); S.party.forEach((h) => { h.alive = true; h.hp = h.max; }); } if (S.phase === 'fireworks' || S.phase === 'graveyard') { S.party.forEach((h) => { h.alive = true; h.fell = false; h.hp = h.max; }); S.phase = 'walk'; } $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); cv.scrollIntoView({ behavior: 'smooth' }); });
+$('#pq-keep').addEventListener('click', () => { if (S.phase === 'graveyard' || S.phase === 'village') { dirge.stop(); S.party.forEach((h) => { h.alive = true; h.hp = h.max; }); } if (S.phase === 'fireworks' || S.phase === 'graveyard' || S.phase === 'village') { S.party.forEach((h) => { h.alive = true; h.fell = false; h.hp = h.max; }); S.phase = 'walk'; } $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); cv.scrollIntoView({ behavior: 'smooth' }); });
 
 /* ---------- full screen ---------- */
 const tv = $('#pq-tv');
