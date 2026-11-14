@@ -14,7 +14,8 @@ st.textContent = `#cif .cif-gm{display:flex;flex-wrap:wrap;gap:8px;align-items:c
 #cif .cif-gmcred{padding:0 14px 12px;background:#10142a;font-size:12px;line-height:1.5;color:#9bb0d8}
 #cif .cif-gmcred a{color:#38b6ff}
 #cif.cif-full .cif-gm,#cif.cif-full .cif-gmcred,#cif.cif-full .cif-top,#cif.cif-full .cif-ctl{display:none}
-#cif.cif-full{background:#000}
+#cif{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+#cif.cif-full{background:#000;touch-action:none;overscroll-behavior:none;height:100vh;height:100dvh}
 #cif.cif-full .cif-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 #cif.cif-full canvas.cif-screen{max-width:100vw;max-height:100dvh;aspect-ratio:auto}
 #cif .cif-ov{display:none;position:absolute;left:8px;top:8px;gap:6px;z-index:2;line-height:1}
@@ -35,13 +36,17 @@ ov.innerHTML = '<button type="button" class="ov-sp">\u25B6 SPOTIFY</button><butt
 if (stage) stage.appendChild(ov);
 function fit() {
   if (!cvs) return; const full = root.classList.contains('cif-full');
-  if (!full) { cvs.style.width = ''; cvs.style.height = ''; return; }
-  const vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth, vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  if (!full) { cvs.style.width = ''; cvs.style.height = ''; ['top', 'left', 'width', 'height'].forEach((k) => { root.style[k] = ''; }); return; }
+  // iPhone Safari has no real full screen for pages: size the layer to exactly what's visible
+  const v = window.visualViewport, vw = v ? v.width : window.innerWidth, vh = v ? v.height : window.innerHeight;
+  root.style.top = (v ? v.offsetTop : 0) + 'px'; root.style.left = (v ? v.offsetLeft : 0) + 'px'; root.style.width = vw + 'px'; root.style.height = vh + 'px';
   const k = Math.min(vw / cvs.width, vh / cvs.height); cvs.style.width = Math.floor(cvs.width * k) + 'px'; cvs.style.height = Math.floor(cvs.height * k) + 'px';
 }
-new MutationObserver(() => setTimeout(fit, 30)).observe(root, { attributes: true, attributeFilter: ['class'] });
-window.addEventListener('resize', () => setTimeout(fit, 50)); window.addEventListener('orientationchange', () => setTimeout(fit, 300));
-if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(fit, 50));
+const refit = () => { [30, 250, 700].forEach((t) => setTimeout(fit, t)); };
+new MutationObserver(refit).observe(root, { attributes: true, attributeFilter: ['class'] });
+window.addEventListener('resize', refit); window.addEventListener('orientationchange', refit);
+if (window.visualViewport) { window.visualViewport.addEventListener('resize', refit); window.visualViewport.addEventListener('scroll', () => setTimeout(fit, 30)); }
+root.addEventListener('touchmove', (e) => { if (root.classList.contains('cif-full') && !/select|input/i.test(e.target.tagName)) e.preventDefault(); }, { passive: false });
 const $ = (s) => root.querySelector(s);
 const coll = $('.cif-gmcoll'), sub = $('.cif-gmsub'), au = $('.cif-gmau'), go = $('.cif-gmgo'), now = $('.cif-gmnow'), msg = $('.cif-msg');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);

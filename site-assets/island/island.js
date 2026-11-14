@@ -13,7 +13,7 @@ const HERO = 'Clifford';
 
 /* ---------------- page + UI ---------------- */
 const css = `
-#isl{--isl-bg:#10162e;--isl-panel:#18203f;--isl-gold:#ffd27a;--isl-ink:#eef1ff;font-family:Georgia,'Times New Roman',serif;color:var(--isl-ink);max-width:980px;margin:0 auto}
+#isl{-webkit-text-size-adjust:100%;text-size-adjust:100%;--isl-bg:#10162e;--isl-panel:#18203f;--isl-gold:#ffd27a;--isl-ink:#eef1ff;font-family:Georgia,'Times New Roman',serif;color:var(--isl-ink);max-width:980px;margin:0 auto}
 #isl *{box-sizing:border-box}
 #isl .isl-qp{display:flex;gap:8px;align-items:center;background:var(--isl-bg);border:1px solid #ffffff22;border-radius:14px;padding:9px 10px;margin:0 0 10px}
 #isl .isl-qp .lbl{font-size:14px;color:var(--isl-gold);white-space:nowrap}
@@ -38,7 +38,7 @@ const css = `
 #isl .isl-embed{margin-top:8px;border-radius:12px;overflow:hidden;line-height:0}
 #isl audio{width:100%;margin-top:6px}
 #isl .isl-songs{font-size:13px;line-height:1.6;margin-top:8px;opacity:.9}
-#isl.isl-full{position:fixed;inset:0;z-index:2147483000;max-width:none;margin:0;background:#000;display:flex;flex-direction:column}
+#isl.isl-full{position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;z-index:2147483000;max-width:none;margin:0;background:#000;display:flex;flex-direction:column}
 #isl.isl-full .isl-qp,#isl.isl-full .isl-box{display:none}
 #isl.isl-full .isl-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:0}
 #isl.isl-full canvas{max-width:100vw;max-height:100dvh}
@@ -281,9 +281,20 @@ function syncQuick() { $('#isl-qstop').hidden = !S.playing; $('#isl-fplay').text
 $('#isl-fplay').addEventListener('click', () => { if (S.playing) $('#isl-qstop').click(); else if (MODE === 'gm' && gmau.getAttribute('src')) gmau.play().catch(() => {}); else $('#isl-qgo').click(); });
 
 /* Full screen */
-function fitFull() { if (!$('#isl').classList.contains('isl-full')) { cv.style.width = ''; cv.style.height = ''; return; } const vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth, vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight, k = Math.min(vw / W, vh / H); cv.style.width = Math.floor(W * k) + 'px'; cv.style.height = Math.floor(H * k) + 'px'; }
-window.addEventListener('resize', () => setTimeout(fitFull, 50)); window.addEventListener('orientationchange', () => setTimeout(fitFull, 300)); if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(fitFull, 50));
-function setFull(on) { $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; setTimeout(fitFull, 30); }
+function fitFull() {
+  const box = $('#isl');
+  if (!box.classList.contains('isl-full')) { cv.style.width = ''; cv.style.height = ''; ['top', 'left', 'width', 'height'].forEach((k) => { box.style[k] = ''; }); return; }
+  // iPhone Safari has no real full screen for pages: size the layer to exactly what's visible (its toolbars come and go)
+  const v = window.visualViewport, vw = v ? v.width : window.innerWidth, vh = v ? v.height : window.innerHeight;
+  box.style.top = (v ? v.offsetTop : 0) + 'px'; box.style.left = (v ? v.offsetLeft : 0) + 'px'; box.style.width = vw + 'px'; box.style.height = vh + 'px';
+  const k = Math.min(vw / W, vh / H); cv.style.width = Math.floor(W * k) + 'px'; cv.style.height = Math.floor(H * k) + 'px';
+}
+const refit = () => { [30, 250, 700].forEach((t) => setTimeout(fitFull, t)); };
+window.addEventListener('resize', refit); window.addEventListener('orientationchange', refit);
+if (window.visualViewport) { window.visualViewport.addEventListener('resize', refit); window.visualViewport.addEventListener('scroll', () => setTimeout(fitFull, 30)); }
+// while full screen, swipes must not scroll the page underneath (that's what makes Safari's bars jump in and out)
+$('#isl').addEventListener('touchmove', (e) => { if ($('#isl').classList.contains('isl-full') && !/select|input/i.test(e.target.tagName)) e.preventDefault(); }, { passive: false });
+function setFull(on) { $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; refit(); }
 $('#isl-fs').addEventListener('click', () => { const on = !$('#isl').classList.contains('isl-full'); setFull(on); const el = $('#isl'); try { if (on && el.requestFullscreen) el.requestFullscreen().catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {} });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('#isl').classList.contains('isl-full')) setFull(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFull(false); });
