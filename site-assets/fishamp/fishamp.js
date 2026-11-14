@@ -225,12 +225,20 @@ function Aquarium(){
     // salmon
     const S=Math.max(16,h*.085);sal.cool-=dt;
     if(!sal.leap){
-      sal.x+=sal.dir*(55+A.level*90)*dt;if(sal.x>w*.85)sal.dir=-1;if(sal.x<w*.15)sal.dir=1;
-      sal.ph+=dt*(7+A.level*10);
-      const y=h*.55+Math.sin(t*.7)*h*.12,dy=Math.cos(t*.7)*h*.12*.7;
-      drawSalmon(ctx,sal.x,y,S,Math.atan2(dy,sal.dir*60)+(sal.dir<0?Math.PI:0),sal.ph,'#ff7a59',sal.dir<0);
-      sal.y=y;
-      if(A.beat&&A.pulse>.8&&sal.cool<0&&Math.random()<.35){sal.leap={t:0,x0:sal.x,y0:sal.y,dir:sal.dir};sal.cool=6;}
+      /* steer toward wandering targets: always faces the way it swims, turns smoothly, darts on big beats */
+      if(sal.vx===undefined){sal.y=h*.55;sal.vx=60;sal.vy=0;sal.tx=w*.7;sal.ty=h*.5;sal.face=1;}
+      const top=surf+S*.9,bot=h-S*.9,dxT=sal.tx-sal.x,dyT=sal.ty-sal.y,dT=Math.hypot(dxT,dyT);
+      if(dT<S*1.2||Math.random()<dt*.08){sal.tx=rand(w*.1,w*.9);sal.ty=rand(top,bot);}
+      const sp=(55+A.level*95)*(sal.dash>0?2.6:1);sal.dash=Math.max(0,(sal.dash||0)-dt);
+      if(A.beat&&A.pulse>.8&&Math.random()<.18){sal.dash=.45;}
+      const dvx=dxT/(dT||1)*sp,dvy=dyT/(dT||1)*sp*.7,k=Math.min(1,dt*1.6);
+      sal.vx+=(dvx-sal.vx)*k;sal.vy+=(dvy-sal.vy)*k;
+      sal.x=clamp(sal.x+sal.vx*dt,S,w-S);sal.y=clamp(sal.y+sal.vy*dt+Math.sin(t*2.2)*.25,top,bot);
+      if(sal.vx>12)sal.face=1;else if(sal.vx<-12)sal.face=-1;
+      const spd=Math.hypot(sal.vx,sal.vy);sal.ph+=dt*(5+spd*.09);sal.dir=sal.face;
+      let ang=Math.atan2(sal.vy,Math.abs(sal.vx)+8);ang=clamp(ang,-.7,.7);
+      drawSalmon(ctx,sal.x,sal.y,S,sal.face>0?ang:Math.PI-ang,sal.ph,'#ff7a59',sal.face<0);
+      if(A.beat&&A.pulse>.8&&sal.cool<0&&Math.random()<.35){sal.leap={t:0,x0:sal.x,y0:sal.y,dir:sal.x>w*.75?-1:sal.x<w*.25?1:sal.face};sal.cool=6;}
     }else{
       const L=sal.leap;L.t+=dt/1.4;const p=L.t,x=L.x0+L.dir*p*w*.22,top=surf-h*.17;
       const y=p<.5?lerp(L.y0,top,Math.sin(p*Math.PI)):lerp(L.y0,top,Math.sin(p*Math.PI));
@@ -239,7 +247,7 @@ function Aquarium(){
       if(!L.out&&y<surf){L.out=1;splashes(spl,x,surf,22,'#bff');}
       if(L.out===1&&p>.6&&y>surf){L.out=2;splashes(spl,x,surf,26,'#bff');}
       drawSalmon(ctx,x,y,S,ang,sal.ph,'#ff7a59',L.dir<0);
-      if(p>=1){sal.leap=null;sal.x=x;if(sal.x>w*.85)sal.dir=-1;if(sal.x<w*.15)sal.dir=1;}
+      if(p>=1){sal.leap=null;sal.x=clamp(x,S,w-S);sal.y=Math.max(L.y0,surf+S);sal.vx=L.dir*80;sal.vy=40;sal.face=L.dir;}
     }
     drawSplash(ctx,spl,dt);
     bloom(ctx,.5+A.level*.6+A.pulse*.2);
