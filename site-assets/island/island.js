@@ -39,9 +39,13 @@ const css = `
 #isl .isl-songs{font-size:13px;line-height:1.6;margin-top:8px;opacity:.9}
 #isl.isl-full{position:fixed;inset:0;z-index:2147483000;max-width:none;margin:0;background:#000;display:flex;flex-direction:column}
 #isl.isl-full .isl-qp,#isl.isl-full .isl-box{display:none}
-#isl.isl-full .isl-stage{flex:1;display:flex;align-items:center;justify-content:center;border-radius:0}
-#isl.isl-full canvas{max-width:100vw}
-#isl.isl-full .isl-hud{border-radius:0}
+#isl.isl-full .isl-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:0}
+#isl.isl-full canvas{max-width:100vw;max-height:100dvh}
+#isl.isl-full .isl-hud{position:absolute;left:0;right:0;bottom:0;border-radius:0;background:#000000a0;padding:6px 12px;font-size:12px;z-index:2}
+#isl .isl-ov{display:none;position:absolute;left:10px;top:10px;gap:6px;align-items:center;line-height:1;z-index:2}
+#isl.isl-full .isl-ov{display:flex}
+#isl .isl-ov select,#isl .isl-ov button{font:600 13px Georgia,serif;padding:7px 10px;background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:999px}
+@media (max-height:500px){#isl.isl-full .isl-hud{padding:4px 10px;font-size:11px}#isl .isl-ov select,#isl .isl-ov button,#isl.isl-full .isl-fs{font-size:11px;padding:6px 8px}}
 html.isl-noscroll,html.isl-noscroll body{overflow:hidden!important}
 @media (max-width:600px){#isl .isl-qp .lbl{display:none}#isl .isl-qp{gap:6px;padding:7px}#isl button{padding:9px 12px}#isl .isl-hud{font-size:13px}}
 #isl-print{display:none}
@@ -53,7 +57,7 @@ const QP = [['spotify', '\u{1F3B2} Random Like The Fish playlist (Spotify)'], ['
 root.innerHTML = `
 <div id="isl">
   <div class="isl-qp"><span class="lbl">Quick play</span><select id="isl-qsel" aria-label="Choose what to play">${QP.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select><button id="isl-qgo">▶ Play</button><button id="isl-qstop" class="alt" hidden>⏸</button></div>
-  <div class="isl-stage"><canvas id="isl-cv" width="384" height="216" aria-label="A castaway's island: ${HERO} walks the beach by his hut while the music plays"></canvas><button class="isl-fs" id="isl-fs">⤢ Full screen</button></div>
+  <div class="isl-stage"><canvas id="isl-cv" width="384" height="216" aria-label="A castaway's island: ${HERO} walks the beach by his hut while the music plays"></canvas><div class="isl-ov"><select id="isl-fpack" aria-label="Furniture"><option value="original">\u{1F334} Original</option><option value="future">\u{1F680} Future</option><option value="fancy">\u{1F3A9} Fancy</option></select><button id="isl-fskip" aria-label="Skip to night or day">\u{1F319}</button><button id="isl-fplay" aria-label="Play or pause">\u25B6</button></div><button class="isl-fs" id="isl-fs">⤢ Full screen</button></div>
   <div class="isl-hud"><span class="isl-now" id="isl-now">Play some music and see what washes ashore…</span><span class="isl-clock" id="isl-clock"></span></div>
   <div class="isl-box">
     <div class="isl-tabs" role="tablist">
@@ -119,8 +123,8 @@ const S = {
 };
 S.clock = 11.5; // minutes: day, a few minutes before sunset
 try { const p = localStorage.getItem('isl.pack'); if (p) S.pack = p; } catch (e) {}
-$('#isl-pack').value = S.pack;
-$('#isl-pack').addEventListener('change', function () { S.pack = this.value; try { localStorage.setItem('isl.pack', S.pack); } catch (e) {} });
+function setPack(v) { S.pack = PACKS[v] ? v : 'original'; $('#isl-pack').value = S.pack; $('#isl-fpack').value = S.pack; try { localStorage.setItem('isl.pack', S.pack); } catch (e) {} }
+['#isl-pack', '#isl-fpack'].forEach((id) => $(id).addEventListener('change', function () { setPack(this.value); }));
 
 /* day/night: 15 min day, 15 min night, soft 1.5 min dusk/dawn */
 function dayness() {
@@ -130,7 +134,8 @@ function dayness() {
   return 0;
 }
 function phaseName() { const m = ((S.clock % 30) + 30) % 30; return m < 1.5 ? 'dawn' : m < 13.5 ? 'day' : m < 15 ? 'dusk' : m < 28.5 ? 'night' : 'before dawn'; }
-$('#isl-skip').addEventListener('click', function () { const m = ((S.clock % 30) + 30) % 30; S.clock += m < 15 ? (13.6 - m) : (30 - m); });
+function skipPhase() { const m = ((S.clock % 30) + 30) % 30; S.clock += m < 15 ? (13.6 - m) : (30 - m); }
+$('#isl-skip').addEventListener('click', skipPhase); $('#isl-fskip').addEventListener('click', skipPhase);
 
 /* ---------------- beat ---------------- */
 let micA = null, onBeatFns = [];
@@ -257,11 +262,12 @@ $('#isl-qgo').addEventListener('click', () => {
   else gmPlay(v);
 });
 $('#isl-qstop').addEventListener('click', () => { if (MODE === 'gm') gmau.pause(); else if (MODE === 'sp' && ctrl) { try { ctrl.togglePlay(); } catch (e) {} } else setPlaying(false); });
-function syncQuick() { $('#isl-qstop').hidden = !S.playing; }
+function syncQuick() { $('#isl-qstop').hidden = !S.playing; $('#isl-fplay').textContent = S.playing ? '\u23F8' : '\u25B6'; }
+$('#isl-fplay').addEventListener('click', () => { if (S.playing) $('#isl-qstop').click(); else if (MODE === 'gm' && gmau.getAttribute('src')) gmau.play().catch(() => {}); else $('#isl-qgo').click(); });
 
 /* Full screen */
-function fitFull() { if (!$('#isl').classList.contains('isl-full')) { cv.style.width = ''; cv.style.height = ''; return; } const hud = $('.isl-hud').offsetHeight || 40, k = Math.min(window.innerWidth / W, (window.innerHeight - hud) / H); cv.style.width = Math.floor(W * k) + 'px'; cv.style.height = Math.floor(H * k) + 'px'; }
-window.addEventListener('resize', () => setTimeout(fitFull, 50));
+function fitFull() { if (!$('#isl').classList.contains('isl-full')) { cv.style.width = ''; cv.style.height = ''; return; } const vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth, vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight, k = Math.min(vw / W, vh / H); cv.style.width = Math.floor(W * k) + 'px'; cv.style.height = Math.floor(H * k) + 'px'; }
+window.addEventListener('resize', () => setTimeout(fitFull, 50)); window.addEventListener('orientationchange', () => setTimeout(fitFull, 300)); if (window.visualViewport) window.visualViewport.addEventListener('resize', () => setTimeout(fitFull, 50));
 function setFull(on) { $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; setTimeout(fitFull, 30); }
 $('#isl-fs').addEventListener('click', () => { const on = !$('#isl').classList.contains('isl-full'); setFull(on); const el = $('#isl'); try { if (on && el.requestFullscreen) el.requestFullscreen().catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {} });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('#isl').classList.contains('isl-full')) setFull(false); });
@@ -274,8 +280,10 @@ const PACKS = {
   fancy: { wall: '#efe2c4', wallD: '#c9b590', roof: '#7a2232', roofD: '#4e1420', door: '#3a1d12', trim: '#d4af37', chair: '#7a2232', table: '#3a2414', top: '#f7f3ea', bulbs: ['#ffe9a8', '#ffd27a', '#fff6dc'], spk: '#3a2414', spkCone: '#d4af37', glow: '#ffe2a0' }
 };
 
+setPack(S.pack);
+
 /* ---------------- characters ---------------- */
-const hero = { x: 140, dir: 1, state: 'idle', st: 0, target: 140, frame: 0, eat: 0, timer: 2, raft: null };
+const hero = { x: 140, y: 186, dir: 1, state: 'idle', st: 0, target: 140, frame: 0, eat: 0, timer: 2, raft: null };
 const CATS = [
   { x: 230, y: 0, dir: -1, col: '#e8913a', dark: '#b3621f', name: 'Marmalade', state: 'walk', t: 0, tx: 200, inside: false, peek: 0 },
   { x: 120, y: 0, dir: 1, col: '#2b2b33', dark: '#121218', name: 'Pepper', state: 'sit', t: 0, tx: 120, inside: false, peek: 0 },
@@ -298,9 +306,9 @@ function spawnRaft(type) {
   if (S.rafts.filter((r) => r.state !== 'gone').length >= 5) return;
   type = type || pick(['pot', 'pot', 'drum', 'drum', 'dance']);
   const used = S.rafts.filter((r) => r.state !== 'gone').map((r) => r.land);
-  let land = 0; for (let k = 0; k < 20; k++) { land = ri(46, 214); if (used.every((u) => Math.abs(u - land) > 30)) break; }
+  let land = 0; for (let k = 0; k < 20; k++) { land = ri(66, 176); if (used.every((u) => Math.abs(u - land) > 26)) break; }
   const r = { type, x: rnd() < 0.5 ? -30 : W + 30, land, y: HORIZON + 6, state: 'drift', t: 0, life: 150 + rnd() * 90, lit: 0, hue: rnd() * 360 };
-  r.x = land < W / 2 ? -30 : W + 30;
+  r.x = rnd() < 0.7 ? -30 : W + 30; r.tgtY = shoreY(land) + 1;
   if (type === 'drum') { const free = DRUMMERS.filter((d) => !S.rafts.some((o) => o.state !== 'gone' && o.drummer === d)); r.drummer = pick(free.length ? free : DRUMMERS); r.hits = []; }
   if (type === 'dance') r.dancers = Array.from({ length: ri(2, 3) }, () => ({ style: pick(DANCES), col: pick(DCOL), skin: pick(['#f0c9a0', '#c48a5a', '#8a5a3c', '#e0b48a', '#6b4430']), ph: rnd() * 6 }));
   S.rafts.push(r); S.lastRaft = S.t;
@@ -329,16 +337,31 @@ function drawSky(d) {
 }
 function rgb2hex(c) { if (c[0] === '#') return c; const m = c.match(/\d+/g).map(Number); return '#' + m.map((v) => v.toString(16).padStart(2, '0')).join(''); }
 function circle(x, y, r, c) { g.fillStyle = c; for (let dy = -r; dy <= r; dy++) { const w = Math.floor(Math.sqrt(r * r - dy * dy)); g.fillRect(Math.round(x - w), Math.round(y + dy), w * 2 + 1, 1); } }
+/* the shore: straight in front of the hut, a shallow cove bites into the beach on the far side */
+const COVE = 180, COVE_DEPTH = 30;
+function coveF(x) { if (x >= COVE) return 0; const t = (COVE - x) / COVE; return t * t * (3 - 2 * t); }
+function shoreY(x) { return SHORE + Math.round(Math.sin(x * 0.045 + 1) * 3 + Math.sin(x * 0.12) * 1.5 + COVE_DEPTH * coveF(x)); }
+function washY(x) { return shoreY(x) + Math.sin(S.t * 0.9 + x * 0.01) * (1 + 3 * coveF(x)); }
 function drawSea(d) {
-  for (let y = HORIZON; y < SHORE + 6; y++) { const f = (y - HORIZON) / (SHORE - HORIZON); R(0, y, W, 1, mix(mix('#0b1a3e', '#1f6fb0', d), mix('#14306a', '#38b6c9', d), f)); }
+  for (let y = HORIZON; y < SHORE + COVE_DEPTH + 10; y++) { const f = Math.min(1, (y - HORIZON) / (SHORE - HORIZON)), sh = clamp((y - SHORE) / COVE_DEPTH, 0, 1); R(0, y, W, 1, mix(rgb2hex(mix(mix('#0b1a3e', '#1f6fb0', d), mix('#14306a', '#38b6c9', d), f)), mix('#1f4a7a', '#6fe0d6', d), sh * 0.7)); }
   // glints / moon path
   for (let i = 0; i < 70; i++) { const x = (i * 53 + Math.floor(S.t * (6 + (i % 5)))) % W, y = HORIZON + 2 + ((i * 7) % (SHORE - HORIZON)); g.globalAlpha = 0.35 + 0.3 * Math.sin(S.t * 3 + i); R(x, y, 3 + (i % 3), 1, d > 0.5 ? '#d9f6ff' : '#9fb4ff'); }
   g.globalAlpha = 1;
 }
 function drawBeach(d) {
   const sand = mix('#5a4a6a', '#f1d79a', d), sandD = mix('#423650', '#d8b874', d), foam = mix('#9fb4d8', '#ffffff', d);
-  for (let x = 0; x < W; x++) { const sy = SHORE + Math.round(Math.sin(x * 0.045 + 1) * 3 + Math.sin(x * 0.12) * 1.5); R(x, sy, 1, H - sy, sand); const wave = Math.sin(S.t * 1.3 + x * 0.05) * 2; P(x, sy - 1 + wave * 0.5, foam); if ((x * 13) % 17 === 0) P(x, sy + 8 + (x % 23), sandD); }
-  for (let i = 0; i < 40; i++) P((i * 97) % W, 170 + (i * 37) % 44, sandD);
+  const wet = mix('#3e3450', '#cfae6c', d);
+  for (let x = 0; x < W; x++) {
+    const sy = shoreY(x), wy = Math.round(washY(x)), cf = coveF(x);
+    R(x, sy, 1, H - sy, sand);
+    if (cf > 0.05) { R(x, sy, 1, 4 + Math.round(cf * 3), wet); if (wy > sy) { g.globalAlpha = 0.75; R(x, sy, 1, wy - sy, mix('#2a5a8a', '#7fe6dc', d)); g.globalAlpha = 1; } }
+    P(x, Math.max(sy, wy) - 1 + Math.sin(S.t * 1.3 + x * 0.05), foam);
+    if (cf > 0.2 && (x + Math.floor(S.t * 4)) % 9 === 0) P(x, Math.max(sy, wy) - 3, foam);
+    if ((x * 13) % 17 === 0) P(x, sy + 8 + (x % 23), sandD);
+  }
+  for (let i = 0; i < 40; i++) { const x = (i * 97) % W, y = 170 + (i * 37) % 44; if (y > shoreY(x) + 6) P(x, y, sandD); }
+  // shells and a starfish on the cove beach
+  P(70, 196, '#ffd0c0'); P(71, 196, '#ffd0c0'); P(118, 204, '#f6e6d0'); R(40, 207, 3, 1, '#ff8a5a'); R(41, 206, 1, 3, '#ff8a5a');
 }
 function palm(x, base, h, d, lean) {
   const trunk = mix('#3a2a20', '#8a6038', d), leaf = mix('#173a2a', '#2f9a4a', d), leafD = mix('#0f2a1e', '#1f7034', d);
@@ -439,7 +462,7 @@ function heroSprite(x, y, f, d) {
   // legs
   if (sit) { R(-4, -8, 9, 3, pants); R(4, -8, 3, 7, pants); R(4, -1, 3, 1, feet); R(-2, -8, 3, 7, pants); R(-2, -1, 3, 1, feet); }
   else {
-    const step = (st === 'walk' || st === 'strut') ? hero.frame % 4 : 0, kick = st === 'strut' ? 2 : 1;
+    const step = (st === 'walk' || st === 'strut' || st === 'toWater' || st === 'wadeIn' || st === 'wadeOut') ? hero.frame % 4 : 0, kick = st === 'strut' ? 2 : 1;
     const lA = [0, kick, 0, -kick][step], lB = [0, -kick, 0, kick][step];
     let dl = 0, dr = 0; if (st === 'dance') { const mv = hero.move % 4; dl = mv === 1 ? -2 : mv === 3 ? 2 : 0; dr = -dl; }
     R(-3 + lA + dl, -9 + bob, 3, 9 - bob, pants); R(1 + lB + dr, -9 + bob, 3, 9 - bob, pants);
@@ -455,6 +478,9 @@ function heroSprite(x, y, f, d) {
   if (st === 'strut') { pl = hero.frame % 2 ? 'out' : 'down'; pr = hero.frame % 2 ? 'down' : 'out'; }
   if (st === 'eat') { pr = hero.eat > 0.5 ? 'eat' : 'down'; }
   if (st === 'cheer') { pl = 'up'; pr = 'up'; }
+  if (st === 'surf') { pl = 'out'; pr = S.playing && (S.beatN % 2) ? 'up' : 'out'; }
+  if (st === 'paddle' || st === 'paddleBack') { pl = hero.frame % 2 ? 'up' : 'out'; pr = hero.frame % 2 ? 'out' : 'up'; }
+  if (st === 'wade') { pl = 'out'; pr = hero.kick > 0 ? 'up' : 'down'; }
   arm(-1, pl); arm(1, pr);
   if (st === 'eat' && hero.eat > 0.5) { R(-1, -24 + by, 2, 3, hero.eatItem ? dim('#5aa0d0') : dim('#a0522d')); }
   // head, beard, hat
@@ -563,6 +589,7 @@ function drawFloaters(dt, d) {
 function heroThink(dt, d) {
   hero.timer -= dt; hero.st += dt;
   const night = d < 0.3;
+  if (waterThink(dt, d)) return;
   // walk to a newly landed pot and light it
   const pot = S.rafts.find((r) => r.type === 'pot' && r.state === 'landed' && r.lit <= 0 && !r.claimed);
   if (pot && hero.state !== 'toRaft' && hero.state !== 'light') { pot.claimed = true; hero.raft = pot; hero.target = pot.x - 14; hero.state = 'toRaft'; }
@@ -583,8 +610,67 @@ function heroThink(dt, d) {
   if (night && S.playing && r < 0.25) { hero.state = 'eat'; hero.x = FIRE - 22; hero.dir = 1; hero.timer = 6 + rnd() * 6; hero.st = 0; return; }
   if (!night && !S.playing && r < 0.25) { hero.state = 'sit'; hero.x = CHAIR + 5; hero.dir = 1; hero.timer = 6 + rnd() * 8; return; }
   if (S.playing && S.energy > 0.55 && r < 0.55) { hero.state = 'dance'; hero.timer = 4 + rnd() * 6; return; }
+  if (rnd() < (d > 0.4 ? 0.24 : 0.07)) { hero.state = 'toWater'; hero.target = 18 + rnd() * 30; return; }
   hero.target = clamp(40 + rnd() * 190, 30, 232);
   hero.state = S.playing && rnd() < 0.55 ? 'strut' : 'walk'; hero.timer = 0;
+}
+/* the cove: wade in, dip toes, and (by day, mostly) paddle out to surf */
+const WET = { toWater: 1, wadeIn: 1, wade: 1, paddle: 1, surf: 1, paddleBack: 1, wadeOut: 1 };
+const SURF_Y = HORIZON + 22;
+function stepTo(tx, ty, sp, dt) { const dx = tx - hero.x, dy = ty - hero.y, dist = Math.hypot(dx, dy); if (dist < 0.8) { hero.x = tx; hero.y = ty; return true; } const k = Math.min(1, sp * dt / dist); hero.x += dx * k; hero.y += dy * k; if (Math.abs(dx) > 0.3) hero.dir = dx > 0 ? 1 : -1; return false; }
+function splash(x, y, n) { for (let i = 0; i < n; i++) S.sparks.push({ x: x + rnd() * 6 - 3, y, vx: (rnd() - 0.5) * 22, vy: -12 - rnd() * 16, l: 0.7, c: rnd() < 0.5 ? '#d9f6ff' : '#9fe8ff' }); }
+function waterThink(dt, d) {
+  const st = hero.state; if (!WET[st]) return false;
+  hero.st += dt; hero.timer -= dt;
+  const walkAnim = (f) => { hero.frameT = (hero.frameT || 0) + dt * f; hero.frame = Math.floor(hero.frameT); };
+  if (st === 'toWater') { walkAnim(6); if (stepTo(hero.target, FLOOR, 22, dt)) { hero.wx = hero.x; hero.wy = shoreY(hero.x) - 5; hero.state = 'wadeIn'; } return true; }
+  if (st === 'wadeIn') { walkAnim(4); if (stepTo(hero.wx, hero.wy, 9, dt)) { hero.state = 'wade'; hero.timer = 5 + rnd() * 5; splash(hero.x, hero.y - 2, 6); } return true; }
+  if (st === 'wade') {
+    hero.frame = 0; if (rnd() < dt * 1.6) { hero.kick = 0.3; splash(hero.x + hero.dir * 2, hero.y - 3, 4); } hero.kick = Math.max(0, (hero.kick || 0) - dt);
+    if (rnd() < dt * 0.3) hero.dir *= -1;
+    if (hero.timer <= 0) { if (rnd() < (d > 0.4 ? 0.6 : 0.2)) { hero.state = 'paddle'; hero.sx = clamp(hero.x + 30 + rnd() * 60, 30, 170); } else hero.state = 'wadeOut'; }
+    return true;
+  }
+  if (st === 'paddle') { walkAnim(3); if (stepTo(hero.sx, SURF_Y, 12, dt)) { hero.state = 'surf'; hero.timer = 9 + rnd() * 7; hero.sv = (rnd() < 0.5 ? -1 : 1) * (16 + rnd() * 10); } return true; }
+  if (st === 'surf') {
+    hero.x += hero.sv * dt; if (hero.x < 14 || hero.x > 176) { hero.sv *= -1; hero.x = clamp(hero.x, 14, 176); splash(hero.x, SURF_Y, 8); }
+    hero.dir = hero.sv > 0 ? 1 : -1;
+    const hop = S.playing ? Math.exp(-(S.beat % 1) * 6) * 2 : 0;
+    hero.y = SURF_Y + Math.sin(S.t * 2.2) * 1.5 - hop;
+    if (rnd() < dt * 4) S.sparks.push({ x: hero.x - hero.dir * 9, y: hero.y + 1, vx: -hero.dir * (6 + rnd() * 10), vy: -6 - rnd() * 8, l: 0.5, c: '#ffffff' });
+    if (hero.timer <= 0) hero.state = 'paddleBack';
+    return true;
+  }
+  if (st === 'paddleBack') { walkAnim(3); if (stepTo(hero.wx, hero.wy, 12, dt)) { hero.state = 'wadeOut'; splash(hero.x, hero.y - 2, 5); } return true; }
+  if (st === 'wadeOut') { walkAnim(5); if (stepTo(hero.x + 6, FLOOR, 10, dt)) { hero.state = 'idle'; hero.timer = 0.5; } return true; }
+  return false;
+}
+function drawBoard(x, y) {
+  const c = { original: ['#e8913a', '#ffffff'], future: ['#5ef0ff', '#ff4fd8'], fancy: ['#d4af37', '#7a2232'] }[S.pack] || ['#e8913a', '#fff'];
+  R(x - 10, y, 21, 2, c[0]); R(x - 11, y + 1, 1, 1, c[0]); R(x + 11, y, 1, 1, c[0]); R(x - 3, y, 6, 1, c[1]);
+  if (S.pack === 'future') { g.globalAlpha = 0.35; R(x - 9, y + 2, 19, 1, c[0]); g.globalAlpha = 1; }
+}
+function waterOver(x, y, cover, d) {
+  if (cover <= 0) return;
+  const sea = mix('#2a5a8a', '#6fe0d6', d), foam = mix('#9fb4d8', '#ffffff', d);
+  g.globalAlpha = 0.85; R(x - 6, y - cover, 13, cover + 1, sea); g.globalAlpha = 1;
+  for (let i = -8; i <= 8; i++) if ((i + Math.floor(S.t * 6)) % 3) P(x + i, y - cover + Math.round(Math.sin(S.t * 4 + i) * 0.6), foam);
+}
+function drawHero(d) {
+  const st = hero.state;
+  if (st === 'surf' || st === 'paddle' || st === 'paddleBack') {
+    const paddling = st !== 'surf', by = Math.round(hero.y);
+    if (!paddling) { // the curl of the wave behind him
+      const fo = mix('#9fb4d8', '#ffffff', d);
+      for (let i = 0; i < 18; i++) P(hero.x - hero.dir * (6 + i), by + 1 - Math.round(Math.sin(i / 18 * Math.PI) * 5), fo);
+    }
+    drawBoard(hero.x, by + (paddling ? -3 : 0));
+    heroSprite(hero.x, by, hero.frame, d);
+    if (paddling) waterOver(hero.x, by + 1, 9, d);
+    return;
+  }
+  heroSprite(hero.x, hero.y, hero.frame, d);
+  if (st === 'wadeIn' || st === 'wade' || st === 'wadeOut') waterOver(hero.x, Math.round(hero.y), clamp(Math.round((FLOOR - hero.y) * 0.45), 0, 6), d);
 }
 function catsThink(dt) {
   CATS.forEach((c) => {
@@ -603,7 +689,7 @@ function raftsThink(dt) {
   if (!S.playing && S.t - S.lastRaft > 140) spawnRaft('pot');
   S.rafts.forEach((r) => {
     r.t += dt;
-    if (r.state === 'drift') { const dx = r.land - r.x; r.x += clamp(dx, -10 * dt, 10 * dt); const tgtY = SHORE + 6; r.y = lerp(HORIZON + 6, tgtY, clamp(1 - Math.abs(dx) / 200, 0, 1)); if (Math.abs(dx) < 1) { r.state = 'landed'; r.t = 0; r.y = tgtY; } }
+    if (r.state === 'drift') { const dx = r.land - r.x; r.x += clamp(dx, -10 * dt, 10 * dt); const tgtY = r.tgtY || SHORE + 6; r.y = lerp(HORIZON + 6, tgtY, clamp(1 - Math.abs(dx) / 200, 0, 1)); if (Math.abs(dx) < 1) { r.state = 'landed'; r.t = 0; r.y = tgtY; } }
     else if (r.state === 'landed') { if (r.lit > 0) r.lit = Math.min(1, r.lit + dt * 0.6); if (r.type !== 'pot' && r.lit <= 0) r.lit = 1; if (r.t > r.life) r.state = 'leaving'; }
     else if (r.state === 'leaving') { r.lit = Math.max(0, r.lit - dt * 0.3); r.y -= dt * 3; r.x += (r.x < W / 2 ? -1 : 1) * dt * 8; if (r.y < HORIZON + 4 || r.x < -40 || r.x > W + 40) r.state = 'gone'; }
   });
@@ -620,12 +706,12 @@ function frame(now) {
   drawSky(d); drawFloaters(dt, d); drawSea(d);
   S.rafts.filter((r) => r.state !== 'landed').forEach((r) => drawRaft(r, d));
   drawBeach(d);
-  palm(26, 186, 74, d, 10); drawHut(d); palm(204, 178, 84, d, -6);
+  palm(4, 210, 84, d, 9); drawHut(d); palm(204, 178, 84, d, -6);
   drawLights(d); drawFire(d); drawFurniture(d);
   S.rafts.filter((r) => r.state === 'landed').forEach((r) => { drawRaft(r, d); });
   S.rafts.forEach((r) => potFire(r));
   catsThink(dt); CATS.forEach((c) => { if (!c.inside) catSprite(c.x, FLOOR - 2 + (c.x % 7 > 3 ? 1 : 0), c.dir, c, false, false); });
-  heroThink(dt, d); heroSprite(hero.x, FLOOR, hero.frame, d);
+  heroThink(dt, d); drawHero(d);
   raftsThink(dt); drawSparks(dt, d);
   // night tint over the island
   if (d < 0.6) { g.globalAlpha = (0.6 - d) * 0.35; R(0, HORIZON, W, H - HORIZON, '#0a0f3a'); g.globalAlpha = 1; }
