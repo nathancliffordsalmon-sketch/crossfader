@@ -24,6 +24,7 @@
   "@media (max-width:781px){.ltf-fa-mob{display:block}}",
   "@media (prefers-reduced-motion:reduce){.ltf-fa-amp{animation:none}}"
   ].join('\n');
+  if(!window.LTFCast&&BASE){var cs=document.createElement('script');cs.src=BASE.replace(/fishamp\/$/,'home/')+'ltf-cast.js';cs.async=true;document.head.appendChild(cs);}
   var st=document.createElement('style');st.id='ltf-fishamp-btn-css';st.textContent=css;document.head.appendChild(st);
   function mob(){
     if(document.querySelector('.ltf-fa-mob'))return;
@@ -33,7 +34,7 @@
     a.setAttribute('aria-label','FISHAMP: the neon fish music player with full-screen visualizers');
     a.innerHTML='<div class="bar"><span>FISHAMP</span><span><i></i><i></i><i></i></span></div>'+
       '<div class="in"><span class="ltf-fa-amp"><img src="'+BASE+'amp-school.svg" alt="" width="72" height="34"></span>'+
-      '<div><div class="t1">▶ FISHAMP</div><div class="t2">Neon fish music player: aquarium tides, storms, light cycles and more.</div></div></div>';
+      '<div><div class="t1">\u25b6 FISHAMP</div><div class="t2">Neon fish music player: aquarium tides, storms, light cycles and more.</div></div></div>';
     anchor.parentNode.insertBefore(a,anchor.nextSibling);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mob);else mob();

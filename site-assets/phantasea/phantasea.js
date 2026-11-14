@@ -60,7 +60,7 @@ const css = `
 #pq .pq-rot{display:none}
 #pq .pq-tv.full .pq-fsbar,#pq .pq-tv.full .pq-fsinfo,#pq .pq-tv.full .pq-fsx{transition:opacity .5s}
 #pq .pq-tv.full.idle .pq-fsbar,#pq .pq-tv.full.idle .pq-fsinfo,#pq .pq-tv.full.idle .pq-fsx{opacity:.18}
-@media (orientation:portrait) and (max-width:700px){#pq .pq-tv.full .pq-rot{display:block;font-size:9px;line-height:1.8;color:#fff4b0;text-align:center;padding:0 16px;text-shadow:2px 2px 0 #1c1040;animation:pqRot 2.4s ease-in-out infinite}}
+@media (orientation:portrait) and (max-width:700px){#pq .pq-tv.full canvas#pq-cv{width:calc(100vw - 12px);box-shadow:0 0 0 3px #4a3f9a}#pq .pq-tv.full .pq-fsbar{top:auto;bottom:max(12px,env(safe-area-inset-bottom));left:12px;right:12px;flex-direction:row;flex-wrap:wrap;justify-content:center}#pq .pq-tv.full .pq-rot{display:block;font-size:8px;line-height:1.8;color:#fff4b0;text-align:center;padding:0 16px;text-shadow:2px 2px 0 #1c1040;animation:pqRot 2.4s ease-in-out infinite}}
 @keyframes pqRot{50%{opacity:.45}}
 @media (orientation:landscape) and (max-height:560px){
 #pq .pq-tv.full{padding:0;gap:0;background:#0e0a24}
@@ -99,7 +99,7 @@ const st = document.createElement('style'); st.textContent = css; document.head.
 root.innerHTML = `
 <div id="pq">
   <div class="pq-title"><b>PHANTASEA SESSIONS</b><span>roll a party · press play · battle to the music</span></div>
-  <div class="pq-tv" id="pq-tv"><button class="pq-fscorner" id="pq-fs2" title="Full screen (F)" aria-label="Full screen">⛶</button><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><div class="pq-rot" aria-hidden="true">↻ TURN YOUR PHONE SIDEWAYS FOR THE BIG SCREEN</div><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
+  <div class="pq-tv" id="pq-tv"><button class="pq-fscorner" id="pq-fs2" title="Full screen (F)" aria-label="Full screen">⛶</button><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button><button id="pq-cast" title="Show this on your TV">📺 Share to TV</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><div class="pq-rot" aria-hidden="true">↻ TURN YOUR PHONE SIDEWAYS FOR THE BIG SCREEN</div><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
   <div class="pq-hud"><span id="pq-status">READY.</span><span id="pq-songnow">♪ —</span></div>
   <div class="pq-tabs" role="tablist">
     <button data-tab="sp" aria-pressed="true">Spotify player here</button>
@@ -1774,6 +1774,7 @@ async function vizMicToggle() {
 tv.insertBefore(vcv, tv.firstChild);
 $('#pq-vzmode').addEventListener('click', (e) => { e.stopPropagation(); vizNext(); });
 $('#pq-vzmic').addEventListener('click', (e) => { e.stopPropagation(); vizMicToggle(); });
+$('#pq-cast').addEventListener('click', (e) => { e.stopPropagation(); if (window.LTFCast) window.LTFCast.open(); else { const s = document.createElement('script'); s.src = (document.querySelector('script[src*="site-assets/phantasea/phantasea.js"]') || {}).src.replace(/phantasea\/phantasea\.js.*$/, 'home/ltf-cast.js'); s.onload = () => window.LTFCast && window.LTFCast.open(); document.head.appendChild(s); } });
 vcv.addEventListener('click', () => vizNext());
 
 function isFull() { return tv.classList.contains('full'); }
