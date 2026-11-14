@@ -17,9 +17,9 @@
     '.ltf-cast-box button.alt{background:#2a2f55;color:#fff}',
     '.ltf-cast-x{position:absolute;top:8px;right:10px;background:none!important;color:#9bd8ff!important;font-size:20px!important;padding:2px 6px!important}',
     '.ltf-cast-note{font-size:12px;opacity:.75;margin-top:8px}',
-    '.ltf-cast-btn.ltf-cast-float{position:absolute;right:10px;bottom:10px;z-index:5;cursor:pointer;border:2px solid #00eaff;border-radius:999px;padding:8px 12px;background:#05070c;color:#e9fdff;font:700 13px system-ui,sans-serif;box-shadow:0 0 12px rgba(0,234,255,.5)}'
+    '.ltf-cast-btn.ltf-cast-inline{display:inline-block;margin:10px 0 4px;cursor:pointer;border:2px solid #00eaff;border-radius:999px;padding:8px 12px;background:#05070c;color:#e9fdff;font:700 13px system-ui,sans-serif;box-shadow:0 0 12px rgba(0,234,255,.5)}'
   ].join('\n');
-  function addCss() { if (document.getElementById('ltf-cast-css')) return; var s = document.createElement('style'); s.id = 'ltf-cast-css'; s.textContent = css; document.head.appendChild(s); }
+  function addCss() { if (document.getElementById('ltf-cast-css')) return; var s = document.createElement('style'); s.id = 'ltf-cast-css'; s.textContent = css + '\n.rtg-full .ltf-cast-inline,.cif-full .ltf-cast-inline{display:none}'; document.head.appendChild(s); }
   var ua = navigator.userAgent || '', iOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var android = /Android/.test(ua), mac = !iOS && /Mac/.test(ua), win = /Windows/.test(ua), cros = /CrOS/.test(ua), chromium = /Chrome|CriOS|Edg/.test(ua) && !/OPR/.test(ua);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
@@ -69,7 +69,7 @@
       var b = document.createElement('button'); b.type = 'button'; b.textContent = '\ud83d\udcfa Share to TV'; b.title = 'Show this on your TV (cast or screen mirroring)';
       b.addEventListener('click', function (e) { e.stopPropagation(); open(); });
       if (fs) { b.className = (fs.className || '') + ' ltf-cast-btn'; b.removeAttribute('id'); fs.parentNode.insertBefore(b, fs.nextSibling); }
-      else { if (getComputedStyle(root).position === 'static') root.style.position = 'relative'; b.className = 'ltf-cast-btn ltf-cast-float'; root.appendChild(b); }
+      else { b.className = 'ltf-cast-btn ltf-cast-inline'; root.appendChild(b); }
     });
   }
   function attachWp() { // Final Songasy: its Full Screen button is a WordPress button outside the game frame
