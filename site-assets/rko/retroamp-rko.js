@@ -8,6 +8,7 @@
   var BASE = (document.currentScript && document.currentScript.src || '').replace(/retroamp-rko\.js.*$/, '');
   function waitRA(n) { if (window.RA && window.LTFGM) return init(); if (n > 150) return; setTimeout(function () { waitRA(n + 1); }, 100); }
   if (!window.LTFGM) { var gs = document.createElement('script'); gs.src = BASE + 'gm.js'; document.head.appendChild(gs); }
+  if (!window.LTFSP) { var ss = document.createElement('script'); ss.src = BASE + 'ltf-spotify.js'; document.head.appendChild(ss); }
   var RKO = 'https://remix.kwed.org';
   waitRA(0);
 
@@ -41,6 +42,10 @@
     var btn = document.createElement('button'); btn.id = 'ra-rkobtn'; btn.type = 'button'; btn.textContent = '\u{1F3AE} Game Music';
     btn.title = 'C64 remixes from Remix.Kwed.Org, or Kevin MacLeod moods from incompetech.com';
     var tabBtn = $('ra-tab'); tabBtn.parentNode.insertBefore(btn, tabBtn.nextSibling);
+    // follow the visitor's own Spotify app (one connection for the whole site, rko/ltf-spotify.js)
+    var spBtn = document.createElement('button'); spBtn.id = 'ra-spbtn'; spBtn.type = 'button'; spBtn.textContent = '\u{1F3A7} My Spotify';
+    spBtn.title = 'Follow whatever is playing in your Spotify app (phone, computer or speaker)';
+    btn.parentNode.insertBefore(spBtn, btn.nextSibling);
 
     var panel = document.createElement('div'); panel.className = 'ra-rko';
     panel.innerHTML =
@@ -52,6 +57,10 @@
       'The files stay on their server, credited to the remixers and the original composers. Love a track? Visit its RKO page and vote for it. ' +
       'Their server doesn’t let web pages re-tune its streams, so the EQ rests and the visualizers dance to the beat.</div>';
     var eq = $('ra-eq'); eq.parentNode.insertBefore(panel, eq);
+    var spPanel = document.createElement('div'); spPanel.className = 'ra-rko';
+    spPanel.innerHTML = '<div class="ra-row"><span class="ra-label">My Spotify</span><span id="ra-spconn"></span></div><div class="ra-credit" id="ra-spstat">Connect once and every Like the Fish game can follow your Spotify.</div>' +
+      '<div class="ra-thanks">Play anything in the Spotify app (phone, computer, speaker) and RetroAmp follows along: the song name scrolls by and the visualizers dance to the beat. Pause and skip in your Spotify app.</div>';
+    eq.parentNode.insertBefore(spPanel, eq);
 
     var READY = false, list = [], order = [], pos = -1, shuffle = true, started = false, coll = 'c64';
     var el = new Audio(); el.preload = 'auto'; el.setAttribute('playsinline', '');
@@ -101,7 +110,7 @@
     // beat model for the visualizers
     var BPM = 128, seed = 1, sm = new Float32Array(1024), env = 0;
     function synth(fd, td) {
-      var on = !el.paused && !el.ended, t = el.currentTime || 0, beat = 60 / BPM, ph = (t % beat) / beat, half = ((t + beat / 2) % beat) / beat;
+      var on = FOL ? fs.playing : (!el.paused && !el.ended), t = FOL ? folT() : (el.currentTime || 0), beat = 60 / BPM, ph = (t % beat) / beat, half = ((t + beat / 2) % beat) / beat;
       var kick = on ? Math.exp(-ph * 7) : 0, hat = on ? Math.exp(-half * 14) * 0.6 : 0;
       env += ((on ? 1 : 0) - env) * 0.06;
       var bar = Math.floor(t / (beat * 4)), n = fd.length;
@@ -119,6 +128,7 @@
       }
     }
     function start(i, keepOrder) {
+      stopFollow(); spBtn.classList.remove('ra-on');
       RA.ensureCtx(); if (RA.mode() !== 'rko') RA.stopOthers();
       RA.setMode('rko'); btn.classList.add('ra-on');
       if (!keepOrder) makeOrder(i);
@@ -142,18 +152,37 @@
     el.addEventListener('playing', function () { errs = 0; RA.msg(''); });
 
     RA.synth = synth;
-    RA.time = function () { return el.currentTime || 0; };
+    RA.time = function () { return FOL ? folT() : (el.currentTime || 0); };
     RA.vol = function (v) { el.volume = Math.max(0, Math.min(1, v)); };
-    RA.onLeave = function () { el.pause(); btn.classList.remove('ra-on'); untick(); };
+    RA.onLeave = function () { el.pause(); btn.classList.remove('ra-on'); untick(); stopFollow(); };
     RA.t = {
-      'ra-play': function () { if (el.paused) { var p = el.play(); if (p && p.catch) p.catch(function () {}); } else el.pause(); },
-      'ra-next': function () { next(1); },
-      'ra-prev': function () { if (el.currentTime > 4) el.currentTime = 0; else next(-1); },
-      'ra-stop': function () { el.pause(); el.currentTime = 0; RA.status('Stopped.'); untick(); }
+      'ra-play': function () { if (FOL) { RA.msg('Pause and skip in your Spotify app; RetroAmp follows along.'); return; } if (el.paused) { var p = el.play(); if (p && p.catch) p.catch(function () {}); } else el.pause(); },
+      'ra-next': function () { if (FOL) { RA.msg('Skip songs in your Spotify app; RetroAmp follows along.'); return; } next(1); },
+      'ra-prev': function () { if (FOL) { RA.msg('Skip songs in your Spotify app; RetroAmp follows along.'); return; } if (el.currentTime > 4) el.currentTime = 0; else next(-1); },
+      'ra-stop': function () { if (FOL) { stopFollow(); RA.status('Stopped following your Spotify app.'); untick(); return; } el.pause(); el.currentTime = 0; RA.status('Stopped.'); untick(); }
     };
 
+    var FOL = null, fs = { playing: false, pos: 0, at: 0 };
+    function folT() { return fs.pos + (fs.playing ? (performance.now() - fs.at) / 1000 : 0); }
+    function stopFollow() { if (FOL) { FOL(); FOL = null; } fs.playing = false; spBtn.classList.remove('ra-on'); }
+    function startFollow() {
+      if (!window.LTFSP) { RA.msg('One moment\u2026'); return; }
+      spPanel.classList.add('on'); panel.classList.remove('on');
+      if (!window.LTFSP.connected()) { window.LTFSP.connect(); return; }
+      RA.ensureCtx(); if (RA.mode() !== 'rko') RA.stopOthers(); el.pause(); untick();
+      RA.setMode('rko'); btn.classList.remove('ra-on'); spBtn.classList.add('ra-on'); RA.msg('');
+      if (FOL) return;
+      FOL = window.LTFSP.follow({
+        onSong: function (title, n) { var h = 0; for (var i = 0; i < n.id.length; i++) h = (h * 31 + n.id.charCodeAt(i)) >>> 0; seed = (h % 97) / 9; BPM = 96 + h % 56; RA.setPlaying(title); ticker('\u266B NOW PLAYING: ' + title + ' \u2605 from your Spotify app \u2605'); },
+        onTick: function (n) { fs.pos = (n.progress || 0) / 1000; fs.at = performance.now(); },
+        onPlaying: function (p) { fs.playing = p; },
+        onStatus: function (t) { $('ra-spstat').textContent = t; }
+      });
+    }
+    spBtn.onclick = startFollow;
+    (function spInit(n) { if (!window.LTFSP) { if (n < 100) setTimeout(function () { spInit(n + 1); }, 100); return; } window.LTFSP.button($('ra-spconn')); })(0);
     btn.onclick = function () {
-      panel.classList.add('on');
+      panel.classList.add('on'); spPanel.classList.remove('on'); stopFollow();
       if (!READY) { RA.msg('Loading the game music\u2026'); pendingStart = true; return; }
       if (RA.mode() === 'rko' && !el.paused) return;
       start(0);

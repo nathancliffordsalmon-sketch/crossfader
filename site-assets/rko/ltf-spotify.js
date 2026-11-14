@@ -63,6 +63,7 @@
       else if (n.state === 'ok') {
         if (n.id !== last) { last = n.id; cb.onSong && cb.onSong(n.title, n); }
         cb.onPlaying && cb.onPlaying(n.playing);
+        cb.onTick && cb.onTick(n);
         cb.onStatus && cb.onStatus('Connected ✓ · ' + (n.playing ? '♫ ' : 'paused · ') + n.title);
       } else if (n.state === 'error') cb.onStatus && cb.onStatus('Connection hiccup, retrying…');
       timer = setTimeout(tick, n.state === 'retry' ? 500 : 4000);
