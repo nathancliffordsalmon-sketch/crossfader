@@ -1029,12 +1029,79 @@ function sceneInside() {
   vignette();
 }
 function edisonC9(x1, y1, x2, y2, sag, n) { g.strokeStyle = MARK ? INK : 'rgba(10,10,10,.8)'; g.lineWidth = 1; g.beginPath(); for (let i = 0; i <= 20; i++) { const [x, y] = catenary(x1, y1, x2, y2, sag, i / 20); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); for (let i = 1; i < n; i++) { const [x, y] = catenary(x1, y1, x2, y2, sag, i / n); ell(x, y + 3, 1.8, 3, '#fffbe8', { lw: 0.6 }); glow(x, y + 3, 12, '#fff4d0', S.playing ? 0.55 + 0.25 * Math.cos(i * 0.8 - S.beat * 2) : 0.6); } }
+function pine(x, y, h, seed, cols) {
+  const r = RNG(seed), n = 8 + Math.floor(r() * 4), sw = Math.sin(S.t * 0.6 + seed) * 1.6;
+  ln(x, y, x, y - h * 0.3, '#3a2a1c', Math.max(2, h * 0.035), { mw: 1.6 });
+  for (let i = 0; i < n; i++) {
+    const t = i / n, ty = y - h * 0.14 - t * h * 0.8, w = (1 - t) * h * 0.27 + 3, xo = x + sw * t, j = () => (r() - 0.5) * w * 0.18;
+    const pts = [xo - w + j(), ty + w * 0.42, xo - w * 0.7 + j(), ty + w * 0.26, xo - w * 0.45, ty + w * 0.34, xo - w * 0.2, ty + w * 0.12, xo, ty - h * 0.07, xo + w * 0.2, ty + w * 0.12, xo + w * 0.45, ty + w * 0.34, xo + w * 0.7 + j(), ty + w * 0.26, xo + w + j(), ty + w * 0.42, xo, ty + w * 0.3];
+    poly(pts, cols[0], { h: 4 });
+    if (!MARK) poly([xo + w * 0.1, ty + w * 0.06, xo + w * 0.45, ty + w * 0.32, xo + w * 0.75, ty + w * 0.24, xo + w * 0.95, ty + w * 0.38, xo + w * 0.2, ty + w * 0.26], cols[1]);
+  }
+  poly([x + sw - 2, y - h * 0.9, x + sw, y - h * 1.02, x + sw + 2, y - h * 0.9], cols[0]);
+}
+function pineRow() {
+  const back = ['#1a2a24', '#22362c'], front = ['#0f1a14', '#1a2c20'];
+  [[8, 330, 120, 3], [52, 326, 150, 4], [96, 332, 110, 5], [140, 330, 130, 6], [176, 336, 90, 7]].forEach(([x, y, h, sd]) => pine(x, y, h, sd, back));
+  [[-6, 350, 200, 11], [38, 352, 175, 12], [86, 350, 215, 13], [132, 354, 160, 14]].forEach(([x, y, h, sd]) => pine(x, y, h, sd, front));
+}
+function lobsterBoat(x, y, s) {
+  const b = Math.sin(S.t * 0.9 + x) * 1.2 * s; y += b;
+  poly([x - 34 * s, y - 8 * s, x + 30 * s, y - 10 * s, x + 38 * s, y - 16 * s, x + 32 * s, y, x - 30 * s, y], '#f4f4f0', { lw: 1 });
+  rect(x - 32 * s, y - 3 * s, 64 * s, 3 * s, '#c8102e'); rect(x - 4 * s, y - 22 * s, 20 * s, 13 * s, '#e8e8e4', { lw: 1 }); rect(x - 1 * s, y - 19 * s, 6 * s, 5 * s, '#3a4a5a'); rect(x + 7 * s, y - 19 * s, 6 * s, 5 * s, '#3a4a5a');
+  ln(x + 6 * s, y - 22 * s, x + 6 * s, y - 34 * s, '#ccc', 1, { mw: 0.8 }); bulb(x + 6 * s, y - 35 * s, 1, '#ffffff', 0.7);
+  if (!MARK) { g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(x - 34 * s, y + 1, 70 * s, 1.5); }
+}
+function dinghy(x, y, s) { const b = Math.sin(S.t * 1.3 + 2) * s; poly([x - 14 * s, y - 5 * s + b, x + 14 * s, y - 5 * s + b, x + 10 * s, y + b, x - 10 * s, y + b], '#2a6ac8', { lw: 1 }); rect(x - 10 * s, y - 6 * s + b, 20 * s, 1.5 * s, '#e8e4da'); }
+/* ---------- the swim raft: regulars change, swim out, dance on the raft, swim back ---------- */
+const RAFT = { x: 500, y: 314, s: 1.35 };
+const SWIMMERS = [0, 1, 2].map((i) => ({ i, k: 37 + i * 61, off: i / 3 }));
+function swimmerSlot(w, amb, light, style) {
+  if (!w.sl) { const base = ROSTER[w.k % ROSTER.length]; w.sl = { p: Object.assign({}, base, { top: 'tank', topC: ['#ff3b6b', '#1d6fe0', '#ffd166'][w.i], bot: 'shorts', botC: ['#1d4e89', '#ff8a3d', '#2a9d8f'][w.i], hat: 'none', acc: 'none' }), off: 0.2 + w.i * 0.3, face: 1, style: 'stand' }; w.dry = { p: base, off: w.sl.off, face: 1, style: 'stand' }; }
+  const sl = style === 'dry' ? w.dry : w.sl; sl.style = style === 'dry' ? 'stand' : style; const ck = amb.col + light; if (sl.cKey !== ck) { sl.cKey = ck; sl.c = shadeSet(sl.p, amb, light); } return sl;
+}
+function swimHead(x, y, s, sk, stroke) {
+  const a = Math.sin(stroke);
+  ell(x, y, 4.5 * s, 5 * s, sk, { lw: 0.8 });
+  ln(x - 3 * s, y + 2 * s, x - 8 * s - a * 4 * s, y - 2 * s - Math.max(0, a) * 6 * s, sk, 2.2 * s, { mw: 1 });
+  ln(x + 3 * s, y + 2 * s, x + 8 * s + a * 4 * s, y - 2 * s - Math.max(0, -a) * 6 * s, sk, 2.2 * s, { mw: 1 });
+  if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x, y + 4 * s, 10 * s, 2.2 * s, 0, 0, 7); g.stroke(); }
+}
+function raftCrew(layer, amb, light) {
+  const P = 48, shoreY = 376;
+  SWIMMERS.forEach((w) => {
+    if (!w.sl) swimmerSlot(w, amb, light, 'stand');
+    const t = ((S.t / P) + w.off) % 1, bx = 452 + w.i * 34, by = 398 + (w.i % 2) * 6, rx = RAFT.x - 22 + w.i * 22, ry = RAFT.y - 2;
+    const lerp = (a, b, k) => a + (b - a) * k;
+    if (t < 0.1) { if (layer !== 'beach') return; const changed = t > 0.05, sl = swimmerSlot(w, amb, light, changed ? 'stand' : 'dry'); person(sl, bx, by, 0.5); if (!changed) { const sp = t * 120; ell(bx + Math.sin(sp) * 7, by - 18, 9, 3, ['#ffd166', '#e9eef5', '#ff8a3d'][w.i], { lw: 0.8 }); } }
+    else if (t < 0.15) { if (layer !== 'beach') return; const k = (t - 0.1) / 0.05; person(swimmerSlot(w, amb, light, 'stand'), lerp(bx, bx + 10, k), lerp(by, shoreY, k), 0.5); }
+    else if (t < 0.33) { if (layer !== 'water') return; const k = (t - 0.15) / 0.18; swimHead(lerp(bx + 10, rx, k), lerp(shoreY - 4, ry + 8, k) + Math.sin(S.t * 3 + w.i) * 0.8, lerp(0.75, 0.55, k), w.sl.p.skin, S.t * 5 + w.i); }
+    else if (t < 0.62) { if (layer !== 'raft') return; const sl = swimmerSlot(w, amb, light, S.playing ? 'rave' : 'sway'); person(sl, rx, ry, 0.36); }
+    else if (t < 0.67) { if (layer !== 'water') return; const k = (t - 0.62) / 0.05, x = lerp(rx, rx - 18, k), y = ry - Math.sin(k * Math.PI) * 16 + k * 10; if (k < 0.8) ell(x, y - 6, 2.5, 6, w.sl.p.skin, { lw: 0.6 }); else { g.strokeStyle = MARK ? INK : 'rgba(255,255,255,.9)'; g.lineWidth = 1.4; g.beginPath(); g.ellipse(x, ry + 8, 8 + (k - 0.8) * 30, 2.5, 0, 0, 7); g.stroke(); } }
+    else if (t < 0.85) { if (layer !== 'water') return; const k = (t - 0.67) / 0.18; swimHead(lerp(rx - 18, bx + 10, k), lerp(ry + 8, shoreY - 4, k) + Math.sin(S.t * 3 + w.i) * 0.8, lerp(0.55, 0.75, k), w.sl.p.skin, S.t * 5 + w.i); }
+    else { if (layer !== 'beach') return; const k = Math.min(1, (t - 0.85) / 0.05); person(swimmerSlot(w, amb, light, 'stand'), lerp(bx + 10, bx, k), lerp(shoreY, by, k), 0.5); }
+  });
+}
+function swimRaft(night, on, pu) {
+  const { x, y, s } = RAFT, b = Math.sin(S.t * 1.1) * 1.2;
+  poly([x - 40 * s, y + b, x + 40 * s, y + b, x + 36 * s, y + 6 * s + b, x - 36 * s, y + 6 * s + b], night ? '#6a6458' : '#c9bea6', { lw: 1.2 });
+  rect(x - 38 * s, y + 5 * s + b, 76 * s, 3 * s, '#5a4a3a');
+  [-30, 30].forEach((dx) => { ell(x + dx * s, y + 9 * s + b, 6 * s, 3 * s, '#e8e4da', { lw: 0.8 }); });
+  ln(x + 30 * s, y + b, x + 30 * s, y - 14 * s + b, '#d0d4d8', 1.4, { mw: 1 }); ln(x + 36 * s, y + b, x + 36 * s, y - 14 * s + b, '#d0d4d8', 1.4, { mw: 1 }); ln(x + 30 * s, y - 14 * s + b, x + 33 * s, y - 18 * s + b, '#d0d4d8', 1.4, { mw: 1 });
+  if (night) { bulb(x - 34 * s, y - 6 + b, 1.6, '#ffd27a', 0.9); glow(x - 34 * s, y - 6 + b, 18, '#ffb35a', on ? 0.4 + pu * 0.3 : 0.35); }
+  if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x, y + 8 * s + b, 46 * s, 3 * s, 0, 0, 7); g.stroke(); }
+}
 function sceneShore() {
   const act = ACTS[S.act], on = S.playing, pu = on ? Math.exp(-((S.beat % 1) * 5)) : 0, amb = { col: '#241a44', k: 0.4 }, light = '#b07dff';
   skyGrad(['#22336a', '#4f6aa8', '#9aaed0', '#f0c48a', '#f59a4a'], 330); stars(80, 0.4); cirrus(200, 0.8); sunsetClouds(250, 'shore', false);
   // trees, campers with string lights, a white tent, hills across the cove
-  poly([300, 330, 420, 318, 560, 326, 560, 340, 300, 340], '#2a3a3a', { h: 6 });
-  spruceLine('s-left', 340, 150, '#0e1512', 0, 300, { h: 7 });
+  // the bay between the pines and the stage: far shore, water, moored boats
+  poly([150, 300, 260, 292, 380, 296, 470, 290, 560, 296, 560, 304, 150, 304], '#3a4a5a', { h: 5 });
+  spruceLine('s-far', 300, 16, '#24343a', 150, 560, { h: 5 });
+  for (let i = 0; i < 4; i++) glow(200 + i * 100, 300, 5, '#ffd890', 0.6);
+  g.save(); g.beginPath(); g.rect(140, 302, 440, 40); g.clip(); water(302, 342, '#7a7ab0', '#3a4a7a', [[420, '#f5b06a', 0.55, 26]]); g.restore();
+  ketch(250 + Math.sin(S.t * 0.05) * 30, 322, 0.55); lobsterBoat(430, 334, 0.7); dinghy(340, 338, 0.6);
+  pineRow();
   [[40, 372], [150, 378]].forEach(([x, y], i) => { rect(x, y - 30, 96, 30, '#d8dce2', { lw: 1.2 }); rect(x + 10, y - 24, 30, 10, '#2a3a4a'); rect(x + 50, y - 24, 30, 10, on ? '#ffcf7a' : '#2a3a4a'); ell(x + 24, y, 6, 6, '#111', { ink: true }); edison(x - 4, y - 32, x + 100, y - 30, 6, 9); });
   poly([300, 390, 340, 350, 380, 390], '#f2f2f2', { lw: 1.4 }); poly([340, 350, 420, 352, 440, 392, 380, 390], '#e4e4e4', { lw: 1.4 });
   ground(340, H, '#1e2a20', '#0d140f');
@@ -1084,13 +1151,14 @@ function sceneBeach(night) {
   cottage(760, 262, 1, night ? '#3a4050' : '#e8e4da', night); cottage(860, 252, 0.9, night ? '#3a4050' : '#d8dee6', night); canadaFlag(810, 250, 1);
   spruceLine(night ? 'b-left-n' : 'b-left', 248, 30, night ? '#060a14' : '#24402a', 0, 90, { h: 6 });
   bayWater(262, 372, night);
-  swimDock(210, 298, 1); bulb(120, 320, 2.4, '#ff7a2a', night ? 0.3 : 0.9); bulb(470, 312, 2.2, '#ff7a2a', night ? 0.3 : 0.9);
+  swimRaft(night, on, pu); raftCrew('water', amb, light); raftCrew('raft', amb, light); bulb(120, 320, 2.4, '#ff7a2a', night ? 0.3 : 0.9); bulb(470, 312, 2.2, '#ff7a2a', night ? 0.3 : 0.9);
   if (!night) ketch(((S.t * 4) % (W + 200)) - 100, 286, 0.8); else { [[380, 300], [520, 292]].forEach(([x, y], i) => { bulb(x, y - 30, 1.2, '#ffffff', 0.8); bulb(x - 10, y, 1.2, i ? '#3dff6b' : '#ff3b3b', 0.7); }); }
   if (night) water(262, 372, 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', [[700, '#fff3c4', 0.45, 10]]);
   // sand, wrack lines, the wash
   if (!MARK) { const gr = g.createLinearGradient(0, 360, 0, H); gr.addColorStop(0, night ? '#3a3448' : '#cfc2a6'); gr.addColorStop(0.08, night ? '#4a4458' : '#e8dfcb'); gr.addColorStop(1, night ? '#2a2638' : '#ddd0b4'); g.fillStyle = gr; path([0, 372, W, 362, W, H, 0, H], true); g.fill(); }
   else { ln(0, 372, W, 362, INK, 1.6); g.fillStyle = INK; const r = RNG(4); for (let i = 0; i < 180; i++) g.fillRect(r() * W, 380 + r() * 160, 1.2, 1.2); }
   lapping(372, night);
+  raftCrew('beach', amb, light);
   seaweed(0, 396, 420, 1); seaweed(380, 392, 300, 2); seaweed(640, 388, 320, 3); seaweed(100, 452, 160, 4); seaweed(700, 470, 120, 5);
   // dune grass and granite boulders at the back right and the front left
   poly([600, 372, 640, 344, 760, 334, 960, 326, 960, 372], night ? '#3a3448' : '#e2d6bc', { lw: 1.4 });
@@ -1117,7 +1185,7 @@ function sceneBeach(night) {
     umbrella(600, 430, 1, ['#1d6fe0', '#ffffff', '#1d6fe0', '#ffffff', '#1d6fe0', '#ffffff']); umbrella(700, 446, 1.1, ['#ff3b6b', '#ffb347', '#ffe14a', '#4ad66a', '#3a8ae0', '#8a5ae0']); umbrella(860, 430, 1, ['#1d6fe0', '#ff8a3d', '#ffe14a', '#1d6fe0', '#ff8a3d', '#ffe14a']);
     lounger(760, 500, 1); towel(560, 488, 1, ['#1d4e89', '#e9eef5', '#3a8ad8', '#d9a07a', '#1d4e89']); towel(860, 470, 1, ['#ff8a3d', '#e9eef5', '#ff3b6b', '#e9eef5']);
     for (let i = 0; i < 7; i++) { const x = ((S.t * 9 + i * 13) % (W + 200)) - 100, y = 452 + (i === 0 ? -2 : 0); duckling(x, y, i === 0 ? 1.6 : 1, S.t * 9 + i); }
-    [[430, 300], [520, 316], [700, 290]].forEach(([x, y], i) => { const bob = Math.sin(S.t * 1.5 + i) * 2; ell(x, y + bob, 5, 5.5, SKIN[i + 1]); if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x, y + 5 + bob, 9, 2, 0, 0, 7); g.stroke(); } });
+    [[430, 300], [580, 334], [700, 290]].forEach(([x, y], i) => { const bob = Math.sin(S.t * 1.5 + i) * 2; ell(x, y + bob, 5, 5.5, SKIN[i + 1]); if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x, y + 5 + bob, 9, 2, 0, 0, 7); g.stroke(); } });
     for (let i = 0; i < 4; i++) { const x = (i * 210 + S.t * (18 + i * 4)) % (W + 80) - 40, y = 110 + Math.sin(S.t * 0.5 + i * 2) * 30 + i * 12; gull(x, y, 0.8 + (i % 2) * 0.3, S.t * 7 + i, '#f4f4f4'); }
   }
   boulder(40, 540, 60, 11, night); boulder(130, 548, 42, 12, night); boulder(-10, 500, 40, 13, night);
