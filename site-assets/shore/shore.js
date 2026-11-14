@@ -497,7 +497,7 @@ function buildCrowd() {
   switch (S.scene) {
     case 'inside': dance(38, 250, 710, 350, 530, 0.6, 1.2, 0.72, 220); [[95, 432], [70, 508], [865, 432], [890, 508]].forEach(([x, y]) => { addSlot(L, r, x - 24, y - 6, y > 470 ? 1.05 : 0.9, 'sit', 1, { table: [x, y] }); addSlot(L, r, x + 24, y - 6, y > 470 ? 1.05 : 0.9, 'sit', 1, { table: [x, y] }); }); break;
     case 'deck': idle(6, 230, 930, 424, 426, 0.8, 0.8, -1, 'stand'); [[360, 470], [600, 505], [820, 462]].forEach(([x, y]) => { addSlot(L, r, x - 28, y - 4, 0.95, 'sit', 1, { table: [x, y], drink: r() < 0.6 }); addSlot(L, r, x + 28, y - 4, 0.95, 'sit', 1, { table: [x, y], drink: r() < 0.6 }); }); dance(9, 650, 930, 470, 535, 0.95, 1.15, 0.3); L.push({ p: { ...ROSTER[7], hat: 'captain', top: 'long', topC: '#f4f1de', h: 1, w: 1 }, x: 120, y: 442, s: 0.9, style: 'stand', face: 1, off: 0.3, bartender: true }); break;
-    case 'outside': idle(6, 540, 640, 430, 452, 0.56, 0.62, 1, 'stand'); idle(12, 60, 900, 455, 535, 0.62, 1.0); dance(4, 200, 760, 470, 530, 0.7, 1.0, 0.1); break;
+    case 'outside': idle(5, 600, 680, 432, 452, 0.56, 0.62, 1, 'stand'); idle(12, 60, 900, 455, 535, 0.62, 1.0); dance(4, 200, 760, 470, 530, 0.7, 1.0, 0.1); L.forEach((sl) => { if (sl.x > 350 && sl.x < 610) { const d = sl.x < 480 ? -1 : 1; sl.x += d * (130 - Math.abs(sl.x - 480) * 0.2); if (sl.cx != null) sl.cx += d * 130; } }); break;
     case 'shore': dance(46, 40, 560, 372, 535, 0.55, 1.15, 0.85, 60); idle(5, 30, 260, 480, 530, 1, 1.1, 1, 'sit'); break;
     case 'beachDay': dance(14, 90, 470, 445, 530, 0.8, 1.05, 0.7); idle(6, 560, 920, 440, 520, 0.85, 1.05, 1, 'cross'); idle(3, 520, 900, 395, 420, 0.65, 0.7, 1, 'stand'); break;
     case 'beachNight': dance(26, 60, 540, 440, 532, 0.78, 1.08, 0.6, 30); [[612, 470], [708, 470], [584, 506], [738, 506], [880, 490]].forEach(([x, y]) => addSlot(L, r, x, y, 0.95, 'cross', 1)); idle(3, 800, 930, 440, 470, 0.8, 0.85, 1, 'sway'); break;
@@ -545,7 +545,7 @@ function flagLine(x1, y1, x2, y2, sag, n, seed) {
   g.strokeStyle = MARK ? INK : 'rgba(30,30,30,.8)'; g.lineWidth = 1; g.beginPath(); for (let i = 0; i <= 16; i++) { const [x, y] = catenary(x1, y1, x2, y2, sag, i / 16); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
   const F = [['#c8102e', '#f4f1de', 'h'], ['#1d4e89', '#f4f1de', 'v'], ['#f2c14e', '#1d4e89', 'x'], ['#f4f1de', '#c8102e', 'b'], ['#f2c14e', '#c8102e', 'd'], ['#1d4e89', '#f2c14e', 'p'], ['#111318', '#f2c14e', 'h'], ['#c8102e', '#f2c14e', 'v']];
   for (let i = 1; i < n; i++) {
-    const [x, y] = catenary(x1, y1, x2, y2, sag, i / n), [a, b, k] = F[(i + seed) % F.length], fl = Math.sin(S.t * 3 + i) * 1.5, w = 9, h = 11;
+    const [x, y] = catenary(x1, y1, x2, y2, sag, i / n), [a, b, k] = F[(i + seed) % F.length], fl = Math.sin(S.t * 3 + i) * 1.5, w = 11, h = 14;
     if (k === 'p') { poly([x - w / 2, y, x + w / 2, y, x + fl, y + h + 4], a, { lw: 1.2 }); continue; }
     poly([x - w / 2, y, x + w / 2, y, x + w / 2 + fl, y + h, x - w / 2 + fl, y + h], a, { lw: 1.2 });
     const half = MARK ? { ink: true, noline: true } : null;
@@ -576,6 +576,15 @@ function lobster(x, y, s, col) {
   poly([x, y + 38 * s, x - 9 * s, y + 46 * s, x + 9 * s, y + 46 * s], col, { lw: 1.2 });
   ell(x, y, 8 * s, 11 * s, col, { lw: 1.4 });
   [-1, 1].forEach((d) => { ln(x + d * 6 * s, y - 6 * s, x + d * 14 * s, y - 16 * s, col, 3 * s, { mw: 2 }); ell(x + d * 18 * s, y - 24 * s, 7 * s, 10 * s, col, { lw: 1.4 }, d * 0.4); poly([x + d * 16 * s, y - 32 * s, x + d * 22 * s, y - 38 * s, x + d * 20 * s, y - 30 * s], dk, { lw: 1 }); ln(x + d * 3 * s, y - 10 * s, x + d * 26 * s, y - 50 * s, col, 1.2 * s, { mw: 1.2 }); for (let k = 0; k < 3; k++) ln(x + d * 7 * s, y + (k * 4) * s, x + d * 14 * s, y + (k * 4 + 5) * s, dk, 1.4 * s, { mw: 1.2 }); });
+}
+function porthole(x, y, r, col, on, pu, seed) {
+  ell(x, y, r + 3.5, r + 3.5, '#d9a531', { lw: 2 }); if (!MARK) ell(x - 1, y - 1, r + 3.5, r + 3.5, '#f0c860');
+  ell(x, y, r, r, on ? mix('#ffb35a', col, 0.45) : '#c9803a', { lw: 1.6 });
+  if (MARK) glow(x, y, r * 1.6, col, 0.7 + pu * 0.4);
+  const bob = on ? Math.abs(Math.sin(S.beat * Math.PI + seed)) * 3 : 0;
+  g.save(); g.beginPath(); g.arc(x, y, r, 0, 7); g.clip(); ell(x - 3, y - 2 - bob, 2.6, 3.2, '#1a0d06', { ink: true, noline: true }); poly([x - 7, y + r, x - 6.5, y + 3 - bob, x + 0.5, y + 3 - bob, x + 1, y + r], '#1a0d06', { ink: true, noline: true }); if (on) ln(x, y + 4 - bob, x + 6, y - 6 - bob * 1.5, '#1a0d06', 2, { mw: 2 }); g.restore();
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; ell(x + Math.cos(a) * (r + 1.8), y + Math.sin(a) * (r + 1.8), 0.9, 0.9, '#7a5a1a', { ink: true, noline: true }); }
+  glow(x, y, r * 3, col, (on ? 0.35 + pu * 0.4 : 0.25));
 }
 function car(x, y, s, col, type) {
   const c2 = mix(col, '#000', 0.35);
@@ -652,7 +661,7 @@ function sceneOutside() {
   poly([372, 264, 480, 160, 588, 264], '#d8d9dc'); if (!MARK) { g.fillStyle = 'rgba(10,16,48,.4)'; path([372, 264, 480, 160, 588, 264], true); g.fill(); }
   // mast + flags
   ln(480, 142, 480, 92, '#e8e8e8', 3, { mw: 2 }); ell(480, 90, 3, 3, '#e8e8e8');
-  flagLine(480, 96, 66, 252, 26, 16, 0); flagLine(480, 96, 894, 252, 26, 16, 3);
+  flagLine(480, 96, 66, 252, 26, 18, 0); flagLine(480, 96, 894, 252, 26, 18, 3); flagLine(84, 262, 372, 266, 14, 14, 5); flagLine(588, 266, 876, 262, 14, 14, 1);
   // neon sign + marquee
   const nf = on ? 0.75 + pu * 0.35 : 0.6 + 0.05 * Math.sin(S.t * 7);
   neonText('Shore Club', 480, 214, 38, '#ff3d7f', nf);
@@ -662,16 +671,21 @@ function sceneOutside() {
   g.font = '700 14px Georgia,serif'; let nm = act.name.toUpperCase(), fs = 14; while (g.measureText(nm).width > 150 && fs > 7) { fs -= 0.5; g.font = `700 ${fs}px Georgia,serif`; } txt(nm, 480, 293, fs, MARK ? INK : '#16130f', { bold: true });
   for (let i = 0; i < 14; i++) bulb(400 + i * 12, 268, 1.6, '#ffe7a0', on ? 0.55 + 0.45 * Math.cos(i - S.beat * 3) : 0.6);
   for (let i = 0; i < 14; i++) bulb(400 + i * 12, 306, 1.6, '#ffe7a0', on ? 0.55 + 0.45 * Math.cos(i + S.beat * 3) : 0.6);
-  // doors
-  rect(442, 326, 76, 88, '#1a1008', { lw: 2 });
-  if (!MARK) { const gr = g.createLinearGradient(0, 326, 0, 414); gr.addColorStop(0, mix('#ffb35a', act.cols[0], 0.4)); gr.addColorStop(1, '#ff7a3a'); g.fillStyle = gr; g.globalAlpha = 0.6 + E * 0.4; g.fillRect(446, 330, 68, 84); g.globalAlpha = 1; }
-  glow(480, 380, 90, act.cols[0], 0.3 + pu * 0.4);
-  for (let k = 0; k < 3; k++) { const dx = 458 + k * 22, bob = on ? Math.abs(Math.sin(S.beat * Math.PI + k)) * 5 : 0; ell(dx, 362 - bob, 4, 5, '#1a0d06', { ink: true, noline: true }); poly([dx - 6, 414, dx - 5, 370 - bob, dx + 5, 370 - bob, dx + 6, 414], '#1a0d06', { ink: true, noline: true }); }
-  // steps, red carpet and the lobster
-  for (let i = 0; i < 4; i++) poly([436 - i * 8, 414 + i * 9, 524 + i * 8, 414 + i * 9, 524 + i * 8, 423 + i * 9, 436 - i * 8, 423 + i * 9], i % 2 ? '#9a9890' : '#aaa8a0', { lw: 1.4 });
-  poly([462, 414, 498, 414, 520, 520, 440, 520], '#9e1020', MARK ? { h: 5, ha: 1.2 } : null);
-  if (!MARK) { g.fillStyle = 'rgba(0,0,0,.25)'; for (let i = 0; i < 4; i++) g.fillRect(436 - i * 8, 422 + i * 9, 88 + i * 16, 1.5); }
-  lobster(424, 434, 0.5, '#e0342b');
+  // red doors with brass portholes
+  rect(436, 322, 88, 92, '#f1ece0', { lw: 2 });
+  [[442, 459], [481, 518]].forEach(([x0, x1], d) => {
+    rect(x0, 328, x1 - x0, 86, '#a4161a', { lw: 2 });
+    if (!MARK) { g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x0 + (d ? 0 : x1 - x0 - 6), 328, 6, 86); }
+    rect(x0 + 6, 386, x1 - x0 - 12, 20, '#8a1016', { lw: 1.2 });
+    const cx = (x0 + x1) / 2, cy = 352; porthole(cx, cy, 13, act.cols[d % act.cols.length], on, pu, d);
+    ell(d ? x0 + 6 : x1 - 6, 372, 2.4, 2.4, '#d9a531', { lw: 1 });
+  });
+  glow(480, 352, 70, act.cols[0], 0.25 + pu * 0.35);
+  // wide front steps with the big lobster painted on them
+  for (let i = 0; i < 7; i++) { const x0 = 428 - i * 9, x1 = 532 + i * 9, y0 = 414 + i * 10; poly([x0, y0, x1, y0, x1, y0 + 10, x0, y0 + 10], i % 2 ? '#a4a29a' : '#b4b2aa', { lw: 1.4 }); if (!MARK) { g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(x0, y0 + 8.5, x1 - x0, 1.5); } }
+  lobster(480, 446, 1.12, '#e0342b');
+  if (!MARK) { g.fillStyle = 'rgba(0,0,0,.18)'; for (let i = 0; i < 7; i++) g.fillRect(430, 422 + i * 10, 100, 1.2); }
+  ln(428, 414, 370, 484, '#e8e8e8', 3, { mw: 2 }); ln(532, 414, 590, 484, '#e8e8e8', 3, { mw: 2 });
   // cars, pole
   car(118, 462, 1.25, '#2a4a5a'); car(700, 462, 1.2, '#6a5a2a', 'truck'); car(-70, 540, 2.0, '#5a2a2a', 'truck'); car(800, 545, 1.95, '#3a3a52');
   lightPole(930, 520, 300, '#ffb35a');
@@ -690,7 +704,7 @@ function sceneDeck() {
   const bl = Math.floor(S.t * 0.8) % 2; bulb(380, 318, 2, bl ? '#3dff6b' : '#103010', bl ? 1 : 0.1);
   // the hall wall at left
   poly([0, 60, 70, 90, 70, 440, 0, 460], '#b9bcc4'); if (!MARK) { g.fillStyle = 'rgba(10,16,48,.5)'; path([0, 60, 70, 90, 70, 440, 0, 460], true); g.fill(); }
-  rect(12, 150, 44, 70, '#2a1c10'); if (!MARK) { g.globalAlpha = 0.6 + pu * 0.4; g.fillStyle = mix('#ffb35a', act.cols[0], 0.4); g.fillRect(15, 153, 38, 64); g.globalAlpha = 1; } glow(34, 186, 60, act.cols[0], 0.3 + pu * 0.4);
+  rect(10, 200, 50, 190, '#f1ece0', { lw: 2 }); rect(15, 206, 40, 184, '#a4161a', { lw: 2 }); porthole(35, 250, 12, act.cols[0], on, pu, 3); ell(50, 310, 2.4, 2.4, '#d9a531', { lw: 1 });
   neonText('Tonight', 120, 120, 22, '#ff3d7f', on ? 0.7 + pu * 0.4 : 0.55); neonText(act.name, 120, 150, 15, act.cols[0], on ? 0.75 + pu * 0.3 : 0.5, "'Pacifico',cursive", 'center', 190);
   // posts + string lights
   [[60, 40], [340, 54], [640, 54], [930, 40]].forEach(([x, y]) => ln(x, 420, x, y, '#3a2a1e', 6, { mw: 3 }));
