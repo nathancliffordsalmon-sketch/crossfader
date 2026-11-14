@@ -11,7 +11,8 @@
     '.rtg-qp-row select{flex:1 1 220px;max-width:420px;font:15px/1.2 Fraunces,Georgia,serif;color:#f3e8d2;background:#1b130d;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:9px 14px;appearance:auto}',
     '.rtg-qp-row button{font:600 15px/1 Fraunces,Georgia,serif;border:0;border-radius:999px;padding:10px 18px;cursor:pointer;background:#ff8a2a;color:#1b130d}',
     '.rtg-qp-row button.stop{background:#3a2a1c;color:#f3e8d2;border:1px solid rgba(255,255,255,.25)}',
-    '.ltf-pt.rtg-qp .msg{flex-basis:100%;text-align:center;font-size:13px;color:#f3e8d2;opacity:.85}'
+    '.ltf-pt.rtg-qp .msg{flex-basis:100%;text-align:center;font-size:13px;color:#f3e8d2;opacity:.85}',
+    '@media (max-width:600px){.rtg-qp-row{flex-wrap:nowrap;gap:6px}.rtg-qp-row .lbl{display:none}.rtg-qp-row select{flex:1 1 0;min-width:0;font-size:14px;padding:9px 10px}.rtg-qp-row button{padding:10px 14px;white-space:nowrap}.ltf-pt.rtg-qp{padding:8px!important}}'
   ].join('\n');
   document.head.appendChild(css);
 
