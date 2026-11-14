@@ -5,10 +5,13 @@
   var BASE=(document.currentScript&&document.currentScript.src||'').replace(/fishamp-btn\.js.*$/,'');
   var css=[
   "@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap');",
-  ".ltf-fa-btn{display:inline-flex;align-items:center;gap:9px;flex:0 0 auto;background:#05070c;border-radius:12px;padding:6px 7px 6px 13px;text-decoration:none!important;line-height:1;",
-  "box-shadow:0 0 0 2px #0b1220,0 0 0 4px #00eaff,0 0 18px rgba(0,234,255,.55),5px 6px 0 4px #2b1055;transition:transform .15s,box-shadow .15s}",
-  ".ltf-fa-btn:hover{transform:translate(-1px,-2px);box-shadow:0 0 0 2px #0b1220,0 0 0 4px #5ff6ff,0 0 30px rgba(0,234,255,.9),7px 8px 0 4px #2b1055}",
-  ".ltf-fa-btn .ltf-fa-fish{font:900 19px/1 Orbitron,'Press Start 2P',sans-serif;letter-spacing:.12em;color:#e9fdff;text-shadow:0 0 6px #00eaff,0 0 14px #00eaff}",
+  /* Header button: compact stack, small FISH label above the fish-school AMP badge. */
+  ".ltf-fa-btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;flex:0 0 auto;background:#05070c;border-radius:9px;padding:4px 6px 5px;text-decoration:none!important;line-height:1;",
+  "box-shadow:0 0 0 1.5px #0b1220,0 0 0 3px #00eaff,0 0 12px rgba(0,234,255,.5),3px 4px 0 3px #2b1055;transition:transform .15s,box-shadow .15s}",
+  ".ltf-fa-btn:hover{transform:translate(-1px,-2px);box-shadow:0 0 0 1.5px #0b1220,0 0 0 3px #5ff6ff,0 0 22px rgba(0,234,255,.9),5px 6px 0 3px #2b1055}",
+  ".ltf-fa-btn .ltf-fa-fish{font:900 10px/1 Orbitron,'Press Start 2P',sans-serif;letter-spacing:.32em;padding-left:.32em;color:#e9fdff;text-shadow:0 0 5px #00eaff,0 0 10px #00eaff}",
+  ".ltf-fa-btn .ltf-fa-amp{padding:2px 5px;border-radius:6px}",
+  ".ltf-fa-btn .ltf-fa-amp img{height:19px}",
   ".ltf-fa-amp{display:block;border-radius:8px;padding:4px 7px;background:radial-gradient(ellipse at 50% 25%,#d6fcff,#3fe3ff 45%,#0096c7);box-shadow:inset 0 0 10px rgba(0,60,90,.55),0 0 12px rgba(0,234,255,.7);animation:ltfFaTide 3.2s ease-in-out infinite}",
   ".ltf-fa-amp img{display:block;height:30px;width:auto}",
   ".ltf-fa-btn:hover .ltf-fa-amp{animation-duration:.8s}",
