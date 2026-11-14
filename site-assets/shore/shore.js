@@ -259,6 +259,23 @@ function shadeSet(p, amb, light) {
   const d = (c) => mix(c, amb.col, amb.k), l = (c) => mix(d(c), light, 0.38);
   return { skin: d(p.skin), skinL: l(p.skin), hair: d(p.hairC), top: d(p.topC), topL: l(p.topC), bot: d(p.botC), hat: d(p.hatC), hatL: l(p.hatC), shoe: d(p.shoe) };
 }
+const EXTRA = ['twist', 'disco', 'robot', 'wave', 'swim', 'shimmy', 'sprinkler', 'raise', 'jump', 'hips'];
+function moveX(P, m, k) {
+  const { b, ph, n, pu, sn, E, o } = k, s2 = Math.sin(b * Math.PI * 2), c2 = Math.cos(b * Math.PI * 2);
+  switch (m) {
+    case 'twist': P.sway = s2 * 4 * E; P.LL = [-0.25 + s2 * 0.25, 0.25 + s2 * 0.2]; P.RL = [0.25 + s2 * 0.25, -0.25 + s2 * 0.2]; P.L = [-0.9 - s2 * 0.3, 0.6]; P.R = [0.9 - s2 * 0.3, -0.6]; P.bounce = 2 + pu; break;
+    case 'disco': { const up = (n % 2) === 0; P.R = up ? [2.6, 2.9] : [0.9, 0.6]; P.L = [-0.3, 0.4]; P.lean = up ? -0.08 : 0.08; P.sway = up ? 2 : -2; P.bounce = pu * 2; break; }
+    case 'robot': { const st = Math.floor(b * 2) % 4; P.L = [[-1.57, 0][st % 2], [-1.57, 3.1][st >> 1]]; P.R = [[1.57, 0][(st + 1) % 2], [1.57, -3.1][(st + 1) >> 1 & 1]]; P.bounce = 0; P.sway = (st - 1.5) * 1.2; break; }
+    case 'wave': { const w = Math.sin(b * Math.PI * 2 + o * 6); P.L = [-1.5 + w * 0.3, -1.5 + w * 0.6]; P.R = [1.5 + w * 0.3, 1.5 + w * 0.6]; P.sway = w * 2; P.bounce = pu; break; }
+    case 'swim': { const a = b * Math.PI; P.L = [-1.6 - Math.max(0, Math.sin(a)) * 1.2, -2.2]; P.R = [1.6 + Math.max(0, -Math.sin(a)) * 1.2, 2.2]; P.lean = Math.sin(a) * 0.08; P.bounce = pu * 1.5; break; }
+    case 'shimmy': P.sway = Math.sin(b * Math.PI * 8) * 1.4; P.L = [-0.6, -0.3]; P.R = [0.6, 0.3]; P.lean = Math.sin(b * Math.PI * 8) * 0.04; P.bounce = 1 + pu; break;
+    case 'sprinkler': { const t = (b % 2) / 2; P.R = [1.57, 1.57 + (Math.floor(t * 6) % 6) * 0.1]; P.L = [-0.9, -2.6]; P.lean = 0.05 - t * 0.1; P.bounce = pu; break; }
+    case 'raise': P.L = [-2.9 + sn * 0.2, -3.0]; P.R = [2.9 + sn * 0.2, 3.0]; P.sway = sn * 3 * E; P.bounce = pu * 2; break;
+    case 'jump': P.bounce = 10 * pu * E; P.L = [-2.6, -2.8]; P.R = [2.6, 2.8]; P.LL = [-0.2 * pu, 0.3 * pu]; P.RL = [0.2 * pu, -0.3 * pu]; break;
+    case 'hips': P.sway = s2 * 3; P.lean = -s2 * 0.07; P.L = [-0.35, 1.2]; P.R = [0.35, -1.2]; P.LL = [-0.08 + Math.max(0, s2) * 0.2, 0]; P.RL = [0.08 - Math.max(0, -s2) * 0.2, 0]; P.bounce = pu; break;
+  }
+  void c2; void ph;
+}
 function pose(sl) {
   const stl = sl.style, o = sl.off, on = S.playing, band = stl[0] === 'b';
   const E = on ? clamp(0.35 + S.energy * 0.8, 0, 1.3) : 0;
@@ -266,6 +283,7 @@ function pose(sl) {
   const P = { dx: 0, sway: 0, bounce: 0, lean: 0, L: [-0.18, -0.08], R: [0.18, 0.08], LL: [-0.05, 0.02], RL: [0.05, -0.02], hy: 0, face: sl.face, sit: false, cross: false, E, pu, b, ph, n };
   if (stl === 'sit' || stl === 'cross') { if (stl === 'cross') P.cross = true; else P.sit = true; P.sway = id * 0.8 + sn * 1.5 * E; P.hy = pu * 1.5; if (sl.drink) P.R = [0.3, 2.3]; if (on && sl.off > 0.6) { P.L = [-0.45, 2.1 + pu * 0.4]; P.R = [0.45, -2.1 - pu * 0.4]; } return P; }
   if (!on && !band) { P.sway = id * 1.2; if (sl.drink) P.R = [0.3, 2.2]; return P; }
+  if (!band && !sl.drink && !sl.inst && stl !== 'couple' && stl !== 'line') { const seg = Math.floor(b / 16), hs = Math.abs(Math.sin(seg * 12.9898 + o * 78.233) * 43758.5453) % 1; if (hs < 0.45) { moveX(P, EXTRA[Math.floor(hs / 0.45 * EXTRA.length)], { b, ph, n, pu, sn, E, o }); return P; } }
   switch (stl) {
     case 'stand': P.sway = id * 1.2 + sn * 1.6 * E; P.bounce = pu * 0.9; if (sl.drink) P.R = [0.3, 2.2 + pu * 0.3]; break;
     case 'sway': P.sway = sn * 4 * E; P.lean = sn * 0.06; P.L = [-0.25 - sn * 0.15, -0.35]; P.R = [0.25 - sn * 0.15, 0.35]; P.bounce = pu * 1.5; break;
@@ -844,6 +862,51 @@ function sceneOutside() {
   buildCrowd(); drawCrowd(amb, '#ffd9a0');
   vignette();
 }
+function deckLot() {
+  // the right half beyond the rail: the Shore Club parking lot
+  poly([236, 270, 520, 266, 520, 404, 226, 404], '#3a3c44', { h: 7 });
+  if (!MARK) { const gr = g.createLinearGradient(0, 266, 0, 404); gr.addColorStop(0, 'rgba(120,110,140,.25)'); gr.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = gr; g.fillRect(226, 266, 294, 138); }
+  poly([222, 270, 244, 270, 236, 404, 214, 404], '#2f4a34', { h: 3 }); grassTufts(214, 246, 280, 400, 31, '#4f7a46');
+  g.strokeStyle = MARK ? INK : 'rgba(240,240,230,.55)'; g.lineWidth = 1; g.beginPath();
+  for (let i = 0; i < 6; i++) { const x = 262 + i * 48; g.moveTo(x, 288); g.lineTo(x - 2, 300); g.moveTo(x - 6 + i * 2, 318); g.lineTo(x - 10 + i * 2, 340); } g.stroke();
+  [[258, 300, 0.42, '#c8102e'], [306, 300, 0.42, '#e9eef5', 'truck'], [404, 300, 0.42, '#3a5f94']].forEach(([x, y, s, c, t]) => car(x, y, s, c, t));
+  [[244, 342, 0.55, '#6a7078'], [340, 342, 0.55, '#1d2230'], [430, 344, 0.52, '#7a2a2a']].forEach(([x, y, s, c]) => car(x, y, s, c));
+  lightPole(498, 404, 268, '#ffe8b0');
+}
+function deckStairs() {
+  // stairs down from the deck into the lot, white rails, blue posts
+  for (let i = 0; i < 7; i++) { const y = 400 - i * 6.5, x0 = 302 + i * 3, x1 = 374 - i * 1.5; rect(x0, y - 4, x1 - x0, 3.5, i % 2 ? '#a8a294' : '#b8b2a4', { lw: 0.8 }); rect(x0, y - 0.5, x1 - x0, 2, '#5a564e', { noline: true }); }
+  ln(300, 352, 324, 352 - 40, '#f4f6f8', 3, { mw: 1.8 }); ln(376, 352, 366, 352 - 40, '#f4f6f8', 3, { mw: 1.8 });
+  rect(298, 352, 5, 52, SC.blue, { lw: 1 }); rect(373, 352, 5, 52, SC.blue, { lw: 1 });
+}
+function redCouch(x, y, s) {
+  const red = '#b3262e', redL = '#d8414a', redD = '#7a1820';
+  rect(x - 46 * s, y - 34 * s, 92 * s, 22 * s, red, { lw: 1.4 });
+  if (!MARK) rect(x - 44 * s, y - 32 * s, 88 * s, 5 * s, redL);
+  rect(x - 44 * s, y - 14 * s, 88 * s, 10 * s, redL, { lw: 1.2 }); ln(x, y - 14 * s, x, y - 4 * s, redD, 1);
+  rect(x - 54 * s, y - 24 * s, 12 * s, 22 * s, red, { lw: 1.4 }); rect(x + 42 * s, y - 24 * s, 12 * s, 22 * s, red, { lw: 1.4 });
+  rect(x - 50 * s, y - 4 * s, 100 * s, 5 * s, redD, { lw: 1 });
+  [-46, 44].forEach((dx) => rect(x + dx * s, y + 1 * s, 3 * s, 4 * s, '#2a1a12'));
+  ell(x - 26 * s, y - 22 * s, 8 * s, 6 * s, '#f2c14e', { lw: 1 }); ell(x + 28 * s, y - 22 * s, 8 * s, 6 * s, '#f4f1de', { lw: 1 });
+}
+function outdoorBar(x0, x1, y) {
+  // a little outdoor bar against the hall: counter, taps, stools and a lantern
+  rect(x0, y - 4, x1 - x0, 6, '#6a4a2e', { lw: 1.2 }); rect(x0 + 4, y + 2, x1 - x0 - 8, 30, '#8a6a46', { lw: 1.2 });
+  g.strokeStyle = MARK ? INK : 'rgba(40,24,10,.5)'; g.lineWidth = 1; g.beginPath(); for (let x = x0 + 14; x < x1 - 6; x += 12) { g.moveTo(x, y + 4); g.lineTo(x, y + 30); } g.stroke();
+  for (let i = 0; i < 3; i++) { const tx = x0 + 30 + i * 12; ln(tx, y - 4, tx, y - 16, '#c0c4c8', 2, { mw: 1.4 }); ell(tx, y - 17, 2.5, 2.5, ['#c8102e', '#f2c14e', '#1d4e89'][i]); }
+  [0, 1, 2, 3].forEach((i) => { const sx = x0 + 22 + i * ((x1 - x0 - 44) / 3); ell(sx, y + 34, 9, 3, '#3a2a1a', { lw: 1 }); ln(sx, y + 36, sx, y + 50, '#2a2a2a', 2, { mw: 1.4 }); });
+  txt('BAR', (x0 + x1) / 2, y - 26, 12, MARK ? INK : '#ffe9b0', { bold: true }); glow((x0 + x1) / 2, y - 30, 30, '#ffb35a', 0.35);
+  shipLantern(x1 - 14, y - 22, 0.7, '#ffb35a', 0.8);
+}
+function portholeDoor(x, y, s, on, pu) {
+  // the side door: blue door with a round porthole window
+  rect(x - 22 * s, y - 92 * s, 44 * s, 92 * s, '#f4f6f8', { lw: 1.4 });
+  rect(x - 18 * s, y - 88 * s, 36 * s, 88 * s, SC.blue, { lw: 1.4 });
+  porthole(x, y - 60 * s, 10 * s, '#d9dde2', true, pu, 9);
+  ell(x + 12 * s, y - 42 * s, 2.2 * s, 2.2 * s, '#e8c060', { lw: 0.8 });
+  rect(x - 26 * s, y - 2 * s, 52 * s, 4 * s, '#6a6a6a', { lw: 1 });
+  bulb(x, y - 100 * s, 2.2, '#fff2c0', 0.9); glow(x, y - 98 * s, 26, '#ffd890', on ? 0.4 + pu * 0.2 : 0.3);
+}
 function sceneDeck() {
   const act = ACTS[S.act], on = S.playing, pu = on ? Math.exp(-((S.beat % 1) * 5)) : 0, amb = { col: '#1a2040', k: 0.35 };
   skyGrad(['#22284e', '#4a4f7a', '#8a86a8', '#c9a4a8'], 300); sunsetClouds(250, 'deck', false);
@@ -852,8 +915,9 @@ function sceneDeck() {
   spruceLine('d-far', 258, 22, '#132022', 0, 520, { h: 6 });
   for (let i = 0; i < 5; i++) { const x = 40 + i * 98; glow(x, 262, 6, '#ffd890', 0.7); }
   water(286, 360, '#3a4a6e', '#2a3858', [[200, '#ffcf7a', 0.3, 8]]);
-  [[110, 314, 0.45], [300, 304, 0.4], [430, 320, 0.5]].forEach(([x, y, s], i) => { const b = Math.sin(S.t * 0.8 + i) * 1.5; poly([x - 24 * s, y + b, x + 26 * s, y + b, x + 20 * s, y + 7 * s + b, x - 18 * s, y + 7 * s + b], '#e4e6ea', { lw: 1 }); ln(x, y + b, x, y - 52 * s + b, '#ddd', 1.2, { mw: 1 }); bulb(x, y - 54 * s + b, 1.2, '#ffffff', 0.8); });
-  nsFlag(250, 360, 1.1);
+  [[70, 314, 0.45], [150, 304, 0.4], [205, 322, 0.5]].forEach(([x, y, s], i) => { const b = Math.sin(S.t * 0.8 + i) * 1.5; poly([x - 24 * s, y + b, x + 26 * s, y + b, x + 20 * s, y + 7 * s + b, x - 18 * s, y + 7 * s + b], '#e4e6ea', { lw: 1 }); ln(x, y + b, x, y - 52 * s + b, '#ddd', 1.2, { mw: 1 }); bulb(x, y - 54 * s + b, 1.2, '#ffffff', 0.8); });
+  nsFlag(40, 360, 1.1);
+  deckLot();
   // the hall: big gable with louvre vent, the angled bay, cupola, stone chimney
   const wall = MARK ? PAPER : '#b7c3d6';
   clapboard(560, 250, 960, 420, wall, 8); poly([548, 254, 760, 96, 972, 254, 960, 254, 760, 110, 560, 254], SC.blue, { lw: 1.4 }); poly([560, 254, 760, 110, 960, 254], wall, { lw: 1 });
@@ -866,14 +930,15 @@ function sceneDeck() {
   poly([470, 278, 510, 270, 510, 420, 470, 412], mix(wall, '#000000', MARK ? 0 : 0.15), { lw: 1.4 }); clapboard(510, 270, 620, 420, wall, 8); poly([620, 270, 650, 278, 650, 412, 620, 420], mix(wall, '#000000', MARK ? 0 : 0.12), { lw: 1.4 });
   rect(466, 262, 188, 9, SC.blue, { lw: 1.2 });
   [[530, 290], [585, 290]].forEach(([x, y]) => { rect(x, y, 30, 22, SC.blue); rect(x + 3, y + 3, 24, 16, '#e4e8ee'); g.strokeStyle = MARK ? INK : '#8a96a6'; g.lineWidth = 1; g.beginPath(); for (let k = 0; k < 5; k++) { g.moveTo(x + 4, y + 5 + k * 3); g.lineTo(x + 26, y + 5 + k * 3); } g.stroke(); });
+  outdoorBar(668, 860, 398); portholeDoor(902, 418, 1, on, pu);
   neonText('Tonight', 565, 340, 16, '#ff3d7f', on ? 0.7 + pu * 0.4 : 0.55); neonText(act.name, 565, 364, 11, act.cols[0], on ? 0.75 + pu * 0.3 : 0.5, "'Pacifico',cursive", 'center', 100);
   // rail along the left (horizontal slats), then the weathered deck
-  for (let y = 360; y < 400; y += 9) rect(0, y, 470, 5, '#8c887e', { lw: 0.8 }); for (let x = 0; x < 470; x += 90) rect(x, 352, 8, 52, '#7a766c', { lw: 1 }); rect(0, 350, 470, 6, '#9a968c', { lw: 1 });
+  for (const [a, b] of [[0, 300], [376, 470]]) { for (let y = 360; y < 400; y += 9) rect(a, y, b - a, 5, '#8c887e', { lw: 0.8 }); rect(a, 350, b - a, 6, '#9a968c', { lw: 1 }); } for (const x of [0, 90, 180, 292, 376, 462]) rect(x, 352, 8, 52, '#7a766c', { lw: 1 }); deckStairs();
   poly([0, 404, 470, 404, 470, 412, 960, 420, 960, 540, 0, 540], '#8a8578');
   if (!MARK) { const gr = g.createLinearGradient(0, 404, 0, 540); gr.addColorStop(0, 'rgba(20,24,48,.35)'); gr.addColorStop(1, 'rgba(255,200,140,.05)'); g.fillStyle = gr; g.fillRect(0, 404, W, 136); }
   g.strokeStyle = MARK ? INK : 'rgba(40,36,30,.45)'; g.lineWidth = 1; g.beginPath(); for (let i = -22; i <= 22; i++) { g.moveTo(520 + i * 30, 406); g.lineTo(520 + i * 110, H); } g.stroke();
   if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.06)'; g.beginPath(); for (let i = 0; i < 30; i++) { const y = 420 + i * 4.2, x = (i * 97) % W; g.moveTo(x, y); g.lineTo(x + 80, y + 1); } g.stroke(); }
-  [[600, 440], [650, 446]].forEach(([x, y]) => pallettChair(x, y, 1));
+  redCouch(150, 432, 0.9); redCouch(560, 450, 1);
   // criss-crossed Edison string lights
   edison(-20, 30, 600, 262, 50, 22); edison(-20, 110, 520, 270, 40, 18); edison(-20, 190, 470, 276, 30, 14); edison(120, -10, 760, 140, 60, 20); edison(300, -10, 900, 230, 50, 20); edison(-20, 70, 960, 70, 80, 30);
   // chalkboard with tonight's act
