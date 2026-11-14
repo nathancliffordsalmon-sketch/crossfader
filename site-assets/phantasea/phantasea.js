@@ -1629,7 +1629,7 @@ function makeStory() {
   if (S.result === 'perfect') out.push(`The music ended at exactly the right moment. All four reached the castle and the sky burst into fireworks.`);
   else if (S.result === 'won') out.push(`All four reached the castle as the last song faded.`);
   else if (S.result === 'partial') out.push(`At the end, ${names(fell)} perished on the road. ${names(lived)} reached the castle and carved their names at the gate.`);
-  else if (S.result === 'lost') out.push(`When the sixth song ended the music was ${S.dir === 'short' ? 'too short' : 'too long'}, and the whole party perished. Their stones stand in the rain.`);
+  else if (S.result === 'lost') out.push(`${S.proj ? 'Counted over six songs at that pace' : 'When the sixth song ended'}, the music was ${S.dir === 'short' ? 'too short' : 'too long'}, and the whole party perished. Their stones stand in the rain.`);
   if (S.proj) out.push(`The quest was ended after ${plural(S.proj.n, 'song')}, so the fates counted all six songs at the ${fmt(S.proj.avg)} average: ${fmt(S.proj.total)} in all.`);
   if (S.spent) out.push(`They spent ${commas(S.spent)} gold at the merchant${S.wpn ? `, swinging level ${S.wpn} weapons` : ''}${S.arm ? `, wearing level ${S.arm} armour` : ''}${S.scrollsUsed ? `, and ${plural(S.scrollsUsed, 'resurrection scroll')} brought heroes back` : ''}.`);
   if (S.result && S.result !== 'none') { const v = villageInfo(); out.push(v.story); }
@@ -1831,10 +1831,10 @@ function drawVillage(dt) {
   box(16, 4, 288, 32, 0, sad ? 12 : 7);
   txt('HOME AT LAST: ' + v.title, W / 2, 9, sad ? 15 : (Math.floor(VL.t / 300) % 2 ? 7 : 1), 'center', v.title.length > 22 ? 6 : 7);
   txt(sad ? `THE VILLAGERS WEEP. ${commas(v.gold)} GOLD CAME HOME` : v.mood === 'hope' ? `THE VILLAGERS CLAP. ${commas(v.gold)} GOLD CAME HOME` : `THE VILLAGERS REJOICE! ${commas(v.gold)} GOLD CAME HOME`, W / 2, 22, sad ? 14 : 13, 'center', 6);
-  box(4, 160, 312, 36, 0, 1);
-  const lines = wrap(upper(v.story), 46).slice(0, 3), shown = Math.floor(VL.t / 26); let left = shown;
-  lines.forEach((ln, i) => { if (left <= 0) return; txt(ln.slice(0, left), 12, 166 + i * 9, 1, 'left', 6); left -= ln.length; });
-  if (VL.t > 5000 && Math.floor(VL.t / 600) % 2) txt('CLICK TO PLAY ON', 308, 152, 1, 'right', 6);
+  box(4, 154, 312, 44, 0, 1);
+  const lines = wrap(upper(v.story), 46).slice(0, 4), shown = Math.floor(VL.t / 26); let left = shown;
+  lines.forEach((ln, i) => { if (left <= 0) return; txt(ln.slice(0, left), 12, 160 + i * 9, 1, 'left', 6); left -= ln.length; });
+  if (VL.t > 5000 && Math.floor(VL.t / 600) % 2) txtO('CLICK TO PLAY ON', 308, 40, '#fff', 'right', 6);
 }
 
 /* ---------- the fireworks castle movie ---------- */
