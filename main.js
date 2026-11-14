@@ -495,7 +495,13 @@ async function createWindow() {
   win.loadURL(`http://localhost:${port}/index.html`);
   if (!PUBLIC) hookYouTubeFrames(win.webContents);   // the public edition never touches YouTube's player frame
   win.webContents.on('console-message', (e) => log(`[page ${e.level}] ${e.message}`));
-  win.webContents.on('render-process-gone', (_e, d) => log(`[crash] renderer gone: ${d.reason}`));
+  win.webContents.on('render-process-gone', (_e, d) => {
+    log(`[crash] renderer gone: ${d.reason}`);
+    if (d.reason === 'clean-exit') return;
+    setTimeout(() => { try { if (win && !win.isDestroyed()) win.loadURL(`http://localhost:${port}/index.html?recover=1`); } catch (e) { log(`[crash] reload failed: ${e.message}`); } }, 1500);
+  });
+  win.webContents.on('unresponsive', () => log('[hang] window unresponsive'));
+  win.webContents.on('responsive', () => log('[hang] window responsive again'));
   win.on('closed', () => { win = null; });
   // Tell the page when the mouse moves over the window — even over YouTube's player, whose mouse
   // events the page can't see. Used to bring back the auto-hiding control bar.

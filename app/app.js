@@ -21,7 +21,8 @@ const DEFAULTS = {
   fx: { bass: 0, vocal: 0, reverb: 0 },
   fontStyle: 'neon', viz: 'song', captions: false, intro: true, barAlways: false,
   ccFont: 'default', ccSize: 1, ccLook: 'box',
-  facts: true, factKinds: { song: true, artist: true, news: true, music: true }, factGap: 45
+  facts: true, factKinds: { song: true, artist: true, news: true, music: true }, factGap: 45,
+  vizEvery: false, resume: {}
 };
 const FX_PRESETS = {
   off: { bass: 0, vocal: 0, reverb: 0 }, bass: { bass: 8, vocal: 0, reverb: 0 }, vocal: { bass: 0, vocal: 6, reverb: 0 },
@@ -33,6 +34,21 @@ let S = structuredClone(DEFAULTS);
 let ytReady;
 const ytReadyPromise = new Promise((r) => (ytReady = r));
 window.onYouTubeIframeAPIReady = () => ytReady();
+// If the app opened without internet (or YouTube's script failed), load the player library again.
+function ensureYT(ms = 15000) {
+  if (window.YT && window.YT.loaded && window.YT.Player) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    let t = null;
+    const done = (ok) => { clearTimeout(t); resolve(ok); };
+    t = setTimeout(() => done(!!(window.YT && window.YT.loaded && window.YT.Player)), ms);
+    window.onYouTubeIframeAPIReady = () => { ytReady(); done(true); };
+    try { window.YT = undefined; window.YTConfig = undefined; } catch {}
+    document.querySelectorAll('script[src*="youtube.com/iframe_api"], script[src*="www-widgetapi"]').forEach((el) => el.remove());
+    const sc = document.createElement('script'); sc.src = `https://www.youtube.com/iframe_api?r=${Date.now()}`;
+    sc.onerror = () => setTimeout(() => done(false), 500);
+    document.body.appendChild(sc);
+  });
+}
 
 /* ================= helpers ================= */
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -93,6 +109,7 @@ function readForm() {
   S.barAlways = $('#barAlways').checked;
   S.ccFont = $('#ccFont').value; S.ccSize = +$('#ccSize').value; S.ccLook = $('#ccLook').value;
   S.fontStyle = $('#fontStyle').value; S.viz = $('#viz').value; S.captions = $('#captions').checked;
+  S.vizEvery = $('#vizEvery').checked;
   document.querySelectorAll('#factCats input').forEach((c) => (S.factKinds[c.dataset.fact] = c.checked));
   S.factGap = +$('#factGap').value || 45;
   document.querySelectorAll('#cats input').forEach((c) => (S.cats[c.dataset.cat] = c.checked));
@@ -113,6 +130,7 @@ function fillForm() {
   $('#ccFont').value = S.ccFont; $('#ccSize').value = String(S.ccSize); $('#ccLook').value = S.ccLook;
   updateCCStyle();
   $('#fontStyle').value = S.fontStyle; $('#viz').value = S.viz; $('#captions').checked = S.captions;
+  $('#vizEvery').checked = !!S.vizEvery;
   applyFont();
   document.querySelectorAll('#factCats input').forEach((c) => (c.checked = !!S.factKinds[c.dataset.fact]));
   $('#factGap').value = String(S.factGap);
@@ -311,12 +329,23 @@ class Queue {
   }
   next() { if (this.pos >= this.order.length) this.refill(); return this.order[this.pos++] || null; }
   markBad(id) { this.bad.add(id); }
+  // Put the queue back where a previous session left it. replay = play that song again first.
+  restore(order, last, replay) {
+    const have = new Set(this.ids);
+    if (order && order.length && order.every((id) => have.has(id))) this.order = order.filter((id) => !this.bad.has(id));
+    const i = last ? this.order.indexOf(last) : -1;
+    if (i >= 0) this.pos = replay ? i : i + 1;
+    this.lastPlayed = last || null;
+  }
   restart() { this.refill(); } // back to the first song (a fresh shuffle if shuffling)
   get usable() { return this.ids.length - this.bad.size; }
 }
 
 let queues = [];
 let turn = 0;
+let resumeAt = null;      // { id, t }: the first song of a resumed session starts here
+let needFreshPlayers = false;
+let recovering = false;
 function pickNext() {
   const qs = queues.filter((q) => q.usable > 0);
   if (!qs.length) return null;
@@ -346,6 +375,7 @@ async function buildPlan(pick) {
     for (const g of plan.segs) { if (g.s <= start + 2) { start = Math.max(start, g.e); changed = true; } else break; }
     if (changed) { plan.start = start; plan.usedSkipData = true; }
   }
+  if (resumeAt && resumeAt.id === pick.id) { plan.start = Math.max(plan.start, resumeAt.t - 2); plan.resumed = true; resumeAt = null; }
   plan.origStart = plan.start;
   if (PUBLIC) plan.meta = await withTimeout(api.oembed(`https://www.youtube.com/watch?v=${pick.id}`), 3000, null);
   return plan;
@@ -496,7 +526,7 @@ async function crossfade(fadeSec = S.fade) {
       lastErrors.push('would not start playing');
       plan.queue.markBad(plan.id);
       inc.plan = null; fading = false;
-      if (++consecutiveFailures > 10) return stop('Playback keeps failing — check your internet connection.');
+      if (++consecutiveFailures > 10) { const e = new Error('Playback keeps failing — check your internet connection.'); e.net = true; throw e; }
       return crossfade(fadeSec);
     }
     consecutiveFailures = 0;
@@ -538,12 +568,26 @@ async function crossfade(fadeSec = S.fade) {
     fading = false;
     out.look = null;
     sendFx(); layoutSides();
+    const lp = decks[live].plan; if (lp) { lp.queue.lastPlayed = lp.id; decks[live].wdCt = null; }
+    saveResume();
     showHud(7000);
-    prepare(out).catch((e) => stop(e.message));
+    prepare(out).catch(playbackFailed);
   } catch (e) {
     fading = false;
-    stop(e.message || String(e));
+    if (recovering) throw e;
+    playbackFailed(e);
   }
+}
+// Connection trouble (or a frozen player) shouldn't end the night: try to recover in place.
+function isNetFail(e) {
+  const m = (e && e.message) || String(e);
+  if (/refusing to play videos in this app/.test(m)) return false;
+  return !navigator.onLine || (e && e.net) || /no response|would not start|didn't load|Couldn't reach|Could not load|timeout|None of the videos would play|unplayable/i.test(m);
+}
+function playbackFailed(e) {
+  if (!running) return;
+  if (e && e.message === '__cancelled__') return;
+  if (isNetFail(e)) recover(e.message || String(e)); else stop(e.message || String(e));
 }
 
 /* ================= main loop ================= */
@@ -564,6 +608,12 @@ function tick() {
     const rem = Math.max(0, d.plan.end - ct), el = Math.max(0, ct - d.plan.start), tot = Math.max(0, d.plan.end - d.plan.start);
     if (!$('#hud').classList.contains('hidden')) $('#hudTime').innerHTML = `<span>${fmt(el)} / ${fmt(tot)}</span><b>${fmt(rem)} left</b>`;
     if (Viz.side) $('#lcdTime').textContent = `-${fmt(rem)}`;
+  }
+  if (Date.now() - lastResumeSave > 10000) saveResume();
+  if (!paused && !fading && !recovering) {
+    // A player that stops moving for 20 s (internet dropped, YouTube froze) gets rebuilt and resumed.
+    if (d.wdCt == null || Math.abs(ct - d.wdCt) > 0.2) { d.wdCt = ct; d.wdAt = Date.now(); }
+    else if (Date.now() - d.wdAt > 20000) { log('stalled at', ct, 'state', d.player.getPlayerState()); recover('The video stopped playing'); return; }
   }
   if (paused || fading) return;
   for (const g of d.plan.mids) {
@@ -617,7 +667,7 @@ function updateNext() {
 }
 
 /* ================= start / stop ================= */
-async function start() {
+async function start(opts = {}) {
   readForm();
   api.saveSettings(S);
   const meterReady = startMeter(); // must begin inside the click, before any waiting
@@ -629,8 +679,7 @@ async function start() {
   const my = ++runId;
   try {
     setStatus('Connecting to YouTube…');
-    await withTimeout(ytReadyPromise, 15000);
-    if (!window.YT || !YT.Player) throw new Error("Couldn't reach YouTube. Check your internet connection.");
+    if (!(await ensureYT())) throw new Error("Couldn't reach YouTube. Check your internet connection, then press Start again — no need to restart the app.");
 
     if (id1) savePlaylist(S.pl1, { touch: true });
     if (id2) savePlaylist(S.pl2, { touch: true });
@@ -644,6 +693,8 @@ async function start() {
       queues.push(new Queue(ids, label, S.shuffle));
     }
     turn = Math.floor(Math.random() * queues.length) * (S.shuffle ? 1 : 0);
+    resumeAt = null;
+    if (opts.resume && applyResume()) log('resuming', JSON.stringify(resumeAt));
     setStatus(`Loaded ${queues.map((q) => `${q.ids.length} videos`).join(' + ')}. Starting…`);
 
     $('#setup').hidden = true;
@@ -658,6 +709,7 @@ async function start() {
     cancelled(my);
     log('start', JSON.stringify({ lists: lists.map((l) => l[0]), counts: queues.map((q) => q.ids.length), silence: S.silence }));
 
+    if (needFreshPlayers || !playersHealthy()) { resetPlayers(); needFreshPlayers = false; }
     if (!decks[0].player) await Promise.all([makePlayer(decks[0], 'playerA'), makePlayer(decks[1], 'playerB')]);
     cancelled(my);
     decks.forEach((d) => { d.plan = null; d.cueError = null; d.el.style.opacity = 0; });
@@ -677,14 +729,16 @@ async function start() {
     await crossfade(Math.min(3, S.fade)); // fade in the first song
     setStatus('');
   } catch (e) {
-    if (e.message !== '__cancelled__') stop(e.message || String(e));
+    if (e.message !== '__cancelled__') { needFreshPlayers = true; stop(e.message || String(e)); }
   } finally {
     $('#startBtn').disabled = false;
   }
 }
 
 function stop(msg) {
-  runId++;
+  if (running) saveResume();
+  runId++; recovering = false;
+  if (msg) needFreshPlayers = true;
   clearTimeout(barTimer); setBar(true);
   running = false; fading = false; paused = false;
   clearInterval(loopTimer);
@@ -696,6 +750,115 @@ function stop(msg) {
   setStatus(msg || '', !!msg);
   $('#logBtn').hidden = !msg;
   if (msg) log('stopped:', msg);
+  refreshResumeBtn();
+}
+
+/* ================= remember the place / resume ================= */
+let lastResumeSave = 0;
+function playlistKeyFrom(st) {
+  const ids = [parseListId(st.pl1), st.playMode === 'two' ? parseListId(st.pl2) : null].filter(Boolean);
+  const u = [...new Set(ids)];
+  return u.length ? u.join('+') + (st.shuffle ? ':shuffle' : '') + (u.length > 1 ? ':' + st.mode : '') : null;
+}
+function saveResume() {
+  lastResumeSave = Date.now();
+  if (!queues.length) return;
+  const d = decks[live], p = d && d.plan;
+  if (!p || !d.player) return;
+  let t = 0, title = '';
+  try { t = d.player.getCurrentTime() || 0; title = ((d.player.getVideoData && d.player.getVideoData()) || {}).title || ''; } catch {}
+  const key = playlistKeyFrom(S); if (!key) return;
+  S.resume = S.resume || {};
+  S.resume[key] = { at: Date.now(), id: p.id, t: Math.max(0, t), title, liveQ: Math.max(0, queues.indexOf(p.queue)),
+    queues: queues.map((q) => ({ order: q.shuffle ? q.order : null, last: q === p.queue ? p.id : (q.lastPlayed || null) })) };
+  Object.keys(S.resume).sort((a, b) => S.resume[b].at - S.resume[a].at).slice(12).forEach((k) => delete S.resume[k]);
+  api.saveSettings(S);
+}
+function applyResume() {
+  const r = S.resume && S.resume[playlistKeyFrom(S)];
+  if (!r || !r.id) return false;
+  queues.forEach((q, i) => { const st = r.queues && r.queues[i]; if (st) q.restore(st.order, st.last, i === r.liveQ); });
+  turn = r.liveQ || 0;
+  resumeAt = { id: r.id, t: r.t || 0 };
+  return true;
+}
+function refreshResumeBtn() {
+  const b = $('#resumeBtn'); if (!b) return;
+  const st = { pl1: $('#pl1').value.trim(), pl2: $('#pl2').value.trim(), shuffle: $('#shuffle').checked, mode: $('#mode').value,
+    playMode: (document.querySelector('input[name=playMode]:checked') || {}).value || 'one' };
+  const r = S.resume && S.resume[playlistKeyFrom(st)];
+  b.hidden = !(r && r.id);
+  if (r && r.id) b.textContent = `▶ Pick up where I left off${r.title ? ` — “${r.title.length > 42 ? r.title.slice(0, 40) + '…' : r.title}”` : ''} at ${fmt(r.t || 0)}`;
+}
+
+/* ================= jump ahead ================= */
+function skipAhead(n = 5) {
+  if (!running) return;
+  if (fading || recovering) return toast('One moment…');
+  // The other deck already holds the next song (1); skip n-2 more so the song that plays is n ahead.
+  for (let i = 0; i < n - 2; i++) pickNext();
+  const inc = decks[1 - live];
+  inc.gen = (inc.gen || 0) + 1;
+  try { inc.player.stopVideo(); } catch {}
+  inc.plan = null; inc.preparing = null;
+  if (paused) togglePause();
+  toast(`Jumping ahead ${n} songs ⏩`);
+  crossfade(2);
+}
+
+/* ================= recover after a dropped connection or frozen player ================= */
+function waitOnline(ms = 15000) {
+  return new Promise((res) => {
+    if (navigator.onLine) return res();
+    const f = () => { clearTimeout(t); removeEventListener('online', f); res(); };
+    const t = setTimeout(f, ms);
+    addEventListener('online', f);
+  });
+}
+async function recover(reason) {
+  if (recovering || !running) return;
+  recovering = true;
+  const my = runId;
+  log('recover:', reason);
+  saveResume();
+  clearTimeout(hudTimer); $('#hud').classList.add('hidden'); hideFact();
+  decks.forEach((x) => { try { x.player && x.player.pauseVideo(); } catch {} });
+  for (let attempt = 1; running && my === runId; attempt++) {
+    if (!navigator.onLine) {
+      stageStatus("The internet dropped — I'll pick up right where you left off when it's back. (Esc to stop)");
+      await waitOnline(); continue;
+    }
+    stageStatus(attempt > 1 ? `Reconnecting to YouTube… (try ${attempt}) — Esc to stop` : 'Reconnecting to YouTube…');
+    try {
+      fading = false; fadeState.inc = null;
+      if (!(await ensureYT())) throw new Error('YouTube not reachable yet');
+      if (my !== runId) break;
+      resetPlayers();
+      await Promise.all([makePlayer(decks[0], 'playerA'), makePlayer(decks[1], 'playerB')]);
+      if (my !== runId) break;
+      decks.forEach((d) => { d.plan = null; d.cueError = null; d.el.style.opacity = 0; d.preparing = null; d.wdCt = null; });
+      queues.forEach((q) => { q.bad.clear(); });
+      resumeAt = null; applyResume();
+      live = 1; consecutiveFailures = 0; lastErrors = [];
+      await prepare(decks[0], true);
+      if (my !== runId) break;
+      await crossfade(2);
+      if (!decks[live].plan) throw new Error('Did not start');
+      recovering = false; stageStatus(null);
+      toast('Back on — picked up where you left off');
+      return;
+    } catch (e) {
+      log('recover attempt failed:', e.message);
+      if (my !== runId) break;
+      await sleep(Math.min(30000, 4000 * attempt));
+    }
+  }
+  recovering = false;
+}
+addEventListener('offline', () => { if (running) toast('Internet connection lost…'); });
+addEventListener('online', () => { if (running && !recovering) toast('Back online'); });
+function playersHealthy() {
+  return decks.every((d) => { try { const f = d.player && d.player.getIframe(); return !!(f && document.contains(f) && typeof d.player.getPlayerState === 'function'); } catch { return false; } });
 }
 
 function togglePause() {
@@ -781,15 +944,17 @@ function pokeBar() {
 }
 function layoutPublic() {
   const st = $('#stage'), W = st.clientWidth, H = st.clientHeight - (barShown ? BAR_PX : 0) - (tickerOn ? TICK_PX : 0);
+  const want = Math.round(clamp(W * 0.13, 170, 340)), squeeze = S.vizEvery && S.viz !== 'off';
+  const rectFor = (d) => { if (!squeeze) return deckRect(d, W, H); const r = deckRect(d, W - 2 * want, H); r.x += want; return r; };
   decks.forEach((d) => {
     if (!d.el) return;
-    const r = deckRect(d, W, H);
+    const r = rectFor(d);
     d.el.style.setProperty('--dl', `${r.x}px`); d.el.style.setProperty('--dt', `${r.y}px`);
     d.el.style.setProperty('--dw', `${r.w}px`); d.el.style.setProperty('--dh', `${r.h}px`);
   });
   const used = [decks[live], fading && fadeState.inc].filter((d) => d && d.plan);
   let side = used.length ? Infinity : 0;
-  for (const d of used) side = Math.min(side, deckRect(d, W, H).x);
+  for (const d of used) side = Math.min(side, rectFor(d).x);
   side = Math.max(0, Math.floor(side) - 2);
   if (S.viz === 'off' || side < 70) side = 0;
   Viz.side = side;
@@ -1059,6 +1224,9 @@ function layoutSides() {
     side = Math.min(side, (W - cw) / 2);
   }
   side = Math.max(0, Math.floor(side));
+  const want = Math.round(clamp(W * 0.13, 170, 340)), squeeze = S.vizEvery && S.viz !== 'off' && side < want;
+  st.style.setProperty('--inset', `${squeeze ? want : 0}px`); st.classList.toggle('vizevery', squeeze);
+  if (squeeze) side = want;
   if (S.viz === 'off' || side < 70) side = 0;
   Viz.side = side;
   st.style.setProperty('--side', `${side}px`);
@@ -1194,7 +1362,7 @@ function showFact(f) {
   $('#factText').textContent = f.text;
   $('#fact').classList.remove('hidden');
   clearTimeout(factTimer);
-  factTimer = setTimeout(hideFact, clamp(8000 + f.text.length * 45, 10000, 20000));
+  factTimer = setTimeout(hideFact, clamp(14000 + f.text.length * 70, 18000, 34000)); // personal edition: time to read it properly
 }
 function hideFact() { clearTimeout(factTimer); $('#fact').classList.add('hidden'); if (PUBLIC) hideTicker(); }
 function showNextFact() {
@@ -1295,7 +1463,7 @@ $('#controls').addEventListener('mouseenter', () => { overControls = true; clear
 $('#controls').addEventListener('mouseleave', () => { overControls = false; showControls(); });
 $('#controls').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || !running) return;
-  ({ first: restartPlaylist, restart: restartSong, pause: togglePause, facts: showNextFact, fx: () => toggleFxPanel(), cc: toggleCC,
+  ({ first: restartPlaylist, restart: restartSong, pause: togglePause, facts: showNextFact, fx: () => toggleFxPanel(), cc: toggleCC, skip5: () => skipAhead(5),
      next: () => { if (paused) togglePause(); crossfade(S.fade); toast('Crossfading…'); }, exit: () => stop() })[b.dataset.act]();
 });
 
@@ -1304,6 +1472,7 @@ document.addEventListener('keydown', (e) => {
   if ($('#stage').hidden) return;
   pokeBar();
   if (!running) { if (e.key === 'Escape') stop(); return; }
+  if (recovering) { if (e.key === 'Escape') stop(); return; }
   if (e.key === 'Escape' && !$('#fxPanel').hidden) { toggleFxPanel(false); return; }
   if (e.target && e.target.matches && e.target.matches('input, select, button') && e.key !== 'Escape' && e.key !== ' ') return;
   const d = decks[live];
@@ -1323,6 +1492,8 @@ document.addEventListener('keydown', (e) => {
     case 'c': case 'C': toggleCC(); break;
     case 'e': case 'E': toggleFxPanel(); break;
     case 'Home': case 'b': case 'B': restartPlaylist(); break;
+    case 'PageDown': case 's': case 'S': e.preventDefault(); skipAhead(5); break;
+    case 'v': case 'V': S.vizEvery = !S.vizEvery; layoutSides(); api.saveSettings(S); toast(S.vizEvery ? 'Visualizers on every video' : 'Visualizers only when there’s room'); break;
     case 'd': case 'D': nextMonitor(); break;
     case 'f': case 'F': api.toggleFullscreen(); break;
     case 'Escape': stop(); break;
@@ -1348,7 +1519,7 @@ $('#shield').addEventListener('dblclick', () => api.toggleFullscreen());
   if (PUBLIC) S.fx = { bass: 0, vocal: 0, reverb: 0 };   // no audio processing of YouTube content
   // SponsorBlock data is licensed for non-commercial use: a paid build turns it off (edition "sponsorblock": false).
   if (EDITION.sponsorblock === false) { S.sponsorblock = false; document.getElementById('sbCard').hidden = true; }
-  if (S.intro !== false && window.playIntro) playIntro($('#intro')).catch(() => {});
+  if (S.intro !== false && window.playIntro && !/[?&]recover=1/.test(location.search)) playIntro($('#intro')).catch(() => {});
   await refreshDisplays();
   fillForm();
   api.onDisplaysChanged(refreshDisplays);
@@ -1374,7 +1545,12 @@ $('#shield').addEventListener('dblclick', () => api.toggleFullscreen());
     $('#silence').checked = false; $('#silence').disabled = true;
     $('#silenceHint').textContent = 'Silence detection needs Windows. SponsorBlock and the trim settings still work.';
   }
-  $('#startBtn').addEventListener('click', start);
+  $('#startBtn').addEventListener('click', () => start());
+  $('#resumeBtn').addEventListener('click', () => start({ resume: true }));
+  ['#pl1', '#pl2', '#shuffle', '#mode'].forEach((s) => { $(s).addEventListener('input', refreshResumeBtn); $(s).addEventListener('change', refreshResumeBtn); });
+  document.querySelectorAll('input[name=playMode]').forEach((r) => r.addEventListener('change', refreshResumeBtn));
+  refreshResumeBtn();
+  if (/[?&]recover=1/.test(location.search)) setTimeout(() => { if (!running) start({ resume: true }); }, 1500);
   ['#pl1', '#pl2'].forEach((s) => $(s).addEventListener('keydown', (e) => { if (e.key === 'Enter') start(); }));
 
   // My playlists

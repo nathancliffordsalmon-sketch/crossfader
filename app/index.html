@@ -184,6 +184,7 @@
         </select>
       </label>
     </div>
+    <label class="check"><input id="vizEvery" type="checkbox"> Show the visualizers on every video, even full-width HD ones <em class="hint-inline">(the video shrinks a little to make room — V while playing)</em></label>
     <label class="check"><input id="introOn" type="checkbox"> Play the Salmon intro when the app opens</label>
     <label class="check public-only"><input id="barAlways" type="checkbox"> Always show the control bar under the video <em class="hint-inline">(otherwise it slides away and the video fills the screen until you move the mouse)</em></label>
     <label class="check"><input id="captions" type="checkbox"> Show closed captions when the video has them</label>
@@ -239,6 +240,7 @@
   <div class="actions">
     <p id="status" role="status"></p>
     <button id="logBtn" class="ghost" hidden>Open log</button>
+    <button id="resumeBtn" class="ghost" hidden>▶ Pick up where I left off</button>
     <button id="startBtn" class="primary">Start the mix</button>
   </div>
 
@@ -270,6 +272,8 @@
       <dt>Space</dt><dd>Pause / resume</dd>
       <dt>R</dt><dd>Restart the current song</dd>
       <dt>Home or B</dt><dd>Back to the start of the playlist</dd>
+      <dt>S or Page Down</dt><dd>Jump ahead 5 songs</dd>
+      <dt>V</dt><dd>Visualizers on every video / only when there’s room</dd>
       <dt>→ or N</dt><dd>Crossfade to the next song now</dd>
       <dt>Shift + →</dt><dd>Quick 1.5-second cut to the next song</dd>
       <dt>← / Shift + ←</dt><dd>Jump back / forward 10 seconds</dd>
@@ -322,6 +326,8 @@
       <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
     <button data-act="next" title="Crossfade to the next song (→)" aria-label="Next song">
       <svg viewBox="0 0 24 24"><path d="M4 5v14l11-7zM16 5h2v14h-2z"/></svg></button>
+    <button data-act="skip5" class="skip5" title="Jump ahead 5 songs (S or Page Down)" aria-label="Jump ahead 5 songs">
+      <svg viewBox="0 0 24 24"><path d="M2 5v14l9-7zM12 5v14l9-7z"/></svg><span class="n5">5</span></button>
     <button data-act="cc" class="cc" title="Closed captions on / off (C)" aria-label="Closed captions">CC</button>
     <button data-act="facts" title="Show a song fact (T)" aria-label="Show a song fact">
       <svg viewBox="0 0 24 24"><path d="M9 21h6v-1.5H9zm3-19a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2z"/></svg></button>

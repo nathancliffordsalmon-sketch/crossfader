@@ -295,3 +295,11 @@ button.ghost:disabled { opacity: .5; cursor: wait; }
 
 #loaders { position: fixed; left: -10000px; top: 0; width: 320px; height: 180px; overflow: hidden; }
 #windOpts.off { opacity: .35; pointer-events: none; }
+
+/* jump ahead 5 */
+#controls button.skip5 { position: relative; }
+#controls button.skip5 .n5 { position: absolute; right: 3px; bottom: 2px; font: 800 11px/1 var(--f-sys); color: #fff; text-shadow: 0 1px 2px #000; }
+/* visualizers on every video: the video steps in from the sides */
+body.full #stage.vizevery .deck { left: var(--inset); right: var(--inset); }
+body.full #stage .deck { transition: left .8s ease, right .8s ease, opacity 0s; }
+#resumeBtn { margin-right: 8px; }
