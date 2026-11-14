@@ -8,7 +8,7 @@ const SRC = (document.currentScript && document.currentScript.src) || '';
 const GM_SRC = SRC.replace(/island\/island\.js.*$/, 'rko/gm.js');
 if (/gm\.js/.test(GM_SRC) && !window.LTFGM) { const gs = document.createElement('script'); gs.src = GM_SRC; document.head.appendChild(gs); }
 const PLAYLISTS = (window.PQ_PLAYLISTS && window.PQ_PLAYLISTS.length) ? window.PQ_PLAYLISTS : [['Singing', '0Bxvmnd4tPBXrr8Adj47CL']];
-const HERO = 'Barnaby';
+const HERO = 'Clifford';
 
 /* ---------------- page + UI ---------------- */
 const css = `
