@@ -18,6 +18,12 @@
     P.forEach((p) => { const mx = (p.x0 + p.x1) / 2, d = Math.abs(mx - hx); if (d < bd) { bd = d; best = { x: Math.round(mx), y: p.y - 1 }; } });
     return best || { x: 160, y: 120 };
   }
+  // nearest x (either side) with nothing solid between here and the water, so the parachute drops clear
+  function clearColumn(s, x, y) {
+    const free = (cx) => { for (let yy = Math.round(y) - 12; yy < WATER - 1; yy++) if (s.solid(cx, yy)) return false; return true; };
+    for (let d = 6; d < 320; d += 2) { if (x + d < 316 && free(Math.round(x + d))) return x + d + 3; if (x - d > 4 && free(Math.round(x - d))) return x - d - 3; }
+    return x;
+  }
   // find the ground under/near (x, y) within a small step
   function groundAt(s, x, y) { for (let k = -5; k <= 7; k++) { const yy = y + k; if (!s.solid(x, yy) && s.solid(x, yy + 1)) return yy; } return null; }
 
@@ -53,7 +59,7 @@
       }
       case 'walk': {
         if (K.boat.on) { K.boat.x += K.boat.vx * dt; if (K.boat.x < -50) K.boat.on = false; }
-        if (ending) { K.st = 'leap'; K.t = 0; K.y0 = K.y; K.x0 = K.x; break; }
+        if (ending) { K.st = 'leap'; K.t = 0; K.y0 = K.y; K.x0 = K.x; K.x1 = clearColumn(s, K.x, K.y); K.dir = K.x1 >= K.x ? 1 : -1; break; }
         const nx = K.x + K.dir * SPEED * dt, gy = groundAt(s, Math.round(nx), Math.round(K.y));
         const blocked = gy == null || s.solid(Math.round(nx), (gy || K.y) - 10) || nx < 4 || nx > 316;
         if (blocked || (K.t > K.nextTurn && Math.random() < 0.004)) { K.dir *= -1; K.nextTurn = K.t + 3; }
@@ -64,12 +70,12 @@
         break;
       }
       case 'leap': { // jump off, then parachute down to the boat
-        const p = Math.min(1, K.t / 0.6); K.y = K.y0 - 18 * Math.sin(p * Math.PI / 2);
-        if (p >= 1) { K.st = 'chute'; K.t = 0; K.boat = { x: -36, on: true, vx: 70 }; }
+        const p = Math.min(1, K.t / 0.9); K.x = K.x0 + (K.x1 - K.x0) * p; K.y = K.y0 - 22 * Math.sin(p * Math.PI);
+        if (p >= 1) { K.st = 'chute'; K.t = 0; K.boat = { x: K.x < 160 ? -36 : 340, on: true, vx: 70 }; }
         break;
       }
       case 'chute': {
-        K.y += 16 * dt; K.x += Math.sin(K.t * 1.8) * 6 * dt;
+        K.y += 16 * dt; const sway = Math.sin(K.t * 1.8) * 6 * dt; if (!s.solid(Math.round(K.x + sway), Math.round(K.y) + 1)) K.x += sway;
         const b = K.boat, target = K.x - 8; b.x += Math.max(-80, Math.min(80, (target - b.x) * 2.5)) * dt;
         if (K.y >= WATER - 4) { K.y = WATER - 3; K.st = 'away'; K.t = 0; b.vx = 120; s.texts.push({ x: K.x, y: K.y - 18, s: 'LATER!', life: 0, max: 1.2 }); }
         break;
