@@ -1154,7 +1154,11 @@ $('#pq-load').addEventListener('click', () => { const u = toUri($('#pq-url').val
 function alertNote(s) { $('#pq-status').textContent = upper(s).slice(0, 80); }
 
 /* Apple Music embed: Apple's player sends no events, so a song clock stands in (and ⏭ / ⏸ keep it honest) */
-const AM = { loaded: false, playing: false, t: 0, len: 210, timer: null };
+const AM = { loaded: false, playing: false, t: 0, len: 210, timer: null, q: [] };
+// Apple won't tell us the song name, so we say so (nicely-ish) instead of "Track 3"
+const AMQUIPS = ["Apple won't share its toys", "Name hidden in Apple's lunchbox", 'Apple built a fence in the sandbox', "Somebody won't share the shovel", "Apple says it's a secret", 'Mystery song, by order of Apple', 'Apple took its pail home', "Apple's not playing nice today", "Ask Apple. They won't say.", "A song Apple won't name", "Not invited to Apple's sandbox", "Shh. Apple's rules.", 'Apple says: no peeking', 'Apple kept the label on its side', "Apple's whispering again"];
+function amQuip() { if (!AM.q.length) AM.q = AMQUIPS.slice().sort(() => Math.random() - 0.5); return AM.q.pop(); }
+function amName() { const v = ($('#pq-amname').value || '').trim(); $('#pq-amname').value = ''; return v || amQuip(); }
 function amUrl(t) { t = (t || '').trim(); const m = t.match(/^https?:\/\/(?:embed\.)?music\.apple\.com\/(.+)$/i); return m ? 'https://embed.music.apple.com/' + m[1] : null; }
 function amLoad(url) {
   const host = $('#pq-amembed'); const song = /[?&]i=|\/song\//.test(url);
@@ -1165,14 +1169,14 @@ function amSet(on) {
   AM.playing = on; $('#pq-ampause').textContent = on ? '⏸ Pause' : '▶ Resume'; setPlaying(on);
   clearInterval(AM.timer); AM.timer = null;
   if (on) AM.timer = setInterval(() => { if (MODE !== 'am' || !AM.playing || S.ended) return; AM.t += 1;
-    if (AM.t >= AM.len) { AM.t = 0; if (S.songs.length >= MAXSONGS) { endSession(true); amSet(false); } else { musicStarted(null); setPlaying(true); } } }, 1000);
+    if (AM.t >= AM.len) { AM.t = 0; if (S.songs.length >= MAXSONGS) { endSession(true); amSet(false); } else { musicStarted(amQuip()); setPlaying(true); } } }, 1000);
 }
-function amStart() { if (AM.playing) return; if (S.curSong < 0 || S.phase === 'roll' || S.phase === 'intro') { AM.t = 0; musicStarted(($('#pq-amname').value || '').trim() || null); $('#pq-amname').value = ''; } amSet(true); }
+function amStart() { if (AM.playing) return; if (S.curSong < 0 || S.phase === 'roll' || S.phase === 'intro') { AM.t = 0; musicStarted(amName()); } amSet(true); }
 // a click inside the Apple Music player moves focus into its frame: treat the first one as "play"
 window.addEventListener('blur', () => setTimeout(() => { const a = document.activeElement; if (MODE === 'am' && a && a.id === 'pq-amframe' && !AM.playing) amStart(); }, 0));
 $('#pq-amload').addEventListener('click', () => { const u = amUrl($('#pq-amurl').value); if (u) amLoad(u); else alertNote('That doesn’t look like an Apple Music link. Try Share → Copy Link.'); });
 $('#pq-amurl').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#pq-amload').click(); });
-$('#pq-amnext').addEventListener('click', () => { const n = ($('#pq-amname').value || '').trim() || null; $('#pq-amname').value = ''; AM.t = 0; if (S.curSong < 0) { musicStarted(n); } else if (S.songs.length >= MAXSONGS) { endSession(true); amSet(false); return; } else { musicStarted(n); } amSet(true); });
+$('#pq-amnext').addEventListener('click', () => { const n = amName(); AM.t = 0; if (S.curSong < 0) { musicStarted(n); } else if (S.songs.length >= MAXSONGS) { endSession(true); amSet(false); return; } else { musicStarted(n); } amSet(true); });
 $('#pq-ampause').addEventListener('click', () => { if (AM.playing) amSet(false); else amStart(); });
 
 /* Mic mode: loudness drives battle fury, silence splits songs */
