@@ -1199,12 +1199,12 @@ function gmFill(autoplay) { GM.list = window.LTFGM.items(GM.coll, $('#pq-gmsub')
 function gmCur() { return GM.list[GM.order[GM.pos]]; }
 function gmLoad(autoplay) {
   const x = gmCur(); if (!x) return; gmau.src = x.url; GM.startedUid = null;
-  $('#pq-gmcredit').innerHTML = `<b>${gmEsc(x.title)}</b> · ${gmEsc(x.credit)}${x.len ? ' · ' + gmEsc(x.len) : ''} · <a href="${x.src === 'c64' ? x.page : 'https://incompetech.com/'}" target="_blank" rel="noopener" style="color:#ffd84a">${x.src === 'c64' ? 'RKO page' : 'incompetech.com'} ↗</a>`;
+  $('#pq-gmcredit').innerHTML = `<b>${gmEsc(x.title)}</b> · ${gmEsc(x.credit)}${x.len ? ' · ' + gmEsc(x.len) : ''} · <a href="${x.src === 'c64' ? x.page : x.mg ? 'https://mobygratis.com/' : 'https://incompetech.com/'}" target="_blank" rel="noopener" style="color:#ffd84a">${x.src === 'c64' ? 'RKO page' : x.mg ? 'mobygratis.com' : 'incompetech.com'} ↗</a>`;
   if (autoplay) { const p = gmau.play(); if (p && p.catch) p.catch(() => {}); }
 }
 gmau.addEventListener('play', () => {
   if (MODE !== 'gm') return; const x = gmCur(); if (!x) return;
-  if (GM.startedUid !== x.uid) { GM.startedUid = x.uid; musicStarted(x.src === 'c64' ? `${x.title} — ${x.by}` : `${x.title} — Kevin MacLeod`); }
+  if (GM.startedUid !== x.uid) { GM.startedUid = x.uid; if (window.LTFGM.played) window.LTFGM.played(x); musicStarted(x.src === 'c64' ? `${x.title} — ${x.by}` : `${x.title} — ${x.mg ? 'mobygratis' : 'Kevin MacLeod'}`); }
   setPlaying(true);
 });
 gmau.addEventListener('pause', () => { if (MODE === 'gm' && !gmau.ended) setPlaying(false); });

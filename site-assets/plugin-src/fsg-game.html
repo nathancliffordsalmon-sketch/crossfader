@@ -485,11 +485,12 @@ rkoAu.addEventListener('ended', () => { if (rkoOn) ytState = 0; });
 rkoAu.addEventListener('error', () => { if (rkoOn && rkoAu.getAttribute('src')) ytErr = 150; });
 rkoAu.addEventListener('loadedmetadata', () => { if (rkoPendingStart) { try { rkoAu.currentTime = Math.min(rkoPendingStart, Math.max(0, rkoAu.duration - 5)); } catch (e) {} rkoPendingStart = 0; } });
 function rkoUnlock() { if (rkoAu.getAttribute('src')) return; try { rkoAu.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='; const p = rkoAu.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
-const isRko = id => /^(rko|inc)\d{8}$/.test(String(id || ''));
+const isRko = id => /^(rko|inc|mgr)\d{8}$/.test(String(id || ''));
 function rkoCard(x) {
   const c = $('#rkoCard'); if (!x) { c.classList.remove('on'); return; }
   c.innerHTML = x.src === 'c64'
     ? `<div style="color:#fff">**** COMMODORE 64 ****</div><div>READY.</div><b>${esc(x.title)}</b><div>REMIX BY <b>${esc(x.by)}</b></div><div>ORIGINAL ${esc(x.game.toUpperCase())} MUSIC BY <b>${esc(x.orig)}</b></div><a href="${x.page}" target="_blank" rel="noopener">REMIX.KWED.ORG ↗</a>`
+    : x.mg ? `<div style="color:#fff">♪ ${esc(x.src.toUpperCase().replace('-', ': '))} ♪</div><b>${esc(x.title)}</b><div>${esc(x.feel || '')}</div><div>THANK YOU, MOBYGRATIS!</div><a href="https://mobygratis.com/" target="_blank" rel="noopener">MOBYGRATIS.COM ↗</a>`
     : `<div style="color:#fff">♪ ${esc(x.src.toUpperCase())} ♪</div><b>${esc(x.title)}</b><div>BY <b>KEVIN MACLEOD</b></div><div>${esc(x.feel || '')}</div><div>LICENSED UNDER CREATIVE COMMONS: BY ATTRIBUTION 4.0</div><a href="https://incompetech.com/" target="_blank" rel="noopener">INCOMPETECH.COM ↗</a>`;
   c.classList.add('on');
 }
@@ -497,6 +498,7 @@ function rkoLoad(id, start) {
   const x = window.LTFGM && LTFGM.byUid(id); if (!x) { ytErr = 150; return; }
   rkoOn = true; try { realYT && realYT.pauseVideo(); } catch (e) {}
   ytState = -1; ytErr = null; ytCurId = id; rkoPendingStart = start || 0;
+  if (window.LTFGM.played) LTFGM.played(x);
   rkoAu.src = x.url; const p = rkoAu.play(); if (p && p.catch) p.catch(() => { ytState = 5; });
   rkoCard(x);
 }
@@ -531,7 +533,7 @@ function rkoSongsFor(items) {
   const seen = new Set(), out = [];
   items.forEach(it => { const [key, which] = it.id.split(':'); LTFGM.items(key, which).forEach(x => {
     if (seen.has(x.uid)) return; seen.add(x.uid);
-    out.push({ id: x.uid, song: x.title, artist: x.src === 'c64' ? x.by + ' · ' + x.game : 'Kevin MacLeod', author: x.by, hp: 100, ratings: [], uses: 0, playable: true, rko: x });
+    out.push({ id: x.uid, song: x.title, artist: x.src === 'c64' ? x.by + ' · ' + x.game : x.mg ? 'mobygratis' : 'Kevin MacLeod', author: x.by, hp: 100, ratings: [], uses: 0, playable: true, rko: x });
   }); });
   return out;
 }
@@ -619,10 +621,10 @@ $('#presets').addEventListener('dragstart', e => { const p = e.target.closest('.
 $('#presets').addEventListener('click', e => { const p = e.target.closest('.pl'); if (p) addItem({ type: 'list', id: p.dataset.id, name: p.dataset.n }); });
 $('#presets').addEventListener('keydown', e => { if (e.key === 'Enter') { const p = e.target.closest('.pl'); if (p) addItem({ type: 'list', id: p.dataset.id, name: p.dataset.n }); } });
 rkoLoadData().then(() => {
-  const opts = [['c64:*', '★ C64: RKO Outstanding remixes'], ['relaxing', '🌊 Relaxing (Kevin MacLeod)'], ['encapsulating', '🔮 Encapsulating (Kevin MacLeod)'], ['insanity', '⚡ Insanity (Kevin MacLeod)'], ...LTFGM.subOptions('c64').slice(2).map(([g]) => ['c64:' + g, 'C64: ' + g])];
+  const opts = [['c64:*', '★ C64: RKO Outstanding remixes'], ['relaxing', '🌊 Relaxing (Kevin MacLeod)'], ['encapsulating', '🔮 Encapsulating (Kevin MacLeod)'], ['insanity', '⚡ Insanity (Kevin MacLeod)'], ...LTFGM.collections.filter(c => /^mobygratis/.test(c.key)).map(c => [c.key, '🎧 ' + c.short]), ...LTFGM.subOptions('c64').slice(2).map(([g]) => ['c64:' + g, 'C64: ' + g])];
   const cnt = id => { const [k, w] = id.split(':'); return LTFGM.items(k, w).length; };
   $('#c64presets').innerHTML = opts.map(([id, n]) => `<div class="pl c64" data-rko="${esc(id)}" data-n="${esc(n)}" tabindex="0"><span>🎮</span><span class="n">${esc(n)}</span><span class="c">${cnt(id)}</span></div>`).join('') +
-    '<div class="note" style="font-size:8px">C64 fan remixes stream from <a href="https://remix.kwed.org/" target="_blank" rel="noopener" style="color:#ffd84a">Remix.Kwed.Org</a>. Relaxing, Encapsulating and Insanity are 81 tracks each by Kevin MacLeod (<a href="https://incompetech.com/" target="_blank" rel="noopener" style="color:#ffd84a">incompetech.com</a>), licensed under Creative Commons: By Attribution 4.0.</div>';
+    '<div class="note" style="font-size:8px">C64 fan remixes stream from <a href="https://remix.kwed.org/" target="_blank" rel="noopener" style="color:#ffd84a">Remix.Kwed.Org</a>. Relaxing, Encapsulating and Insanity are 81 tracks each by Kevin MacLeod (<a href="https://incompetech.com/" target="_blank" rel="noopener" style="color:#ffd84a">incompetech.com</a>), licensed under Creative Commons: By Attribution 4.0. MOBYGRATIS Glow and Drive are free music from <a href="https://mobygratis.com/" target="_blank" rel="noopener" style="color:#ffd84a">mobygratis.com</a>. Thank you, MOBYGRATIS!</div>';
 }).catch(() => { $('#c64presets').innerHTML = '<div class="note">The game music could not load right now.</div>'; });
 const addRko = p => addItem({ type: 'rko', id: p.dataset.rko, name: p.dataset.n });
 $('#c64presets').addEventListener('click', e => { const p = e.target.closest('.pl'); if (p) addRko(p); });
@@ -902,6 +904,14 @@ function getFacts(s) {
 if (dykCache[s.id]) return dykCache[s.id];
 return dykCache[s.id] = (async () => {
 const out = [];
+if (s.rko && s.rko.mg) {
+const x = s.rko;
+out.push(`“${x.title}” is free music from mobygratis.com. THANK YOU, MOBYGRATIS!`);
+if (x.feel) out.push(`Its mood: ${x.feel}.`);
+if (x.desc) out.push(`Style: ${x.desc}.`);
+if (x.bpm) out.push(`It moves at about ${Math.round(x.bpm)} beats per minute.`);
+return out;
+}
 if (s.rko && s.rko.src !== 'c64') {
 const x = s.rko;
 out.push(`“${x.title}” is by Kevin MacLeod, who has shared free music at incompetech.com for over 20 years.`);

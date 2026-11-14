@@ -72,6 +72,7 @@
       credit.innerHTML = '<b>' + esc(x.title) + '</b> · ' + esc(x.credit) + (x.len ? ' · ' + esc(x.len) : '') + (x.date ? ' · released on RKO ' + esc(x.date) : '') +
         '<br>' + (x.src === 'c64'
           ? '<a href="' + x.page + '" target="_blank" rel="noopener">RKO page ↗</a>' + (x.sid ? ' · <a href="https://deepsid.chordian.net/?file=' + esc(x.sid) + '" target="_blank" rel="noopener">hear the original SID ↗</a>' : '')
+          : x.mg ? '<a href="https://mobygratis.com/" target="_blank" rel="noopener">mobygratis.com ↗</a> · THANK YOU, MOBYGRATIS!'
           : '<a href="https://incompetech.com/" target="_blank" rel="noopener">incompetech.com ↗</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">license ↗</a>' + (x.desc ? '<br><small>' + esc(x.desc) + '</small>' : ''));
     }
     function fill() {
@@ -130,9 +131,9 @@
       var x = list[order[pos]], h = parseInt(x.uid.slice(3), 10) || 1;
       seed = (h % 97) / 9; BPM = parseInt(x.bpm, 10) > 60 ? Math.min(180, parseInt(x.bpm, 10)) : 110 + (h * 37) % 46;
       el.src = x.url; var p = el.play(); if (p && p.catch) p.catch(function () { RA.msg('Tap \u23ef to start the music.'); });
-      RA.setPlaying(''); songTicker(x); showCredit(x); mark(); RA.msg('');
+      RA.setPlaying(''); songTicker(x); showCredit(x); mark(); RA.msg(''); if (LTFGM.played) LTFGM.played(x);
       if (!started) { started = true; introTicker(); setTimeout(function () { if (RA.mode() === 'rko' && list[order[pos]]) songTicker(list[order[pos]]); }, Math.min(60000, 4000 + $('ra-status').textContent.length * 110)); }
-      if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = new MediaMetadata({ title: x.title, artist: x.src === 'c64' ? x.by + ' (orig. ' + x.orig + ')' : 'Kevin MacLeod', album: x.src === 'c64' ? x.game + ' \u00b7 Remix.Kwed.Org' : 'incompetech.com \u00b7 CC BY 4.0' }); } catch (e) {} }
+      if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = new MediaMetadata({ title: x.title, artist: x.src === 'c64' ? x.by + ' (orig. ' + x.orig + ')' : x.mg ? 'mobygratis' : 'Kevin MacLeod', album: x.src === 'c64' ? x.game + ' \u00b7 Remix.Kwed.Org' : x.mg ? 'mobygratis.com' : 'incompetech.com \u00b7 CC BY 4.0' }); } catch (e) {} }
     }
     function next(d) { if (!list.length) return; pos = (pos + (d || 1) + order.length) % order.length; RA.setMode('rko'); play(); }
     el.addEventListener('ended', function () { next(1); });

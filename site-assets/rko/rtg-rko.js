@@ -64,6 +64,7 @@
       credit.innerHTML = '<b>' + esc(x.title) + '</b><br>' + esc(x.credit) + (x.len ? ' · ' + esc(x.len) : '') + '<br>' +
         (x.src === 'c64'
           ? '<a href="' + x.page + '" target="_blank" rel="noopener">RKO page ↗</a>' + (x.sid ? ' · <a href="https://deepsid.chordian.net/?file=' + esc(x.sid) + '" target="_blank" rel="noopener">original SID ↗</a>' : '')
+          : x.mg ? '<a href="https://mobygratis.com/" target="_blank" rel="noopener">mobygratis.com ↗</a>'
           : '<a href="https://incompetech.com/" target="_blank" rel="noopener">incompetech.com ↗</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">license ↗</a>');
       [].forEach.call(box.children, function (d, i) { d.classList.toggle('cur', list[i] === x); });
       if (autoplay) { var p = au.play(); if (p && p.catch) p.catch(function () {}); }
@@ -73,17 +74,17 @@
       if (!inp || !b) return; var keep = inp.value; inp.value = text; b.click(); inp.value = keep;
     }
     function thank(x) {
-      var first = !thanked[x.src === 'c64' ? 'c64' : 'kev'];
+      var grp = x.src === 'c64' ? 'c64' : x.mg ? 'mg' : 'kev', first = !thanked[grp];
       if (first) {
-        thanked[x.src === 'c64' ? 'c64' : 'kev'] = 1;
-        wall(x.src === 'c64' ? 'Thank you, Remix.Kwed.Org, home of C64 remakes since 2001, and every remixer keeping the SID alive.' : 'Thank you, Kevin MacLeod, for 20+ years of free music at incompetech.com. Licensed under Creative Commons: By Attribution 4.0.');
+        thanked[grp] = 1;
+        wall(grp === 'c64' ? 'Thank you, Remix.Kwed.Org, home of C64 remakes since 2001, and every remixer keeping the SID alive.' : grp === 'mg' ? 'THANK YOU, MOBYGRATIS! Free music for creators at mobygratis.com.' : 'Thank you, Kevin MacLeod, for 20+ years of free music at incompetech.com. Licensed under Creative Commons: By Attribution 4.0.');
         setTimeout(function () { wall(x.thanks); }, 9000);
       } else wall(x.thanks);
     }
     au.addEventListener('play', function () {
       if (H.src() !== 'rko') return;
       var x = cur(); if (!x) return;
-      if (startedId !== x.uid) { startedId = x.uid; H.start(x.src === 'c64' ? x.title + ' — ' + x.by : x.title + ' — Kevin MacLeod'); setTimeout(function () { thank(x); }, 1500); }
+      if (startedId !== x.uid) { startedId = x.uid; if (G.played) G.played(x); H.start(x.src === 'c64' ? x.title + ' — ' + x.by : x.title + ' — ' + (x.mg ? 'mobygratis' : 'Kevin MacLeod')); setTimeout(function () { thank(x); }, 1500); }
       H.play(true);
     });
     au.addEventListener('pause', function () { if (!au.ended) H.play(false); });

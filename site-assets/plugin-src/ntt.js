@@ -34,7 +34,7 @@
 	function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem('ltf.ntt.' + k)); localStorage.setItem('ltf.ntt.' + k, JSON.stringify(v)); } catch (e) { return null; } }
 	function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 	function board() { return state.src + '-' + state.mode; }
-	var BOARD_NAMES = { 'spotify-quick': 'Playlists · Quick clips', 'spotify-listen': 'Playlists · Listen first', 'c64-quick': 'C64 remixes · Quick clips', 'c64-listen': 'C64 remixes · Listen first', 'kevin-quick': 'Kevin MacLeod moods · Quick clips', 'kevin-listen': 'Kevin MacLeod moods · Listen first' };
+	var BOARD_NAMES = { 'spotify-quick': 'Playlists · Quick clips', 'spotify-listen': 'Playlists · Listen first', 'c64-quick': 'C64 remixes · Quick clips', 'c64-listen': 'C64 remixes · Listen first', 'kevin-quick': 'Game music moods · Quick clips', 'kevin-listen': 'Game music moods · Listen first' };
 	function srcOf(v) { return v.indexOf('c64:') === 0 ? 'c64' : v.indexOf('gm:') === 0 ? 'kevin' : 'spotify'; }
 
 	(function css() {
@@ -106,7 +106,8 @@
 		sel.innerHTML = '<option value="">&#127922; Surprise me (any playlist)</option>' + CFG.playlists.map(function (p) {
 			return '<option value="' + esc(p.id) + '">' + esc(p.title) + '</option>';
 		}).join('') + '<optgroup label="&#127918; Game music"><option value="c64:*">&#128377; C64 remixes: name the game! (RKO Outstanding)</option><option value="c64:all">&#128377; C64 remixes: name the game! (every remix)</option>' +
-			'<option value="gm:relaxing">&#127754; Relaxing: name the Kevin MacLeod tune</option><option value="gm:encapsulating">&#128302; Encapsulating: name the Kevin MacLeod tune</option><option value="gm:insanity">&#9889; Insanity: name the Kevin MacLeod tune</option></optgroup>';
+			'<option value="gm:relaxing">&#127754; Relaxing: name the Kevin MacLeod tune</option><option value="gm:encapsulating">&#128302; Encapsulating: name the Kevin MacLeod tune</option><option value="gm:insanity">&#9889; Insanity: name the Kevin MacLeod tune</option>' +
+			'<option value="gm:mobygratis-glow">&#127911; MOBYGRATIS Glow: name the tune</option><option value="gm:mobygratis-drive">&#127911; MOBYGRATIS Drive: name the tune</option></optgroup>';
 		var pre = qs('playlist'); if (pre) sel.value = pre;
 		var mode = el('select', 'ltf-select');
 		mode.innerHTML = '<option value="quick">&#9201; Quick clips (timed, speed bonus)</option><option value="listen">&#127911; Listen first (no timer, hear the whole song)</option>';
@@ -180,10 +181,11 @@
 			pool.slice(0, 10).forEach(function (x) {
 				var others = shuffle(pool.filter(function (y) { return y !== x; })).slice(0, 3);
 				var opts = shuffle(others.concat([x]));
-				rounds.push({ preview: x.url, options: opts.map(function (y) { return { t: y.title, a: y.feel || 'Kevin MacLeod' }; }), answer: opts.indexOf(x), item: x, offset: 20 + Math.floor(Math.random() * 40) });
+				rounds.push({ preview: x.url, options: opts.map(function (y) { return { t: y.title, a: y.feel || (y.mg ? 'mobygratis' : 'Kevin MacLeod') }; }), answer: opts.indexOf(x), item: x, offset: 20 + Math.floor(Math.random() * 40) });
 			});
 			var label = (G.collections.filter(function (c) { return c.key === key; })[0] || {}).short || 'Game music';
-			begin({ kevin: true, playlist: { title: label + ' · Kevin MacLeod', id: '', url: 'https://incompetech.com/', logo: '' }, rounds: rounds, remaining: null });
+			var isMg = /^mobygratis/.test(key);
+			begin({ kevin: !isMg, mg: isMg, playlist: { title: isMg ? label : label + ' · Kevin MacLeod', id: '', url: isMg ? 'https://mobygratis.com/' : 'https://incompetech.com/', logo: '' }, rounds: rounds, remaining: null });
 		}).catch(function () { menu('&#9888; Could not load the game music. Try again in a moment.'); });
 	}
 
@@ -256,6 +258,7 @@
 		});
 		s.appendChild(opts);
 		var msg = el('div', 'ltf-sub'); msg.id = 'ltf-ntt-msg'; s.appendChild(msg);
+		if (r.item && r.item.mg && window.LTFGM && window.LTFGM.played) window.LTFGM.played(r.item);
 		playClip(false);
 		state.started = Date.now();
 		if (!listen) {
@@ -302,6 +305,7 @@
 			var x = r.item;
 			rev.innerHTML = (x.src === 'c64'
 				? '&#128377; <b>' + esc(x.title) + '</b><br>remix by <b>' + esc(x.by) + '</b> &middot; original ' + esc(x.game) + ' music by <b>' + esc(x.orig) + '</b>' + (x.rating ? ' &middot; rated ' + esc(x.rating) + ' on RKO' : '') + '<br><a class="ltf-btn" target="_blank" rel="noopener" href="' + x.page + '">RKO PAGE &#8599;</a>'
+				: x.mg ? '&#127911; <b>' + esc(x.title) + '</b><br><small>music from mobygratis.com &middot; THANK YOU, MOBYGRATIS!</small><br><a class="ltf-btn" target="_blank" rel="noopener" href="https://mobygratis.com/">MOBYGRATIS &#8599;</a>'
 				: '&#127918; <b>' + esc(x.title) + '</b> by <b>Kevin MacLeod</b><br><small>incompetech.com &middot; licensed under Creative Commons: By Attribution 4.0</small><br><a class="ltf-btn" target="_blank" rel="noopener" href="https://incompetech.com/">INCOMPETECH &#8599;</a>') +
 				(state.mode === 'quick' ? '<button type="button" class="ltf-btn ltf-ntt-hearall">&#9654; HEAR THE WHOLE TRACK</button>' : '');
 		} else if (r.track) {
@@ -360,6 +364,8 @@
 		if (g.c64) {
 			var credits = {}; g.rounds.forEach(function (r) { credits[r.item.by] = 1; });
 			s.appendChild(el('div', 'ltf-card', '<div><h4>Thank you, Remix.Kwed.Org!</h4><p>Remixes by ' + esc(Object.keys(credits).join(', ')) + '. Every track streams from RKO, the home of C64 remakes. Love one? Visit its page and vote.</p><a class="ltf-btn" target="_blank" rel="noopener" href="https://remix.kwed.org/">REMIX.KWED.ORG &#8599;</a></div>'));
+		} else if (g.mg) {
+			s.appendChild(el('div', 'ltf-card', '<div><h4>THANK YOU, MOBYGRATIS!</h4><p>These tracks are free music from mobygratis.com. Tracks: ' + esc(g.rounds.map(function (r) { return r.item.title; }).join(', ')) + '.</p><a class="ltf-btn" target="_blank" rel="noopener" href="https://mobygratis.com/">MOBYGRATIS.COM &#8599;</a></div>'));
 		} else if (g.kevin) {
 			s.appendChild(el('div', 'ltf-card', '<div><h4>Thank you, Kevin MacLeod!</h4><p>Music by Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0. Tracks: ' + esc(g.rounds.map(function (r) { return r.item.title; }).join(', ')) + '.</p><a class="ltf-btn" target="_blank" rel="noopener" href="https://incompetech.com/">INCOMPETECH.COM &#8599;</a></div>'));
 		} else {

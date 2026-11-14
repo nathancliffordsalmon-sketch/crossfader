@@ -1,0 +1,42 @@
+
+/* ---------- MOBYGRATIS play counter (free licence: notify mobygratis past 10,000 streams) ---------- */
+add_action( 'rest_api_init', function () {
+	register_rest_route( 'ltf/v1', '/mg/play', array(
+		'methods'             => 'POST',
+		'permission_callback' => '__return_true',
+		'callback'            => function ( WP_REST_Request $req ) {
+			$site = wp_parse_url( home_url(), PHP_URL_HOST );
+			$from = $req->get_header( 'origin' ) ? $req->get_header( 'origin' ) : $req->get_header( 'referer' );
+			if ( $from && strtolower( (string) wp_parse_url( $from, PHP_URL_HOST ) ) !== strtolower( $site ) ) {
+				return new WP_Error( 'ltf_forbidden', 'Plays are only counted on likethefish.ca.', array( 'status' => 403 ) );
+			}
+			if ( function_exists( 'fsg_limit' ) && ! fsg_limit( 'ltf_mgp_', 'YmdH', 120, HOUR_IN_SECONDS ) ) {
+				return array( 'ok' => false );
+			}
+			$n = (int) get_option( 'ltf_mg_plays', 0 ) + 1;
+			update_option( 'ltf_mg_plays', $n, false );
+			$warned = (array) get_option( 'ltf_mg_warned', array() );
+			foreach ( array( 8000, 9000, 9500, 9900, 10000 ) as $t ) {
+				if ( $n >= $t && ! in_array( $t, $warned, true ) ) {
+					$warned[] = $t;
+					update_option( 'ltf_mg_warned', $warned, false );
+					wp_mail(
+						get_option( 'admin_email' ),
+						'likethefish.ca: MOBYGRATIS plays have reached ' . number_format( $n ),
+						"Hi Nathan,\n\nThe MOBYGRATIS tracks on likethefish.ca have now been played " . number_format( $n ) . " times.\n\n" .
+						"The free mobygratis licence asks you to let them know and apply for a commercial licence once streams go over 10,000 in total.\n" .
+						"License details: https://support.mobygratis.com/article/61-license-agreement\n\n" .
+						"You'll get another note at the next milestone (8,000 / 9,000 / 9,500 / 9,900 / 10,000).\n\n- your website"
+					);
+					break;
+				}
+			}
+			return array( 'ok' => true, 'plays' => $n );
+		},
+	) );
+	register_rest_route( 'ltf/v1', '/mg/plays', array(
+		'methods'             => 'GET',
+		'permission_callback' => function () { return current_user_can( 'manage_options' ); },
+		'callback'            => function () { return array( 'plays' => (int) get_option( 'ltf_mg_plays', 0 ), 'warned' => get_option( 'ltf_mg_warned', array() ) ); },
+	) );
+} );
