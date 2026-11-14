@@ -946,6 +946,39 @@ function sceneDeck() {
   buildCrowd(); drawCrowd(amb, '#ffd9a0');
   vignette();
 }
+function insideWall() {
+  // the back wall either side of the stage: blue boards
+  g.strokeStyle = MARK ? INK : 'rgba(255,255,255,.06)'; g.lineWidth = 1; g.beginPath(); for (let y = 132; y < 340; y += 9) { g.moveTo(150, y); g.lineTo(300, y); g.moveTo(660, y); g.lineTo(810, y); } g.stroke();
+  // window + passage on the right of the stage into the other room
+  const warm = '#ffcf8a';
+  rect(676, 214, 30, 34, '#6a4a2e', { lw: 1.2 }); rect(679, 217, 24, 28, MARK ? PAPER : '#3a2a20'); if (!MARK) { glow(691, 231, 22, warm, 0.5); } ln(691, 217, 691, 245, '#6a4a2e', 1.4); ln(679, 231, 703, 231, '#6a4a2e', 1.4);
+  poly([720, 342, 720, 222, 732, 210, 788, 210, 800, 222, 800, 342], '#6a4a2e', { lw: 1.4 });
+  poly([726, 342, 726, 226, 736, 216, 784, 216, 794, 226, 794, 342], MARK ? PAPER : '#4a3020', { lw: 1 });
+  if (!MARK) { const gr = g.createLinearGradient(0, 216, 0, 342); gr.addColorStop(0, 'rgba(255,200,130,.55)'); gr.addColorStop(1, 'rgba(255,170,90,.25)'); g.fillStyle = gr; path([726, 342, 726, 226, 736, 216, 784, 216, 794, 226, 794, 342], true); g.fill(); glow(760, 270, 50, warm, 0.35); }
+  for (let i = 0; i < 3; i++) { const x = 742 + i * 18, b = Math.sin(S.t * 1.4 + i) * 1.5; ell(x, 296 + b, 5, 6, '#2a1a12', { noline: true }); rect(x - 6, 302 + b, 12, 30, '#2a1a12', { noline: true }); }
+  rect(716, 202, 88, 9, '#2a180c', { lw: 1 }); txt('LOUNGE', 760, 206.5, 7, MARK ? INK : '#ffe9b0', { bold: true });
+}
+function sideWindows() {
+  // windows in the right wall looking out at the parking lot, with a slice of the bay
+  const top = (x) => 120 + (x - 810) * 130 / 150, bot = (x) => 340 + (x - 810) * 200 / 150;
+  [[822, 868, 1], [888, 944, 0]].forEach(([a, b, bay]) => {
+    const yA0 = top(a) + (bot(a) - top(a)) * 0.2, yA1 = top(a) + (bot(a) - top(a)) * 0.56, yB0 = top(b) + (bot(b) - top(b)) * 0.2, yB1 = top(b) + (bot(b) - top(b)) * 0.56;
+    const q = [a, yA0, b, yB0, b, yB1, a, yA1];
+    poly([a - 5, yA0 - 5, b + 5, yB0 - 6, b + 5, yB1 + 7, a - 5, yA1 + 5], '#f4f6f8', { lw: 1.2 });
+    g.save(); path(q, true); g.clip();
+    if (!MARK) { const gr = g.createLinearGradient(0, yA0, 0, yB1); gr.addColorStop(0, '#1a2050'); gr.addColorStop(0.45, '#4a4a7a'); gr.addColorStop(0.5, '#2a3a5a'); gr.addColorStop(1, '#2a2c34'); g.fillStyle = gr; g.fillRect(a - 5, Math.min(yA0, yB0) - 5, b - a + 10, Math.max(yA1, yB1) - Math.min(yA0, yB0) + 10); }
+    else { g.fillStyle = PAPER; g.fillRect(a - 5, yA0 - 10, b - a + 10, yB1 - yA0 + 20); }
+    const mid = (k) => [a + (b - a) * k, yA0 + (yB0 - yA0) * k + ((yA1 + (yB1 - yA1) * k) - (yA0 + (yB0 - yA0) * k)) * 0.42];
+    if (bay) { const [x0, y0] = mid(0); g.fillStyle = MARK ? PAPER : '#2a4a72'; g.fillRect(a - 5, y0 - 10, (b - a) * 0.75, 10); if (!MARK) { g.fillStyle = 'rgba(255,220,160,.35)'; for (let i = 0; i < 4; i++) g.fillRect(a + 4 + i * 8 + Math.sin(S.t + i) * 2, y0 - 6 + (i % 2) * 3, 5, 1); } void x0; }
+    const [lx, ly] = mid(0.5); g.fillStyle = MARK ? INK : '#3a3c44'; g.fillRect(a - 5, ly, b - a + 10, 80);
+    for (let i = 0; i < 2; i++) { const cx = a + 6 + i * (b - a) * 0.5, cy = ly + 14 + i * 6; poly([cx, cy, cx + 6, cy - 6, cx + 16, cy - 6, cx + 21, cy, cx + 21, cy + 5, cx, cy + 5], ['#c8102e', '#6a7078', '#1d2230'][(i + bay) % 3], { lw: 0.8 }); bulb(cx + 20, cy + 2, 0.8, '#fff2c0', 0.6); }
+    glow(lx + 8, ly - 4, 26, '#ffe8b0', 0.5); ln(lx + 8, ly - 10, lx + 8, ly + 20, '#2a2622', 1.6, { mw: 1 });
+    g.restore();
+    ln(a + (b - a) / 2, yA0 + (yB0 - yA0) / 2, a + (b - a) / 2, yA1 + (yB1 - yA1) / 2, '#f4f6f8', 3, { mw: 1.4 });
+    ln(a, (yA0 + yA1) / 2, b, (yB0 + yB1) / 2, '#f4f6f8', 3, { mw: 1.4 });
+    if (!MARK) { g.fillStyle = 'rgba(255,255,255,.07)'; path(q, true); g.fill(); }
+  });
+}
 function sceneInside() {
   const act = ACTS[S.act], on = S.playing, pu = on ? Math.exp(-((S.beat % 1) * 5)) : 0, amb = { col: '#151a2c', k: 0.3 }, light = act.cols[0];
   const wash = mix('#3a6ad8', act.cols[0], 0.35);
@@ -960,25 +993,26 @@ function sceneInside() {
   const fr = RNG(12); for (let i = 0; i < 40; i++) { const x = fr() * W, y = 20 + fr() * 200; ell(x, y + Math.sin(S.t + i) * 1.5, 4, 2.6, ['#c9a86a', '#e8e0cc', '#d9502b'][i % 3], { lw: 0.8 }); }
   g.restore();
   // walls
-  poly([0, 250, 150, 120, 150, 340, 0, 540], '#2a2018', { h: 9, ha: 1.1 }); poly([W, 250, 810, 120, 810, 340, W, 540], '#2a2018', { h: 9, ha: 2 });
+  poly([0, 250, 150, 120, 150, 340, 0, 540], '#2a2018', { h: 9, ha: 1.1 }); poly([W, 250, 810, 120, 810, 340, W, 540], '#2a2018', { h: 9, ha: 2 }); sideWindows();
   // bar wall at left: red with a giant painted R flag, EXIT sign
   poly([10, 280, 120, 200, 120, 330, 10, 420], '#a3262c', { lw: 1.4 }); poly([46, 254, 74, 234, 74, 352, 46, 372], '#f2c14e', MARK ? { lw: 1 } : null); poly([10, 316, 120, 252, 120, 270, 10, 336], '#f2c14e', MARK ? { lw: 1 } : null);
   rect(124, 166, 18, 9, '#3a0808', { lw: 1 }); neonText('EXIT', 133, 170.5, 6, '#ff3b3b', 0.9, 'Arial,sans-serif');
   // back wall / stage: blue walls, red posts, rustic SHORE CLUB letters
-  rect(150, 120, 660, 220, '#1c2238', { h: 10 }); rect(226, 128, 508, 172, MARK ? PAPER : mix('#3d5fae', wash, 0.5), { lw: 1.6 }); if (!MARK) glow(480, 220, 300, wash, 0.25 + pu * 0.1);
-  rect(214, 120, 16, 186, '#a3262c', { lw: 1.4 }); rect(730, 120, 16, 186, '#a3262c', { lw: 1.4 }); rect(206, 120, 548, 12, '#5a4030', { lw: 1.4 });
-  rect(318, 192, 324, 50, '#9a8466', { lw: 1.4 }); if (!MARK) { g.fillStyle = 'rgba(0,0,0,.18)'; for (let y = 200; y < 242; y += 8) g.fillRect(318, y, 324, 1.2); } else { g.strokeStyle = INK; g.lineWidth = 0.7; g.beginPath(); for (let y = 200; y < 242; y += 8) { g.moveTo(320, y); g.lineTo(640, y); } g.stroke(); }
-  g.font = "700 40px 'Arial Narrow','Oswald',Impact,sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; 'SHORE CLUB'.split('').forEach((ch, i) => { const x = 336 + i * 32; if (MARK) { g.fillStyle = '#c8102e'; g.fillText(ch, x, 218); g.strokeStyle = INK; g.lineWidth = 1; g.strokeText(ch, x, 218); } else { g.fillStyle = '#5a1012'; g.fillText(ch, x + 1.5, 219.5); g.fillStyle = '#c2342e'; g.fillText(ch, x, 218); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(x - 10, 214 + (i % 3), 20, 1); } });
+  rect(150, 120, 660, 222, '#1c2238', { h: 10 }); insideWall(); rect(318, 132, 324, 168, MARK ? PAPER : mix('#3d5fae', wash, 0.5), { lw: 1.6 }); if (!MARK) glow(480, 220, 220, wash, 0.25 + pu * 0.1);
+  rect(304, 124, 16, 182, '#a3262c', { lw: 1.4 }); rect(640, 124, 16, 182, '#a3262c', { lw: 1.4 }); rect(296, 120, 368, 12, '#5a4030', { lw: 1.4 });
+  rect(340, 192, 280, 50, '#9a8466', { lw: 1.4 }); if (!MARK) { g.fillStyle = 'rgba(0,0,0,.18)'; for (let y = 200; y < 242; y += 8) g.fillRect(340, y, 280, 1.2); } else { g.strokeStyle = INK; g.lineWidth = 0.7; g.beginPath(); for (let y = 200; y < 242; y += 8) { g.moveTo(342, y); g.lineTo(618, y); } g.stroke(); }
+  g.font = "700 34px 'Arial Narrow','Oswald',Impact,sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; 'SHORE CLUB'.split('').forEach((ch, i) => { const x = 361 + i * 26.5; if (MARK) { g.fillStyle = '#c8102e'; g.fillText(ch, x, 218); g.strokeStyle = INK; g.lineWidth = 1; g.strokeText(ch, x, 218); } else { g.fillStyle = '#5a1012'; g.fillText(ch, x + 1.5, 219.5); g.fillStyle = '#c2342e'; g.fillText(ch, x, 218); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(x - 10, 214 + (i % 3), 20, 1); } });
   // light pipe with LED pars and moving heads
-  ln(236, 148, 724, 148, '#2a2a2a', 3, { mw: 2 });
-  for (let i = 0; i < 7; i++) { const x = 262 + i * 72, col = act.cols[i % act.cols.length]; parCan(x, 162, 1, i % 2 ? '#ffb347' : col, on ? 0.5 + pu * 0.5 : 0.35); }
+  ln(326, 148, 634, 148, '#2a2a2a', 3, { mw: 2 });
+  for (let i = 0; i < 5; i++) { const x = 350 + i * 65, col = act.cols[i % act.cols.length]; parCan(x, 162, 1, i % 2 ? '#ffb347' : col, on ? 0.5 + pu * 0.5 : 0.35); }
   const nf = on ? 0.75 + pu * 0.4 : 0.5;
   if (act.k === 'dj') lighthouseBeam(480, 180, 700);
   // stage floor
-  poly([226, 300, 734, 300, 760, 322, 200, 322], MARK ? PAPER : '#7a2a26', { lw: 1.8 }); poly([200, 322, 760, 322, 760, 342, 200, 342], '#2a180c', { h: 5 });
-  rect(262, 286, 30, 16, '#151515', { lw: 1 }); rect(668, 286, 30, 16, '#151515', { lw: 1 }); rect(244, 250, 40, 50, '#1b1b1b', { lw: 1.2 }); rect(244, 242, 40, 10, '#2a2a2a', { lw: 1 }); bulb(250, 247, 1.2, '#ff3030', 0.8);
-  drawBand(480, 304, 380, 0.66, amb, light);
-  stageLights(262, 694, 168, 330, 1, true);
+  poly([318, 300, 642, 300, 664, 322, 296, 322], MARK ? PAPER : '#7a2a26', { lw: 1.8 }); poly([296, 322, 664, 322, 664, 342, 296, 342], '#2a180c', { h: 5 });
+  rect(330, 288, 26, 14, '#151515', { lw: 1 }); rect(604, 288, 26, 14, '#151515', { lw: 1 });
+  [[262, 150], [670, 150]].forEach(([x, y]) => { ln(x + 6, 120, x + 6, y, '#2a2a2a', 1.4, { mw: 1 }); ln(x + 22, 120, x + 22, y, '#2a2a2a', 1.4, { mw: 1 }); lineArray(x, y, 6, 1); });
+  drawBand(480, 304, 300, 0.62, amb, light);
+  stageLights(340, 620, 168, 330, 1, true);
   neonText(act.name, 480, 276, 14, act.cols[1], nf * 0.8, "'Pacifico',cursive", 'center', 260);
   // hardwood dance floor
   poly([150, 342, 810, 342, 960, 540, 0, 540], '#5a3a24');
