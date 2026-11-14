@@ -390,20 +390,64 @@ function Starry(){
 /* 4. JUNGLE PULSE */
 function Jungle(){
   let w,h,leaves,falling=[],nextFall=2,S;
-  function leaf(x,y){return{x,y,sz:S*rand(.7,1.35),rot:rand(TAU),ho:rand(-28,28),b:Math.floor(rand(2,52)),ph:rand(TAU),wd:rand(.42,.62),lt:rand(18,30)};}
-  function path(ctx,wd){ctx.beginPath();ctx.moveTo(-1,0);ctx.bezierCurveTo(-.55,-wd*1.1,.45,-wd,1,0);ctx.bezierCurveTo(.45,wd,-.55,wd*1.1,-1,0);ctx.closePath();}
+  /* leaf kinds: shapes are built once per leaf as Path2D in unit space (stem at -1, tip at +1) */
+  const KINDS=[['lance',3],['heart',2],['monstera',2],['palm',1.4],['fern',1.4],['banana',1.2],['calathea',1.6],['arrow',1.4],['croton',1],['split',1]];
+  const KT=KINDS.reduce((t,k)=>t+k[1],0);
+  function pickKind(){let r=Math.random()*KT;for(const[k,wt]of KINDS){r-=wt;if(r<=0)return k;}return 'lance';}
+  function lancelet(P,x0,y0,ang,len,wd){const c=Math.cos(ang),s0=Math.sin(ang),X=(u,v)=>x0+u*c-v*s0,Y=(u,v)=>y0+u*s0+v*c;
+    P.moveTo(X(0,0),Y(0,0));P.bezierCurveTo(X(len*.3,-wd),Y(len*.3,-wd),X(len*.75,-wd*.8),Y(len*.75,-wd*.8),X(len,0),Y(len,0));P.bezierCurveTo(X(len*.75,wd*.8),Y(len*.75,wd*.8),X(len*.3,wd),Y(len*.3,wd),X(0,0),Y(0,0));}
+  function build(L){
+    const k=L.kind,wd=L.wd,body=new Path2D(),vein=new Path2D();let rule='nonzero';
+    const mid=(bend=.08)=>{vein.moveTo(-1.12,0);vein.quadraticCurveTo(0,-bend,.95,0);};
+    if(k==='heart'||k==='arrow'||k==='split'){
+      const W=wd*(k==='arrow'?1.25:1.55);
+      if(k==='arrow'){body.moveTo(1,0);body.quadraticCurveTo(.05,-W*.95,-1,-W);body.lineTo(-.55,0);body.lineTo(-1,W);body.quadraticCurveTo(.05,W*.95,1,0);}
+      else{body.moveTo(-.72,0);body.bezierCurveTo(-1.25,-W,.15,-W*1.05,1,0);body.bezierCurveTo(.15,W*1.05,-1.25,W,-.72,0);}
+      mid(.02);for(let i=1;i<5;i++){const x=-.7+i*.33;vein.moveTo(-.72,0);vein.quadraticCurveTo(x-.1,-W*.35*(1.2-i*.2),x+.15,-W*.7*(1.1-i*.18));vein.moveTo(-.72,0);vein.quadraticCurveTo(x-.1,W*.35*(1.2-i*.2),x+.15,W*.7*(1.1-i*.18));}
+      if(k==='split'){rule='evenodd';for(let i=0;i<4;i++){const x=-.45+i*.36,y=W*.48*(1-i*.15);body.moveTo(x,-y*.35);body.lineTo(x+.06,-y*1.25);body.lineTo(x+.13,-y*.35);body.closePath();body.moveTo(x,y*.35);body.lineTo(x+.06,y*1.25);body.lineTo(x+.13,y*.35);body.closePath();}}
+    }else if(k==='monstera'){
+      rule='evenodd';const rx=1,ry=wd*1.6,cx=.02,N=18;
+      for(let i=0;i<=N;i++){const a=Math.PI+i/N*TAU,x=cx+Math.cos(a)*rx,y=Math.sin(a)*ry;
+        if(i===0){body.moveTo(x,y);continue;}
+        const nearEnd=Math.abs(Math.cos(a))>.86;
+        if(i%2===0&&!nearEnd&&i<N){const a2=a+TAU/N*.14,d=.5+Math.random()*.14;body.lineTo(cx+Math.cos(a)*rx*d,Math.sin(a)*ry*d);body.lineTo(cx+Math.cos(a2)*rx*d,Math.sin(a2)*ry*d);body.lineTo(cx+Math.cos(a2)*rx,Math.sin(a2)*ry);}
+        else body.lineTo(x,y);}
+      body.closePath();
+      for(let i=0;i<4;i++){const x=-.5+i*.32;for(const sg of[-1,1]){body.ellipse(x,sg*ry*.22,.06,.03,sg*.4,0,TAU);}}
+      mid(.02);for(let i=1;i<N;i+=2){const a=Math.PI+i/N*TAU;if(Math.abs(Math.cos(a))>.9)continue;vein.moveTo(cx+Math.cos(a)*.15,0);vein.lineTo(cx+Math.cos(a)*rx*.9,Math.sin(a)*ry*.9);}
+    }else if(k==='palm'||k==='fern'){
+      const n=k==='palm'?15:20;vein.moveTo(-1.15,0);vein.quadraticCurveTo(0,-.12,1,0);
+      for(let i=1;i<=n;i++){const t=i/(n+1),x=-1+t*2,y=-.12*4*t*(1-t),env=k==='palm'?.62*(1-Math.pow(Math.abs(t-.35)*1.4,2)):.42*(1-t*.8),lw=k==='palm'?.05:.07;
+        for(const sg of[-1,1]){lancelet(body,x,y,sg*(k==='palm'?1.05:1.25)+(k==='palm'?.35:.25),Math.max(.08,env),lw);}}
+    }else if(k==='banana'){
+      const W=wd*1.05;body.moveTo(-1,0);
+      for(let x=-1;x<=1.001;x+=.1){const e=W*Math.sin(Math.PI*Math.min(1,(x+1)/2*1.15))*(x>.7?(1-x)/0.3:1);const tear=(Math.random()<.18&&x>-.8&&x<.8);body.lineTo(x,-e);if(tear){body.lineTo(x+.02,-e*.3);body.lineTo(x+.05,-e);}}
+      for(let x=1;x>=-1;x-=.1){const e=W*Math.sin(Math.PI*Math.min(1,(x+1)/2*1.15))*(x>.7?(1-x)/0.3:1);const tear=(Math.random()<.18&&x>-.8&&x<.8);body.lineTo(x,e);if(tear){body.lineTo(x-.02,e*.3);body.lineTo(x-.05,e);}}
+      body.closePath();mid(0);for(let x=-.9;x<.95;x+=.07){const e=W*Math.sin(Math.PI*Math.min(1,(x+1)/2*1.15))*(x>.7?(1-x)/0.3:1)*.92;vein.moveTo(x,0);vein.lineTo(x+.12,-e);vein.moveTo(x,0);vein.lineTo(x+.12,e);}
+    }else{ // lance, calathea, croton
+      const W=wd*(k==='calathea'?1.35:k==='croton'?.75:1);
+      body.moveTo(-1,0);body.bezierCurveTo(-.55,-W*1.1,.45,-W,1,0);body.bezierCurveTo(.45,W,-.55,W*1.1,-1,0);
+      mid();for(let i=1;i<7;i++){const x=-1+i*.28,f=(1-Math.abs(x)*.5);vein.moveTo(x,0);vein.quadraticCurveTo(x+.12,-W*.4,x+.28,-W*.72*f);vein.moveTo(x,0);vein.quadraticCurveTo(x+.12,W*.4,x+.28,W*.72*f);}
+      if(k==='calathea'){L.stripes=new Path2D();for(let i=0;i<9;i++){const x=-.85+i*.2;L.stripes.moveTo(x,0);L.stripes.lineTo(x+.12,-W);L.stripes.moveTo(x,0);L.stripes.lineTo(x+.12,W);}}
+    }
+    L.body=body;L.vein=vein;L.rule=rule;
+  }
+  function leaf(x,y){const kind=pickKind();const L={x,y,kind,sz:S*rand(.7,1.35)*({palm:1.5,fern:1.3,banana:1.45,monstera:1.15,croton:.9}[kind]||1),rot:rand(TAU),ho:rand(-28,28)+({banana:-18,calathea:35,croton:-95,fern:12}[kind]||0),b:Math.floor(rand(2,52)),ph:rand(TAU),wd:rand(.42,.62),lt:rand(18,30)+(kind==='banana'?6:0),vari:Math.random()<.12};build(L);return L;}
   function drawLeaf(ctx,L,t,A,hueBase,fall){
     const v=A.bins[L.b],sc=1+v*.13+A.pulse*.05;
-    const sx=Math.sin(t*37+L.ph)*v*v*4,sy=Math.cos(t*29+L.ph)*v*v*4,rr=L.rot+Math.sin(t*41+L.ph)*v*v*.09;
+    const sx=Math.sin(t*37+L.ph)*v*v*4,sy=Math.cos(t*29+L.ph)*v*v*4,rr=L.rot+Math.sin(t*41+L.ph)*v*v*(L.kind==='palm'||L.kind==='fern'?.16:.09);
     ctx.save();ctx.translate(L.x+sx,L.y+sy);ctx.rotate(rr);const s=L.sz*sc;ctx.scale(s,s);
-    const hue=hueBase+L.ho;
-    ctx.save();ctx.translate(.06,.1);path(ctx,L.wd);ctx.fillStyle='rgba(0,0,0,.45)';ctx.fill();ctx.restore();
-    path(ctx,L.wd);const g=ctx.createLinearGradient(-1,-.5,1,.5);g.addColorStop(0,`hsl(${hue},80%,${L.lt*.4}%)`);g.addColorStop(.6,`hsl(${hue+12},85%,${L.lt+v*18}%)`);g.addColorStop(1,`hsl(${hue+25},90%,${L.lt*.9+v*26}%)`);
-    ctx.fillStyle=g;ctx.fill();
-    ctx.lineWidth=1.6/s;ctx.strokeStyle=`hsla(${hue+30},100%,${55+v*25}%,${.35+v*.6})`;ctx.stroke();
-    ctx.beginPath();ctx.moveTo(-1.15,0);ctx.lineTo(.95,0);
-    for(let k=1;k<7;k++){const x=-1+k*.28;ctx.moveTo(x,0);ctx.quadraticCurveTo(x+.12,-L.wd*.4,x+.28,-L.wd*.72*(1-Math.abs(x)*.5));ctx.moveTo(x,0);ctx.quadraticCurveTo(x+.12,L.wd*.4,x+.28,L.wd*.72*(1-Math.abs(x)*.5));}
-    ctx.lineWidth=1.3/s;ctx.strokeStyle=`hsla(${hue+40},100%,${70+v*20}%,${.25+v*.7+A.pulse*.2})`;ctx.stroke();
+    const hue=L.kind==='croton'?(hueBase*.25+L.ho+40):hueBase+L.ho;
+    ctx.save();ctx.translate(.06,.1);ctx.fillStyle='rgba(0,0,0,.45)';ctx.fill(L.body,L.rule);ctx.restore();
+    const g=ctx.createLinearGradient(-1,-.5,1,.5);g.addColorStop(0,`hsl(${hue},80%,${L.lt*.4}%)`);g.addColorStop(.6,`hsl(${hue+12},85%,${L.lt+v*18}%)`);g.addColorStop(1,`hsl(${hue+25},90%,${L.lt*.9+v*26}%)`);
+    ctx.fillStyle=g;ctx.fill(L.body,L.rule);
+    if(L.stripes||L.vari||L.kind==='croton'){ctx.save();ctx.clip(L.body,L.rule);
+      if(L.stripes){ctx.lineWidth=.07;ctx.strokeStyle=`hsla(${hue-40},70%,${12+v*10}%,.75)`;ctx.stroke(L.stripes);ctx.lineWidth=.025;ctx.strokeStyle=`hsla(${hue+60},90%,${70+v*20}%,.6)`;ctx.stroke(L.stripes);}
+      if(L.vari){ctx.fillStyle=`hsla(${hue+20},40%,${80+v*15}%,.35)`;for(let i=0;i<6;i++){ctx.beginPath();ctx.ellipse(-.7+i*.3,(i%2?-.18:.15),.16,.07,.5*(i%2?1:-1),0,TAU);ctx.fill();}}
+      if(L.kind==='croton'){ctx.fillStyle=`hsla(${hue+30},100%,${50+v*20}%,.55)`;for(let i=0;i<9;i++){ctx.beginPath();ctx.arc(-.8+i*.2,((i*37)%7-3)*.06,.05,0,TAU);ctx.fill();}}
+      ctx.restore();}
+    ctx.lineWidth=1.6/s;ctx.strokeStyle=`hsla(${hue+30},100%,${55+v*25}%,${.35+v*.6})`;if(L.kind!=='palm'&&L.kind!=='fern')ctx.stroke(L.body);
+    ctx.lineWidth=(L.kind==='palm'||L.kind==='fern'?2.2:1.3)/s;ctx.strokeStyle=L.kind==='croton'?`hsla(55,100%,${65+v*20}%,${.5+v*.5})`:`hsla(${hue+40},100%,${70+v*20}%,${.25+v*.7+A.pulse*.2})`;ctx.stroke(L.vein);
     ctx.restore();
   }
   return{name:'JUNGLE PULSE',sub:'Leaves shiver, glow and drift through colour',
