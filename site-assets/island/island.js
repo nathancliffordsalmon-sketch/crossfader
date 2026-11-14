@@ -57,7 +57,7 @@ const QP = [['spotify', '\u{1F3B2} Random Like The Fish playlist (Spotify)'], ['
 root.innerHTML = `
 <div id="isl">
   <div class="isl-qp"><span class="lbl">Quick play</span><select id="isl-qsel" aria-label="Choose what to play">${QP.map(([v, t]) => `<option value="${v}">${t}</option>`).join('')}</select><button id="isl-qgo">▶ Play</button><button id="isl-qstop" class="alt" hidden>⏸</button></div>
-  <div class="isl-stage"><canvas id="isl-cv" width="384" height="216" aria-label="A castaway's island: ${HERO} walks the beach by his hut while the music plays"></canvas><div class="isl-ov"><select id="isl-fpack" aria-label="Furniture"><option value="original">\u{1F334} Original</option><option value="future">\u{1F680} Future</option><option value="fancy">\u{1F3A9} Fancy</option></select><button id="isl-fskip" aria-label="Skip to night or day">\u{1F319}</button><button id="isl-fplay" aria-label="Play or pause">\u25B6</button></div><button class="isl-fs" id="isl-fs">⤢ Full screen</button></div>
+  <div class="isl-stage"><canvas id="isl-cv" width="384" height="216" aria-label="A castaway's island: ${HERO} walks the beach by his hut while the music plays"></canvas><div class="isl-ov"><select id="isl-fpack" aria-label="Furniture"><option value="original">\u{1F334} Original</option><option value="future">\u{1F680} Future</option><option value="fancy">\u{1F3A9} Fancy</option><option value="tiki">\u{1F5FF} Tiki</option><option value="seventies">\u{1F33C} 70s</option><option value="eighties">\u{1F4FC} 80s</option></select><button id="isl-fskip" aria-label="Skip to night or day">\u{1F319}</button><button id="isl-fplay" aria-label="Play or pause">\u25B6</button></div><button class="isl-fs" id="isl-fs">⤢ Full screen</button></div>
   <div class="isl-hud"><span class="isl-now" id="isl-now">Play some music and see what washes ashore…</span><span class="isl-clock" id="isl-clock"></span></div>
   <div class="isl-box">
     <div class="isl-tabs" role="tablist">
@@ -91,7 +91,7 @@ root.innerHTML = `
       <p class="isl-note">For records, the radio, the car stereo…</p>
     </div>
     <div class="isl-row" style="margin-top:12px">
-      <label class="isl-note" style="margin:0">Furniture</label><select id="isl-pack" style="flex:0 1 auto"><option value="original">\u{1F334} Original</option><option value="future">\u{1F680} Future</option><option value="fancy">\u{1F3A9} Fancy</option></select>
+      <label class="isl-note" style="margin:0">Furniture</label><select id="isl-pack" style="flex:0 1 auto"><option value="original">\u{1F334} Original</option><option value="future">\u{1F680} Future</option><option value="fancy">\u{1F3A9} Fancy</option><option value="tiki">\u{1F5FF} Tiki</option><option value="seventies">\u{1F33C} 70s</option><option value="eighties">\u{1F4FC} 80s</option></select>
       <button id="isl-skip" class="alt">\u{1F319} Skip to night</button><button id="isl-print-btn" class="alt">\u{1F4DC} Message in a bottle</button>
     </div>
     <div class="isl-songs" id="isl-songs"></div>
@@ -275,9 +275,12 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFull(fa
 
 /* ---------------- furniture packs ---------------- */
 const PACKS = {
-  original: { wall: '#b07a43', wallD: '#7d532b', roof: '#d9b05a', roofD: '#9c7a33', door: '#4a2f17', trim: '#5e3d1c', chair: '#8a5a2b', table: '#9b6b38', top: '#c48a4a', bulbs: ['#ffd27a', '#ff9a3c', '#ffefb0'], spk: '#3a2a1c', spkCone: '#8c7a62', glow: '#ffc56b' },
-  future: { wall: '#c9d3e6', wallD: '#8b97b3', roof: '#e9eef8', roofD: '#9aa6c4', door: '#20263f', trim: '#5ef0ff', chair: '#d8e2f5', table: '#9fb0d6', top: '#5ef0ff', bulbs: ['#5ef0ff', '#ff4fd8', '#9dff6b'], spk: '#1a1f36', spkCone: '#5ef0ff', glow: '#7af4ff' },
-  fancy: { wall: '#efe2c4', wallD: '#c9b590', roof: '#7a2232', roofD: '#4e1420', door: '#3a1d12', trim: '#d4af37', chair: '#7a2232', table: '#3a2414', top: '#f7f3ea', bulbs: ['#ffe9a8', '#ffd27a', '#fff6dc'], spk: '#3a2414', spkCone: '#d4af37', glow: '#ffe2a0' }
+  original: { roofStyle: 'thatch', wall: '#b07a43', wallD: '#7d532b', roof: '#d9b05a', roofD: '#9c7a33', door: '#4a2f17', trim: '#5e3d1c', chair: '#8a5a2b', table: '#9b6b38', top: '#c48a4a', bulbs: ['#ffd27a', '#ff9a3c', '#ffefb0'], spk: '#3a2a1c', spkCone: '#8c7a62', glow: '#ffc56b', chim: '#8a7a6a', board: ['#e8913a', '#ffffff'] },
+  tiki: { roofStyle: 'thatch', wall: '#9a6a36', wallD: '#6a4420', roof: '#b8903a', roofD: '#7a5a1e', door: '#2a160a', trim: '#3a2410', chair: '#a07038', table: '#8a5a2b', top: '#c48a4a', bulbs: ['#ff5a2a', '#ffd24a', '#2fe07a', '#ff6fa8'], spk: '#6a4020', spkCone: '#3a2410', glow: '#ffae4a', chim: '#7a6a5a', board: ['#2f9a4a', '#ffd24a'] },
+  future: { roofStyle: 'dome', wall: '#c9d3e6', wallD: '#8b97b3', roof: '#e9eef8', roofD: '#9aa6c4', door: '#20263f', trim: '#5ef0ff', chair: '#d8e2f5', table: '#9fb0d6', top: '#5ef0ff', bulbs: ['#5ef0ff', '#ff4fd8', '#9dff6b'], spk: '#1a1f36', spkCone: '#5ef0ff', glow: '#7af4ff', chim: '#9aa6c4', chimTop: '#5ef0ff', board: ['#5ef0ff', '#ff4fd8'] },
+  fancy: { roofStyle: 'gable', wall: '#efe2c4', wallD: '#c9b590', roof: '#7a2232', roofD: '#4e1420', door: '#3a1d12', trim: '#d4af37', chair: '#7a2232', table: '#3a2414', top: '#f7f3ea', bulbs: ['#ffe9a8', '#ffd27a', '#fff6dc'], spk: '#3a2414', spkCone: '#d4af37', glow: '#ffe2a0', chim: '#a05040', board: ['#d4af37', '#7a2232'] },
+  seventies: { roofStyle: 'gable', wall: '#f3e2b8', wallD: '#c8b080', roof: '#6b3e1e', roofD: '#40220e', door: '#e8913a', trim: '#6b3e1e', chair: '#e8913a', table: '#a0522d', top: '#a0522d', bulbs: ['#ff8a3c', '#f2c230', '#9acd32', '#ff6a3c'], spk: '#a0703a', spkCone: '#e8913a', glow: '#ffb060', chim: '#8a5a3a', board: ['#e8913a', '#6b3e1e'] },
+  eighties: { roofStyle: 'flat', wall: '#f4f0ff', wallD: '#c0bad8', roof: '#4a2a7a', roofD: '#2a1450', door: '#1a1a2a', trim: '#ff4fd8', chair: '#ff4fd8', table: '#222222', top: '#222222', bulbs: ['#ff4fd8', '#5ef0ff', '#ffe14a', '#9a8cff'], spk: '#15151c', spkCone: '#5ef0ff', glow: '#ff9af0', chim: '#5a5a6a', chimTop: '#ff4fd8', board: ['#ff4fd8', '#5ef0ff'] }
 };
 
 setPack(S.pack);
@@ -310,6 +313,7 @@ function spawnRaft(type) {
   const r = { type, x: rnd() < 0.5 ? -30 : W + 30, land, y: HORIZON + 6, state: 'drift', t: 0, life: 150 + rnd() * 90, lit: 0, hue: rnd() * 360 };
   r.x = rnd() < 0.7 ? -30 : W + 30; r.tgtY = shoreY(land) + 1;
   if (type === 'drum') { const free = DRUMMERS.filter((d) => !S.rafts.some((o) => o.state !== 'gone' && o.drummer === d)); r.drummer = pick(free.length ? free : DRUMMERS); r.hits = []; }
+  if (type === 'visit') { const vv = pick(VISITORS); r.v = { kind: vv.kind, name: vv.name, st: 'aboard', t: 0, ox: 0, oy: 0 }; r.life = 1e9; r.land = ri(70, 160); r.tgtY = shoreY(r.land) + 1; r.x = rnd() < 0.6 ? -30 : W + 30; }
   if (type === 'dance') r.dancers = Array.from({ length: ri(2, 3) }, () => ({ style: pick(DANCES), col: pick(DCOL), skin: pick(['#f0c9a0', '#c48a5a', '#8a5a3c', '#e0b48a', '#6b4430']), ph: rnd() * 6 }));
   S.rafts.push(r); S.lastRaft = S.t;
 }
@@ -324,17 +328,27 @@ function drawSky(d) {
   for (let y = 0; y < HORIZON; y += 2) { R(0, y, W, 2, mix(rgb2hex(top), rgb2hex(bot), y / HORIZON)); }
   // stars
   const nightA = 1 - d;
-  if (nightA > 0.05) STARS.forEach((s) => { const a = nightA * (0.5 + 0.5 * Math.sin(S.t * 2 + s.p)); g.globalAlpha = a; R(s.x, s.y, s.s, s.s, '#fff8e0'); }); g.globalAlpha = 1;
+  const kick = S.playing ? Math.exp(-(S.beat % 1) * 6) : 0;
+  if (nightA > 0.05) STARS.forEach((s, i) => { const a = nightA * (0.5 + 0.5 * Math.sin(S.t * 2 + s.p)); g.globalAlpha = a; R(s.x, s.y, s.s, s.s, '#fff8e0'); if (S.swirl > 0.05 && i % 6 === 0) { g.globalAlpha = a * S.swirl * (0.25 + kick * 0.35); const rr = 2 + Math.round(kick * 2); R(s.x - rr, s.y, 1, 1, '#f6d65a'); R(s.x + rr, s.y, 1, 1, '#f6d65a'); R(s.x, s.y - rr, 1, 1, '#f6d65a'); R(s.x, s.y + rr, 1, 1, '#f6d65a'); } }); g.globalAlpha = 1;
   // sun / moon on an arc
   const sunT = m / 15, moonT = (m - 15) / 15;
-  if (m < 15.5) { const sx = lerp(-20, W + 20, sunT), sy = HORIZON - Math.sin(Math.PI * clamp(sunT, 0, 1)) * 90 + 6; circle(sx, sy, 11, mix('#ff7a2a', '#fff3b0', d)); g.globalAlpha = 0.25; circle(sx, sy, 17, '#ffd27a'); g.globalAlpha = 1; }
-  if (m > 14.5) { const mx = lerp(-20, W + 20, clamp(moonT, 0, 1)), my = HORIZON - Math.sin(Math.PI * clamp(moonT, 0, 1)) * 84 + 6; circle(mx, my, 8, '#f3f0dc'); circle(mx + 3, my - 2, 7, rgb2hex(top)); }
+  let SX = null, SY = null, MX = null, MY = null;
+  if (m < 15.5) { const sx = lerp(-20, W + 20, sunT), sy = HORIZON - Math.sin(Math.PI * clamp(sunT, 0, 1)) * 90 + 6; SX = sx; SY = sy;
+    g.globalAlpha = 0.18 + kick * 0.18; circle(sx, sy, 17 + Math.round(kick * 3 + S.energy * 2), '#ffd27a');
+    if (S.playing) { for (let i = 0; i < 12; i++) { const an = i / 12 * Math.PI * 2 + S.t * 0.15; g.globalAlpha = 0.25 * S.energy; for (let r = 19; r < 24 + kick * 5; r++) P(sx + Math.cos(an) * r, sy + Math.sin(an) * r, '#fff0b0'); } }
+    g.globalAlpha = 1; circle(sx, sy, 11 + Math.round(kick * 1.5), mix('#ff7a2a', '#fff3b0', d)); }
+  if (m > 14.5) { const mx = lerp(-20, W + 20, clamp(moonT, 0, 1)), my = HORIZON - Math.sin(Math.PI * clamp(moonT, 0, 1)) * 84 + 6; MX = mx; MY = my;
+    drawMoonFish(mx, my, d);
+    g.globalAlpha = 0.08 + kick * 0.14; circle(mx, my, 13 + Math.round(kick * 3), '#f3f0dc'); g.globalAlpha = 1;
+    crescent(mx, my, 8 + Math.round(kick), '#f3f0dc'); }
+  drawSwirls(MX, MY, SX, SY, d);
   // clouds
   CLOUDS.forEach((c) => { c.x += c.v * 0.016; if (c.x > W + 60) c.x = -60; g.globalAlpha = 0.25 + d * 0.5; const col = mix('#3a4a7a', '#ffffff', d); R(c.x, c.y, c.w, 4, col); R(c.x + 6, c.y - 3, c.w * 0.6, 3, col); R(c.x + 10, c.y + 4, c.w * 0.7, 2, col); g.globalAlpha = 1; });
   // distant island silhouette
   const far = mix('#121a3a', '#5a86a8', d);
   R(250, HORIZON - 6, 70, 6, far); R(262, HORIZON - 10, 40, 4, far); R(276, HORIZON - 13, 14, 3, far);
 }
+function crescent(x, y, r, c) { g.fillStyle = c; for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { if (dx * dx + dy * dy > r * r) continue; const ex = dx - 3, ey = dy + 2; if (ex * ex + ey * ey <= (r - 1) * (r - 1)) continue; g.fillRect(Math.round(x + dx), Math.round(y + dy), 1, 1); } }
 function rgb2hex(c) { if (c[0] === '#') return c; const m = c.match(/\d+/g).map(Number); return '#' + m.map((v) => v.toString(16).padStart(2, '0')).join(''); }
 function circle(x, y, r, c) { g.fillStyle = c; for (let dy = -r; dy <= r; dy++) { const w = Math.floor(Math.sqrt(r * r - dy * dy)); g.fillRect(Math.round(x - w), Math.round(y + dy), w * 2 + 1, 1); } }
 /* the shore: straight in front of the hut, a shallow cove bites into the beach on the far side */
@@ -344,6 +358,7 @@ function shoreY(x) { return SHORE + Math.round(Math.sin(x * 0.045 + 1) * 3 + Mat
 function washY(x) { return shoreY(x) + Math.sin(S.t * 0.9 + x * 0.01) * (1 + 3 * coveF(x)); }
 function drawSea(d) {
   for (let y = HORIZON; y < SHORE + COVE_DEPTH + 10; y++) { const f = Math.min(1, (y - HORIZON) / (SHORE - HORIZON)), sh = clamp((y - SHORE) / COVE_DEPTH, 0, 1); R(0, y, W, 1, mix(rgb2hex(mix(mix('#0b1a3e', '#1f6fb0', d), mix('#14306a', '#38b6c9', d), f)), mix('#1f4a7a', '#6fe0d6', d), sh * 0.7)); }
+  drawShip(d);
   // glints / moon path
   for (let i = 0; i < 70; i++) { const x = (i * 53 + Math.floor(S.t * (6 + (i % 5)))) % W, y = HORIZON + 2 + ((i * 7) % (SHORE - HORIZON)); g.globalAlpha = 0.35 + 0.3 * Math.sin(S.t * 3 + i); R(x, y, 3 + (i % 3), 1, d > 0.5 ? '#d9f6ff' : '#9fb4ff'); }
   g.globalAlpha = 1;
@@ -374,54 +389,76 @@ function palm(x, base, h, d, lean) {
   R(tx - 2, ty - 1, 3, 3, mix('#3a2a20', '#6a4a20', d)); R(tx + 1, ty, 3, 3, mix('#3a2a20', '#7a5a2a', d));
 }
 function drawHut(d) {
-  const p = PACKS[S.pack], x = HUT.x, y = HUT.y;
-  const wall = mix(p.wallD, p.wall, d * 0.8 + 0.2), roof = mix(p.roofD, p.roof, d * 0.8 + 0.2);
-  // stilts / base
+  const p = PACKS[S.pack], k = S.pack, x = HUT.x, y = HUT.y;
+  const wall = mix(p.wallD, p.wall, d * 0.8 + 0.2), roof = mix(p.roofD, p.roof, d * 0.8 + 0.2), dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65);
+  // chimney (behind the roof) - the smoke comes out of here
+  R(x + 47, y - 64, 8, 30, dim(p.chim || '#6a6470')); R(x + 46, y - 66, 10, 3, dim(p.chimTop || '#4a4450'));
   R(x - 2, y, 70, 4, mix('#2a1d14', p.trim, 0.4));
-  // walls
   R(x, y - 34, 66, 34, wall);
-  if (S.pack === 'original') for (let i = 0; i < 66; i += 5) R(x + i, y - 34, 1, 34, mix(p.wallD, '#5e3d1c', 0.5));
-  if (S.pack === 'future') { R(x, y - 34, 66, 2, p.trim); R(x, y - 3, 66, 1, p.trim); }
-  if (S.pack === 'fancy') { R(x - 2, y - 34, 4, 34, '#f7f3ea'); R(x + 64, y - 34, 4, 34, '#f7f3ea'); }
+  if (k === 'original') for (let i = 0; i < 66; i += 5) R(x + i, y - 34, 1, 34, mix(p.wallD, '#5e3d1c', 0.5));
+  if (k === 'tiki') { for (let i = 0; i < 34; i += 4) R(x, y - 34 + i, 66, 1, mix(p.wallD, '#3a2410', 0.5)); R(x - 2, y - 36, 4, 36, dim('#c8a060')); R(x + 64, y - 36, 4, 36, dim('#c8a060'));
+    // carved tiki mask on the wall
+    R(x + 3, y - 30, 9, 18, dim('#5a3418')); R(x + 4, y - 27, 3, 2, dim('#ffd24a')); R(x + 8, y - 27, 3, 2, dim('#ffd24a')); R(x + 5, y - 22, 5, 1, dim('#2a160a')); R(x + 4, y - 19, 7, 3, dim('#e8413a')); R(x + 5, y - 18, 5, 1, dim('#ffffff')); }
+  if (k === 'future') { R(x, y - 34, 66, 2, p.trim); R(x, y - 3, 66, 1, p.trim); }
+  if (k === 'fancy') { R(x - 2, y - 34, 4, 34, '#f7f3ea'); R(x + 64, y - 34, 4, 34, '#f7f3ea'); }
+  if (k === 'seventies') { [['#e8913a', 10], ['#f2c230', 14], ['#a0522d', 18], ['#6b8e23', 22]].forEach(([c, o]) => R(x, y - 34 + o, 66, 3, dim(c))); }
+  if (k === 'eighties') { const cs = ['#ff4fd8', '#5ef0ff', '#ffe14a', '#9a8cff'];
+    for (let i = 0; i < 9; i++) { const px = x + 3 + (i * 23) % 60, py = y - 31 + (i * 11) % 26; if (px > HUT.door - 4 && px < HUT.door + 14) continue; if (px > HUT.win - 4 && px < HUT.win + 20 && py < y - 12) continue; const c = dim(cs[i % 4]);
+      if (i % 3 === 0) { for (let t = 0; t < 4; t++) R(px + t, py + 3 - t, 1, t + 1, c); } else if (i % 3 === 1) { for (let t = 0; t < 7; t++) P(px + t, py + (t % 2), c); } else R(px, py, 2, 2, c); } }
   // roof
-  if (S.pack === 'future') { for (let i = 0; i < 18; i++) { const w = 74 - Math.round((i * i) / 6); R(x + 33 - w / 2, y - 35 - i, w, 1, i % 6 === 0 ? p.trim : roof); } }
-  else for (let i = 0; i < 20; i++) { R(x - 6 + i * 1.2, y - 36 - i, 78 - i * 2.4, 1, i % 3 === 0 ? mix(p.roofD, roof, 0.4) : roof); }
-  if (S.pack === 'original') for (let i = 0; i < 9; i++) R(x - 6 + i * 9, y - 36, 2, 4, p.roofD);
+  const style = p.roofStyle;
+  if (style === 'dome') { for (let i = 0; i < 18; i++) { const w = 74 - Math.round((i * i) / 6); R(x + 33 - w / 2, y - 35 - i, w, 1, i % 6 === 0 ? p.trim : roof); } }
+  else if (style === 'flat') { R(x - 6, y - 42, 78, 8, roof); R(x - 6, y - 42, 78, 1, p.trim); R(x - 6, y - 35, 78, 1, mix(p.roofD, p.trim, 0.5)); if (S.playing) { g.globalAlpha = 0.5 + 0.5 * Math.exp(-(S.beat % 1) * 5); R(x - 6, y - 43, 78, 1, p.trim); g.globalAlpha = 1; } }
+  else { for (let i = 0; i < 20; i++) R(x - 6 + i * 1.2, y - 36 - i, 78 - i * 2.4, 1, i % 3 === 0 ? mix(p.roofD, roof, 0.4) : roof); }
+  if (style === 'thatch') { const n = k === 'tiki' ? 13 : 9; for (let i = 0; i < n; i++) R(x - 6 + i * (78 / n), y - 36, 2, k === 'tiki' ? 6 : 4, p.roofD); }
   // window + door glow at night
   const night = 1 - d, glow = night > 0.3 ? p.glow : mix('#1b2433', '#2b3a55', d);
   const winX = HUT.win, winY = y - 26, doorX = HUT.door;
-  R(winX - 1, winY - 1, 20, 14, p.trim); R(winX, winY, 18, 12, glow); R(winX + 8, winY, 2, 12, p.trim); R(winX, winY + 5, 18, 1, p.trim);
+  if (k === 'seventies') { circle(winX + 9, winY + 6, 8, p.trim); circle(winX + 9, winY + 6, 6, glow); R(winX + 8, winY, 2, 12, p.trim); }
+  else { R(winX - 1, winY - 1, 20, 14, p.trim); R(winX, winY, 18, 12, glow); R(winX + 8, winY, 2, 12, p.trim); R(winX, winY + 5, 18, 1, p.trim); }
   R(doorX - 1, y - 24, 14, 24, p.trim); R(doorX, y - 23, 12, 23, night > 0.3 ? mix(p.door, glow, 0.55) : p.door);
-  if (night > 0.3) { for (let k = 0; k < 14; k++) { g.globalAlpha = 0.11 * night * (1 - k / 14); R(doorX - k, y + 4 + k, 12 + k * 2, 1, p.glow); R(winX - 2 - k, y + 4 + k, 22 + k * 2, 1, p.glow); } g.globalAlpha = 1; }
-  // cats peeking in window / doorway
+  if (night > 0.3) { for (let j = 0; j < 14; j++) { g.globalAlpha = 0.11 * night * (1 - j / 14); R(doorX - j, y + 4 + j, 12 + j * 2, 1, p.glow); R(winX - 2 - j, y + 4 + j, 22 + j * 2, 1, p.glow); } g.globalAlpha = 1; }
   CATS.forEach((c) => { if (!c.inside || c.peek <= 0) return; const atWin = c.peekAt === 'win'; const cx = atWin ? winX + 2 + (c.peekX || 0) : doorX + 2, cy = atWin ? winY + 6 : y - 8; catSprite(cx, cy, 1, c, true, night > 0.3); });
 }
 function drawFurniture(d) {
-  const p = PACKS[S.pack], dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65);
+  const p = PACKS[S.pack], k = S.pack, dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65), night = 1 - d;
+  const cx = CHAIR, by = 180, tx = TABLE;
   // chair
-  const cx = CHAIR, by = 180;
-  if (S.pack === 'original') { R(cx, by - 14, 2, 14, dim(p.chair)); R(cx + 8, by - 6, 2, 6, dim(p.chair)); R(cx, by - 7, 10, 2, dim(p.chair)); R(cx, by - 14, 2, 8, dim('#6a4220')); }
-  else if (S.pack === 'future') { R(cx - 1, by - 9, 12, 3, dim(p.chair)); R(cx - 1, by - 16, 3, 9, dim(p.chair)); g.globalAlpha = 0.5 + 0.3 * Math.sin(S.t * 3); R(cx + 1, by - 3, 8, 1, p.trim); g.globalAlpha = 1; }
+  if (k === 'original' || k === 'tiki') { const c = dim(p.chair); R(cx, by - 14, 2, 14, c); R(cx + 8, by - 6, 2, 6, c); R(cx, by - 7, 10, 2, c); R(cx, by - 14, 2, 8, dim(k === 'tiki' ? '#c8a060' : '#6a4220')); if (k === 'tiki') { R(cx + 2, by - 13, 1, 6, dim('#c8a060')); R(cx - 1, by - 15, 4, 1, dim('#2f9a4a')); } }
+  else if (k === 'future') { R(cx - 1, by - 9, 12, 3, dim(p.chair)); R(cx - 1, by - 16, 3, 9, dim(p.chair)); g.globalAlpha = 0.5 + 0.3 * Math.sin(S.t * 3); R(cx + 1, by - 3, 8, 1, p.trim); g.globalAlpha = 1; }
+  else if (k === 'seventies') { circle(cx + 5, by - 11, 7, dim('#e8913a')); circle(cx + 6, by - 10, 5, dim('#5a2a10')); R(cx + 3, by - 7, 6, 2, dim('#f2c230')); R(cx + 4, by - 4, 2, 4, dim('#c0c0c0')); R(cx + 1, by - 1, 8, 1, dim('#c0c0c0')); }
+  else if (k === 'eighties') { R(cx, by - 8, 11, 3, dim('#5ef0ff')); for (let t = 0; t < 8; t++) R(cx, by - 16 + t, Math.max(1, 8 - t), 1, dim('#ff4fd8')); R(cx + 1, by - 5, 1, 5, dim('#222')); R(cx + 9, by - 5, 1, 5, dim('#222')); P(cx + 4, by - 7, dim('#ffe14a')); P(cx + 7, by - 7, dim('#222')); }
   else { R(cx - 1, by - 16, 12, 9, dim(p.chair)); R(cx - 2, by - 8, 14, 4, dim(p.chair)); R(cx - 2, by - 4, 2, 4, dim('#d4af37')); R(cx + 10, by - 4, 2, 4, dim('#d4af37')); }
   // table
-  const tx = TABLE;
-  if (S.pack === 'original') { R(tx, by - 9, 14, 9, dim('#7a5028')); R(tx, by - 9, 14, 1, dim('#a8783e')); R(tx + 3, by - 12, 3, 3, dim('#d9d2c0')); R(tx + 9, by - 13, 2, 4, dim('#5aa0d0')); }
-  else if (S.pack === 'future') { R(tx, by - 10, 14, 2, dim(p.top)); R(tx + 6, by - 8, 2, 8, dim(p.table)); R(tx + 3, by - 12, 2, 2, '#ff4fd8'); }
-  else { R(tx - 1, by - 10, 16, 2, dim(p.top)); R(tx - 1, by - 8, 16, 5, dim('#efe8da')); R(tx + 6, by - 3, 2, 3, dim(p.table)); R(tx + 6, by - 16, 1, 6, dim('#d4af37')); const fl = 1 - d; if (fl > 0.3) { P(tx + 6, by - 17 - (S.t * 8 % 2 | 0), '#ffd27a'); } }
+  if (k === 'original') { R(tx, by - 9, 14, 9, dim('#7a5028')); R(tx, by - 9, 14, 1, dim('#a8783e')); R(tx + 3, by - 12, 3, 3, dim('#d9d2c0')); R(tx + 9, by - 13, 2, 4, dim('#5aa0d0')); }
+  else if (k === 'tiki') { R(tx + 1, by - 10, 12, 10, dim('#8a5a2b')); R(tx + 1, by - 8, 12, 1, dim('#3a2410')); R(tx + 1, by - 3, 12, 1, dim('#3a2410')); circle(tx + 5, by - 12, 2, dim('#6a4628')); R(tx + 6, by - 17, 1, 4, dim('#ffffff')); R(tx + 4, by - 18, 5, 1, dim('#ff6fa8')); R(tx + 9, by - 13, 3, 3, dim('#ffd24a')); }
+  else if (k === 'future') { R(tx, by - 10, 14, 2, dim(p.top)); R(tx + 6, by - 8, 2, 8, dim(p.table)); R(tx + 3, by - 12, 2, 2, '#ff4fd8'); }
+  else if (k === 'seventies') { R(tx, by - 9, 14, 2, dim('#a0522d')); R(tx + 2, by - 7, 2, 7, dim('#6b3e1e')); R(tx + 10, by - 7, 2, 7, dim('#6b3e1e'));
+    // lava lamp with drifting blobs
+    R(tx + 5, by - 22, 5, 13, dim('#3a1050')); R(tx + 4, by - 10, 7, 1, dim('#c0c0c0')); R(tx + 5, by - 23, 5, 1, dim('#c0c0c0'));
+    for (let b = 0; b < 3; b++) { const yy = by - 11 - ((S.t * (2 + b) + b * 4) % 11); R(tx + 6 + (b % 2), yy, 2 + (b === 1 ? 1 : 0), 2, (night > 0.3 || S.playing) ? '#ff6a3c' : dim('#c04a2a')); } }
+  else if (k === 'eighties') { R(tx, by - 9, 14, 2, dim('#222')); R(tx + 1, by - 7, 1, 7, dim('#ff4fd8')); R(tx + 12, by - 7, 1, 7, dim('#5ef0ff'));
+    // boombox
+    R(tx, by - 16, 14, 7, dim('#2a2a33')); R(tx + 5, by - 18, 4, 2, dim('#888')); const kick = S.playing ? Math.exp(-(S.beat % 1) * 6) : 0; circle(tx + 3, by - 12, 2 + Math.round(kick), dim('#5ef0ff')); circle(tx + 11, by - 12, 2 + Math.round(kick), dim('#ff4fd8')); R(tx + 6, by - 14, 2, 2, dim('#ffe14a')); }
+  else { R(tx - 1, by - 10, 16, 2, dim(p.top)); R(tx - 1, by - 8, 16, 5, dim('#efe8da')); R(tx + 6, by - 3, 2, 3, dim(p.table)); R(tx + 6, by - 16, 1, 6, dim('#d4af37')); if (night > 0.3) P(tx + 6, by - 17 - (S.t * 8 % 2 | 0), '#ffd27a'); }
   // stereo speakers (pulse with the beat)
   const kick = S.playing ? Math.exp(-(S.beat % 1) * 6) : 0;
   SPK.forEach((sx, i) => {
-    const sy = i ? 182 : 180, h = S.pack === 'future' ? 24 : 16, w = S.pack === 'fancy' ? 12 : 10;
+    const sy = i ? 182 : 180, h = k === 'future' ? 24 : k === 'tiki' ? 22 : k === 'eighties' ? 20 : 16, w = k === 'fancy' || k === 'seventies' ? 12 : 10;
     R(sx, sy - h, w, h, dim(p.spk));
-    const r = 3 + Math.round(kick * 1.5);
-    circle(sx + w / 2, sy - h * 0.35, r, dim(p.spkCone)); circle(sx + w / 2, sy - h * 0.35, 1, dim('#000'));
-    circle(sx + w / 2, sy - h * 0.78, 2, dim(p.spkCone));
-    if (S.pack === 'future' && S.playing) { g.globalAlpha = 0.4 + kick * 0.5; R(sx - 1, sy - h - 1, w + 2, 1, p.trim); g.globalAlpha = 1; }
-    if (S.playing && kick > 0.4) { g.globalAlpha = kick * 0.5; for (let k = 1; k < 4; k++) R(sx + (i ? -4 - k * 3 : w + 2 + k * 3), sy - h * 0.4 - k, 1, k * 2, '#ffffff'); g.globalAlpha = 1; }
+    if (k === 'tiki') { R(sx + 1, sy - h + 2, 3, 2, dim('#ffd24a')); R(sx + w - 4, sy - h + 2, 3, 2, dim('#ffd24a')); R(sx + 2, sy - h + 6, w - 4, 2, dim('#e8413a')); R(sx - 1, sy - h, w + 2, 2, dim('#2f9a4a')); }
+    if (k === 'seventies') { R(sx, sy - h, w, 2, dim('#a0522d')); R(sx + 1, sy - h + 3, w - 2, h - 5, dim('#7a4a2a')); }
+    const rr = 3 + Math.round(kick * 1.5), cy = sy - h * (k === 'tiki' ? 0.3 : 0.35);
+    circle(sx + w / 2, cy, rr, dim(p.spkCone)); circle(sx + w / 2, cy, 1, dim('#000'));
+    if (k !== 'tiki') circle(sx + w / 2, sy - h * 0.78, 2, dim(p.spkCone));
+    if (k === 'eighties') { g.globalAlpha = 0.4 + kick * 0.6; R(sx - 1, sy - h - 1, w + 2, 1, '#ff4fd8'); R(sx - 1, sy, w + 2, 1, '#5ef0ff'); g.globalAlpha = 1; }
+    if (k === 'future' && S.playing) { g.globalAlpha = 0.4 + kick * 0.5; R(sx - 1, sy - h - 1, w + 2, 1, p.trim); g.globalAlpha = 1; }
+    if (S.playing && kick > 0.4) { g.globalAlpha = kick * 0.5; for (let j = 1; j < 4; j++) R(sx + (i ? -4 - j * 3 : w + 2 + j * 3), sy - h * 0.4 - j, 1, j * 2, '#ffffff'); g.globalAlpha = 1; }
   });
-  if (S.pack === 'fancy') { // gramophone horn on the stereo
-    const sx = SPK[0]; R(sx + 4, 162, 2, 3, '#d4af37'); for (let i = 0; i < 6; i++) R(sx + 6 + i, 158 - i, 2, 2 + i, '#d4af37');
-  }
+  if (k === 'fancy') { const sx = SPK[0]; R(sx + 4, 162, 2, 3, '#d4af37'); for (let i = 0; i < 6; i++) R(sx + 6 + i, 158 - i, 2, 2 + i, '#d4af37'); }
+  if (k === 'tiki') { // tiki torches by the hut
+    [279, 354].forEach((tx2, i) => { R(tx2, 156, 2, 26, dim('#8a5a2b')); R(tx2 - 1, 154, 4, 3, dim('#3a2410'));
+      const fl = night > 0.25 || S.playing; if (fl) { for (let f = 0; f < 7; f++) P(tx2 + rnd() * 3 - 0.5, 153 - rnd() * 6, pick(['#ff9a3c', '#ffd27a', '#ff5a2a'])); if (night > 0.3) { g.globalAlpha = 0.12 * night; circle(tx2 + 1, 151, 9, '#ff9a3c'); g.globalAlpha = 1; } if (rnd() < 0.08) puff(tx2 + 1, 148, 0.5); } }); }
 }
 function drawLights(d) {
   const p = PACKS[S.pack], night = 1 - d, x0 = 206, y0 = 92, x1 = HUT.x + 4, y1 = HUT.y - 38;
@@ -509,6 +546,9 @@ function drawRaft(r, d) {
     const dm = r.drummer; drummer(x, y, dm, r, d);
   } else if (r.type === 'dance') {
     r.dancers.forEach((dc, i) => dancer(x - 8 + i * 8, y, dc, d));
+  } else if (r.type === 'visit') {
+    if (r.state === 'leaving' && r.rowing) { const o = Math.round(Math.sin(S.t * 6) * 3); R(x - 14, y + 1 + o, 1, 4, dim('#8a6038')); R(x + 13, y + 1 - o, 1, 4, dim('#8a6038')); }
+    visitorSprite(x + r.v.ox, y + r.v.oy, r.v, d);
   }
   // wake while drifting
   if (r.state === 'drift') { g.globalAlpha = 0.5; R(x - 16 + (r.x < r.land ? -6 : 18), y + 2, 6, 1, '#d9f6ff'); g.globalAlpha = 1; }
@@ -552,6 +592,7 @@ function dancer(x, y, dc, d) {
 
 /* fibre-optic EQ fireworks from the magic pots */
 function potFire(r) {
+  if (r.type !== 'pot') return;
   if (r.lit <= 0) return;
   const b = bands(10), x = r.x, base = r.y - 9;
   for (let i = 0; i < 10; i++) {
@@ -583,6 +624,151 @@ function drawFloaters(dt, d) {
     R(f.x, f.y, 1, 1, f.c); if (night > 0.5) { g.globalAlpha *= 0.4; R(f.x - 1, f.y - 1, 3, 3, f.c); }
     g.globalAlpha = 1; return true;
   });
+}
+
+/* ---------------- smoke & haze ---------------- */
+S.smoke = [];
+function puff(x, y, k) { if (S.smoke.length < 140) S.smoke.push({ x, y, vx: 1 + rnd() * 2, vy: -(3 + rnd() * 3), r: 1.5 + rnd(), life: 0, max: (7 + rnd() * 5) * (k || 1), p: rnd() * 6 }); }
+function litPots() { return S.rafts.filter((r) => r.type === 'pot' && r.lit > 0.2); }
+function smokeThink(dt, d) {
+  const night = 1 - d;
+  if (rnd() < dt * (0.9 + night * 1.3)) puff(HUT.x + 51, HUT.y - 67);
+  if (night > 0.3 && rnd() < dt * 2.2) puff(FIRE + rnd() * 4 - 2, 172, 0.9);
+  const pots = litPots();
+  S.smoke = S.smoke.filter((s) => {
+    s.life += dt; if (s.life > s.max) return false;
+    s.x += (s.vx + Math.sin(S.t * 0.6 + s.p) * 1.5) * dt; s.y += s.vy * dt; s.vy *= 0.995; s.r += dt * 0.9;
+    const a = 0.32 * Math.sin(Math.PI * s.life / s.max);
+    g.globalAlpha = a; circle(s.x, s.y, Math.round(s.r), mix('#3a3a4e', '#d8d8de', d * 0.8 + 0.1));
+    // the haze catches the fireworks' colours
+    let best = null, bd = 1e9; pots.forEach((r) => { const dd = Math.abs(r.x - s.x) + Math.abs((r.y - 40) - s.y) * 0.6; if (dd < bd) { bd = dd; best = r; } });
+    if (best && bd < 110) { g.globalAlpha = a * (1 - bd / 110) * (0.6 + 0.4 * night) * (0.6 + S.energy * 0.5); circle(s.x, s.y, Math.round(s.r), `hsl(${(best.hue + S.t * 40) % 360},100%,62%)`); }
+    g.globalAlpha = 1; return true;
+  });
+  // a low smoky haze over the beach that glows with the fireworks at night
+  if (pots.length && night > 0.2) {
+    const hue = (pots[0].hue + S.t * 30) % 360;
+    for (let yy = 50; yy < HORIZON + 30; yy += 3) { g.globalAlpha = night * 0.05 * Math.sin(Math.PI * (yy - 50) / (HORIZON - 20)) * (0.5 + S.energy * 0.6); R(0, yy, W, 3, `hsl(${(hue + yy) % 360},80%,60%)`); }
+    pots.forEach((r) => { g.globalAlpha = 0.05 * night * (0.6 + S.energy); circle(r.x, r.y - 45, 26, `hsl(${(r.hue + S.t * 40) % 360},100%,60%)`); });
+    g.globalAlpha = 1;
+  }
+}
+
+/* ---------------- a pirate ship on the horizon ---------------- */
+S.ship = null; S.nextShip = 45 + rnd() * 60;
+function shipThink(dt) {
+  if (!S.ship && S.t > S.nextShip) { const dir = rnd() < 0.5 ? 1 : -1; S.ship = { x: dir > 0 ? -40 : W + 40, dir, v: 5 + rnd() * 3 }; }
+  if (S.ship) { S.ship.x += S.ship.dir * S.ship.v * dt; if (S.ship.x < -60 || S.ship.x > W + 60) { S.ship = null; S.nextShip = S.t + 140 + rnd() * 160; } }
+}
+function drawShip(d) {
+  const sh = S.ship; if (!sh) return; const night = 1 - d;
+  const dim = (c) => mix('#0e1428', c, 0.3 + d * 0.7), bob = Math.round(Math.sin(S.t * 1.4) * 0.8);
+  g.save(); g.translate(Math.round(sh.x), HORIZON + 3 + bob); g.scale(sh.dir, 1);
+  const hull = dim('#4a2a14'), hullL = dim('#7a4a24'), sail = dim('#efe6d0'), mast = dim('#2a1a0a');
+  R(-17, -5, 34, 5, hull); R(-15, 0, 30, 1, hull); R(-17, -5, 34, 1, hullL); R(10, -9, 8, 4, hull); R(-19, -7, 4, 2, hull); for (let i = -14; i < 14; i += 5) P(i, -3, dim('#ffd27a'));
+  [[-8, 22], [2, 26], [11, 16]].forEach(([mx, h]) => { R(mx, -5 - h, 1, h, mast); const sw = Math.round(Math.sin(S.t * 1.1 + mx) * 0.6); R(mx - 5, -3 - h + 3, 11 + sw, 6, sail); R(mx - 4, -3 - h + 10, 9 + sw, 5, sail); });
+  R(2, -35, 6, 4, dim('#111')); P(4, -34, dim('#fff')); P(5, -33, dim('#fff'));
+  R(-21, -6, 5, 1, mast);
+  if (night > 0.3) { R(15, -11, 2, 2, '#ffd27a'); g.globalAlpha = 0.25 * night; circle(16, -10, 4, '#ffd27a'); g.globalAlpha = 1; }
+  g.restore();
+  g.globalAlpha = 0.4; R(sh.x - 18, HORIZON + 4 + bob, 36, 1, mix('#20305a', '#d9f6ff', d)); g.globalAlpha = 1;
+}
+
+/* ---------------- visitors: pirates, a three-headed monkey, a robot ---------------- */
+const VISITORS = [
+  { kind: 'pegleg', name: 'Peg-Leg Percy' }, { kind: 'hook', name: 'Hook-Hand Horace' }, { kind: 'captain', name: 'Captain Bellows' },
+  { kind: 'parrot', name: 'One-Eyed Olive and her parrot' }, { kind: 'cutlass', name: 'Cutlass Kit' },
+  { kind: 'monkey3', name: 'a three-headed monkey' }, { kind: 'robot', name: 'a dancing robot' }
+];
+S.nextVisit = 30 + rnd() * 30;
+function toast(t) { S.toast = { t, until: S.t + 7 }; }
+function visitorsThink(dt) {
+  if (S.t > S.nextVisit && !S.rafts.some((r) => r.type === 'visit')) { spawnRaft('visit'); S.nextVisit = S.t + 70 + rnd() * 90; }
+  S.rafts.forEach((r) => {
+    if (r.type !== 'visit' || r.state !== 'landed') return; const v = r.v; v.t += dt;
+    const goal = v.st === 'off' ? [8, 15] : v.st === 'back' ? [0, 0] : null;
+    if (v.st === 'aboard' && v.t > 1) { v.st = 'off'; toast('⚓ ' + v.name.charAt(0).toUpperCase() + v.name.slice(1) + ' came ashore!'); }
+    if (goal) { const dx = goal[0] - v.ox, dy = goal[1] - v.oy, dd = Math.hypot(dx, dy); if (dd < 0.6) { v.ox = goal[0]; v.oy = goal[1]; if (v.st === 'off') { v.st = 'dance'; v.t = 0; v.dur = 16 + rnd() * 12; } else { r.state = 'leaving'; r.rowing = v.kind !== 'robot' && v.kind !== 'monkey3' ? 1 : 0; } } else { const k = Math.min(1, 9 * dt / dd); v.ox += dx * k; v.oy += dy * k; v.walk = (v.walk || 0) + dt * 6; } }
+    if (v.st === 'dance' && v.t > v.dur) v.st = 'back';
+  });
+}
+function visitorSprite(x, y, v, d) {
+  const dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65), dancing = v.st === 'dance';
+  const ph = S.playing ? S.beat : S.t * 1.6, up = dancing && Math.floor(ph) % 2 === 0, bob = dancing ? -Math.round(Math.abs(Math.sin(ph * Math.PI)) * 2) : 0;
+  const step = !dancing && v.st !== 'aboard' ? Math.floor(v.walk || 0) % 2 : 0, flip = dancing ? (Math.floor(ph / 2) % 2 ? -1 : 1) : 1;
+  g.save(); g.translate(Math.round(x), Math.round(y) + bob); g.scale(flip, 1);
+  const k = v.kind;
+  if (k === 'monkey3') {
+    const fur = dim('#7a4a24'), face = dim('#d8a878');
+    R(-4, -11, 9, 8, fur); R(-3, -3, 3, 3, fur); R(2, -3, 3, 3, fur); R(5, -8, 3, 1, fur); R(7, -10, 1, 3, fur);
+    [-6, -1, 4].forEach((hx, i) => { const hb = dancing ? Math.round(Math.sin(ph * Math.PI + i * 2) * 1.5) : 0; R(hx, -16 + hb, 5, 5, fur); R(hx + 1, -14 + hb, 3, 3, face); P(hx + 1, -14 + hb, dim('#111')); P(hx + 3, -14 + hb, dim('#111')); P(hx - 1, -15 + hb, fur); });
+    if (up) { R(-6, -17, 2, 6, fur); R(5, -17, 2, 6, fur); } else { R(-6, -10, 2, 6, fur); R(5, -10, 2, 6, fur); }
+    g.restore(); return;
+  }
+  if (k === 'robot') {
+    const m = dim('#aab4c8'), md = dim('#6a7488');
+    R(-3, -4, 2, 4, md); R(2, -4, 2, 4, md); R(-4, -12, 9, 8, m); R(-2, -10, 5, 3, dim('#2a3050')); P(-1 + Math.floor(S.t * 4) % 3, -9, '#ff4fd8');
+    R(-3, -18, 7, 6, m); R(-2, -16, 5, 2, '#5ef0ff'); R(0, -21, 1, 3, md); P(0, -22, Math.floor(S.t * 3) % 2 ? '#ff3a3a' : dim('#5a1a1a'));
+    const a = dancing ? Math.floor(ph * 2) % 4 : 0; R(-6, a === 1 ? -17 : -12, 2, 5, md); R(5, a === 3 ? -17 : -12, 2, 5, md);
+    g.restore(); return;
+  }
+  // pirates
+  const skin = dim(k === 'hook' ? '#c48a5a' : k === 'parrot' ? '#8a5a3c' : '#e6b68a');
+  const shirt = dim({ pegleg: '#d23a3a', hook: '#2747b8', captain: '#a01a2a', parrot: '#f2c230', cutlass: '#2f7a3a' }[k]);
+  const pants = dim(k === 'captain' ? '#1a1a2a' : '#3a3050');
+  R(-3, -7 + step, 3, 7 - step, pants); if (k === 'pegleg') { R(2, -7, 2, 3, pants); R(2, -4, 1, 4, dim('#8a5a2b')); } else R(1, -7 + (1 - step), 3, 7 - (1 - step), pants);
+  R(-4, -15, 9, 8, shirt);
+  if (k === 'pegleg') for (let i = 0; i < 8; i += 2) R(-4, -15 + i, 9, 1, dim('#f4efe6'));
+  if (k === 'captain') { P(0, -13, dim('#d4af37')); P(0, -11, dim('#d4af37')); P(0, -9, dim('#d4af37')); }
+  if (k === 'cutlass') { R(-1, -15, 3, 8, dim('#f4efe6')); }
+  R(-3, -21, 7, 6, skin);
+  if (k === 'hook' || k === 'captain') R(-3, -17, 7, 2, dim(k === 'captain' ? '#e8e8e8' : '#2a1a10'));
+  if (k === 'captain' || k === 'parrot') R(1, -20, 3, 1, dim('#111'));
+  P(-1, -19, dim('#111')); if (k !== 'captain' && k !== 'parrot') P(2, -19, dim('#111'));
+  if (k === 'pegleg') { R(-4, -23, 9, 3, dim('#d23a3a')); P(5, -22, dim('#d23a3a')); P(6, -21, dim('#d23a3a')); }
+  if (k === 'hook') R(-3, -23, 7, 2, dim('#1a1a1a'));
+  if (k === 'captain') { R(-7, -24, 15, 2, dim('#111')); R(-4, -27, 9, 3, dim('#111')); P(0, -26, dim('#fff')); }
+  if (k === 'parrot') { R(-3, -23, 7, 2, dim('#5a2a7a')); const fl = Math.floor(S.t * 6) % 2; R(4, -19, 3, 4, dim('#2fbf4a')); P(7, -18, dim('#ffb000')); P(5, -20, dim('#e8413a')); if (fl) R(3, -18, 1, 2, dim('#1f8a34')); }
+  if (k === 'cutlass') { R(-3, -22, 7, 1, skin); P(-4, -18, dim('#ffd24a')); }
+  // arms
+  const armL = up ? [-6, -21, 2, 6] : [-6, -14, 2, 6], armR = (up || (k === 'cutlass' && dancing)) ? [5, -21, 2, 6] : [5, -14, 2, 6];
+  R(...armL, shirt); R(...armR, shirt);
+  if (k === 'hook') { const hy = armR[1] === -21 ? -23 : -8; R(6, hy, 1, 2, dim('#c0c8d0')); P(5, hy + (hy < -10 ? -1 : 2), dim('#c0c8d0')); }
+  else P(armR[0] + 1, armR[1] === -21 ? -22 : -8, skin);
+  P(armL[0] + 1, armL[1] === -21 ? -22 : -8, skin);
+  if (k === 'cutlass') { const cy = armR[1] === -21 ? -22 : -9; for (let i = 0; i < 6; i++) P(6 + (cy < -10 ? 0 : i), cy - (cy < -10 ? i : 0), dim('#d0d8e0')); }
+  g.restore();
+}
+
+/* ---------------- a fish peeks out from behind the moon ---------------- */
+S.nextFish = 40 + rnd() * 60; S.fish = null;
+function drawMoonFish(mx, my, d) {
+  if (!S.fish && S.t > S.nextFish && d < 0.2) S.fish = { t: 0 };
+  if (!S.fish) return; const f = S.fish; f.t += 1 / 60;
+  const out = f.t < 1.5 ? f.t / 1.5 : f.t < 6 ? 1 : 1 - (f.t - 6) / 1.5;
+  if (out <= 0 && f.t > 6) { S.fish = null; S.nextFish = S.t + 90 + rnd() * 120; return; }
+  const fx = mx - 3 - 10 * out, fy = my - 3 - 4 * out;
+  circle(fx, fy, 5, '#ff8a2a'); R(fx - 1, fy - 5, 2, 10, '#1a1a1a'); R(fx + 2, fy - 4, 1, 8, '#ffffff'); R(fx + 6, fy - 2, 3, 5, '#ff8a2a');
+  R(fx - 4, fy - 2, 3, 3, '#ffffff'); P(fx - 3, fy - 1, '#111');
+  const wave = Math.floor(f.t * 5) % 2; R(fx - 7, fy + (wave ? -5 : -2), 2, 4, '#ffb060'); P(fx - 8, fy + (wave ? -6 : -3), '#ffb060');
+}
+
+/* ---------------- the sky dances: sun & moon pulse, starry-night swirls ---------------- */
+S.swirl = 0; S.swirlOn = false; S.nextSwirl = 25 + rnd() * 30; S.swirlSpots = [];
+function swirlThink(dt) {
+  if (S.playing && S.t > S.nextSwirl) { S.swirlOn = !S.swirlOn; S.nextSwirl = S.t + (S.swirlOn ? 18 + rnd() * 14 : 35 + rnd() * 50); if (S.swirlOn) S.swirlSpots = Array.from({ length: ri(2, 3) }, () => ({ x: 30 + rnd() * 320, y: 18 + rnd() * 55, s: rnd() < 0.5 ? 1 : -1, r: 10 + rnd() * 8 })); }
+  if (!S.playing) S.swirlOn = false;
+  S.swirl = clamp(S.swirl + (S.swirlOn ? dt / 4 : -dt / 4), 0, 1);
+}
+function drawSwirls(mx, my, sx, sy, d) {
+  const a = S.swirl; if (a <= 0.01) return; const night = 1 - d, kick = S.playing ? Math.exp(-(S.beat % 1) * 6) : 0;
+  const cols = night > 0.4 ? ['#f6d65a', '#7fb2ff', '#cfe2ff', '#3a6ad8'] : ['#ffe9a0', '#ffffff', '#ffd27a', '#9fd6ff'];
+  // long flowing brush strokes across the sky
+  for (let band = 0; band < 4; band++) { const y0 = 16 + band * 22; for (let x = 0; x < W; x += 2) { if (((x >> 2) + band) % 3 === 0) continue; const yy = y0 + Math.sin(x * 0.028 + S.t * 0.45 + band) * 7; g.globalAlpha = a * 0.16 * (0.6 + 0.4 * Math.sin(x * 0.05 + S.t)); P(x, yy, cols[band % 4]); } }
+  // curls around the moon (or sun) and a few spots in the sky
+  const spots = S.swirlSpots.slice(); if (mx != null) spots.push({ x: mx, y: my, s: 1, r: 16 }); if (sx != null && d > 0.5) spots.push({ x: sx, y: sy, s: -1, r: 20 });
+  spots.forEach((c, ci) => { for (let k = 0; k < 46; k++) { const ang = c.s * (k * 0.27 + S.t * 0.5) + ci, rad = 3 + (k / 46) * (c.r + kick * 3); g.globalAlpha = a * 0.55 * (1 - k / 52); P(c.x + Math.cos(ang) * rad, c.y + Math.sin(ang) * rad * 0.75, cols[(k >> 2) % 4]); } });
+  g.globalAlpha = 1;
 }
 
 /* ---------------- behaviour ---------------- */
@@ -646,7 +832,7 @@ function waterThink(dt, d) {
   return false;
 }
 function drawBoard(x, y) {
-  const c = { original: ['#e8913a', '#ffffff'], future: ['#5ef0ff', '#ff4fd8'], fancy: ['#d4af37', '#7a2232'] }[S.pack] || ['#e8913a', '#fff'];
+  const c = (PACKS[S.pack] || PACKS.original).board;
   R(x - 10, y, 21, 2, c[0]); R(x - 11, y + 1, 1, 1, c[0]); R(x + 11, y, 1, 1, c[0]); R(x - 3, y, 6, 1, c[1]);
   if (S.pack === 'future') { g.globalAlpha = 0.35; R(x - 9, y + 2, 19, 1, c[0]); g.globalAlpha = 1; }
 }
@@ -691,7 +877,7 @@ function raftsThink(dt) {
     r.t += dt;
     if (r.state === 'drift') { const dx = r.land - r.x; r.x += clamp(dx, -10 * dt, 10 * dt); const tgtY = r.tgtY || SHORE + 6; r.y = lerp(HORIZON + 6, tgtY, clamp(1 - Math.abs(dx) / 200, 0, 1)); if (Math.abs(dx) < 1) { r.state = 'landed'; r.t = 0; r.y = tgtY; } }
     else if (r.state === 'landed') { if (r.lit > 0) r.lit = Math.min(1, r.lit + dt * 0.6); if (r.type !== 'pot' && r.lit <= 0) r.lit = 1; if (r.t > r.life) r.state = 'leaving'; }
-    else if (r.state === 'leaving') { r.lit = Math.max(0, r.lit - dt * 0.3); r.y -= dt * 3; r.x += (r.x < W / 2 ? -1 : 1) * dt * 8; if (r.y < HORIZON + 4 || r.x < -40 || r.x > W + 40) r.state = 'gone'; }
+    else if (r.state === 'leaving') { r.lit = Math.max(0, r.lit - dt * 0.3); r.y -= dt * 3; r.x += (r.x < W / 2 ? -1 : 1) * dt * (r.type === 'visit' ? 14 : 8); if (r.y < HORIZON + 4 || r.x < -40 || r.x > W + 40) r.state = 'gone'; }
   });
   S.rafts = S.rafts.filter((r) => r.state !== 'gone');
 }
@@ -710,12 +896,13 @@ function frame(now) {
   drawLights(d); drawFire(d); drawFurniture(d);
   S.rafts.filter((r) => r.state === 'landed').forEach((r) => { drawRaft(r, d); });
   S.rafts.forEach((r) => potFire(r));
+  smokeThink(dt, d);
   catsThink(dt); CATS.forEach((c) => { if (!c.inside) catSprite(c.x, FLOOR - 2 + (c.x % 7 > 3 ? 1 : 0), c.dir, c, false, false); });
   heroThink(dt, d); drawHero(d);
-  raftsThink(dt); drawSparks(dt, d);
+  raftsThink(dt); visitorsThink(dt); shipThink(dt); swirlThink(dt); drawSparks(dt, d);
   // night tint over the island
   if (d < 0.6) { g.globalAlpha = (0.6 - d) * 0.35; R(0, HORIZON, W, H - HORIZON, '#0a0f3a'); g.globalAlpha = 1; }
-  clockT += dt; if (clockT > 1) { clockT = 0; const m = ((S.clock % 30) + 30) % 30, left = m < 15 ? 15 - m : 30 - m; $('#isl-clock').textContent = `${phaseName()} · ${m < 15 ? 'sunset' : 'sunrise'} in ${Math.max(0, Math.ceil(left))} min`; $('#isl-skip').textContent = m < 15 ? '\u{1F319} Skip to night' : '☀️ Skip to day'; }
+  clockT += dt; if (clockT > 1) { clockT = 0; const m = ((S.clock % 30) + 30) % 30, left = m < 15 ? 15 - m : 30 - m; $('#isl-clock').textContent = S.toast && S.t < S.toast.until ? S.toast.t : `${phaseName()} · ${m < 15 ? 'sunset' : 'sunrise'} in ${Math.max(0, Math.ceil(left))} min`; $('#isl-skip').textContent = m < 15 ? '\u{1F319} Skip to night' : '☀️ Skip to day'; }
 }
 requestAnimationFrame(frame);
 cv.addEventListener('click', () => { if (S.rafts.length < 5) spawnRaft(); });
