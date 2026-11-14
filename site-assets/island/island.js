@@ -40,7 +40,7 @@ const css = `
 #isl.isl-full{position:fixed;inset:0;z-index:2147483000;max-width:none;margin:0;background:#000;display:flex;flex-direction:column}
 #isl.isl-full .isl-qp,#isl.isl-full .isl-box{display:none}
 #isl.isl-full .isl-stage{flex:1;display:flex;align-items:center;justify-content:center;border-radius:0}
-#isl.isl-full canvas{width:auto;height:auto;max-width:100vw;max-height:calc(100dvh - 42px)}
+#isl.isl-full canvas{max-width:100vw}
 #isl.isl-full .isl-hud{border-radius:0}
 html.isl-noscroll,html.isl-noscroll body{overflow:hidden!important}
 @media (max-width:600px){#isl .isl-qp .lbl{display:none}#isl .isl-qp{gap:6px;padding:7px}#isl button{padding:9px 12px}#isl .isl-hud{font-size:13px}}
@@ -260,7 +260,9 @@ $('#isl-qstop').addEventListener('click', () => { if (MODE === 'gm') gmau.pause(
 function syncQuick() { $('#isl-qstop').hidden = !S.playing; }
 
 /* Full screen */
-function setFull(on) { $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; }
+function fitFull() { if (!$('#isl').classList.contains('isl-full')) { cv.style.width = ''; cv.style.height = ''; return; } const hud = $('.isl-hud').offsetHeight || 40, k = Math.min(window.innerWidth / W, (window.innerHeight - hud) / H); cv.style.width = Math.floor(W * k) + 'px'; cv.style.height = Math.floor(H * k) + 'px'; }
+window.addEventListener('resize', () => setTimeout(fitFull, 50));
+function setFull(on) { $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; setTimeout(fitFull, 30); }
 $('#isl-fs').addEventListener('click', () => { const on = !$('#isl').classList.contains('isl-full'); setFull(on); const el = $('#isl'); try { if (on && el.requestFullscreen) el.requestFullscreen().catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {} });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('#isl').classList.contains('isl-full')) setFull(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFull(false); });
