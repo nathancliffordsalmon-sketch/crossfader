@@ -15,9 +15,9 @@
     var RA = window.RA, $ = RA.el;
     var css = document.createElement('style');
     css.textContent = [
-      '#retroamp .ra-marquee.ra-tick{position:relative;overflow:hidden;white-space:nowrap}',
-      '#retroamp .ra-marquee.ra-tick span{display:inline-block;padding-left:100%;animation:raTick var(--dur,30s) linear infinite}',
-      '@keyframes raTick{from{transform:translateX(0)}to{transform:translateX(-100%)}}',
+      '#retroamp .ra-marquee.ra-tick{position:relative;overflow:hidden;white-space:nowrap;min-width:0;height:1.3em}',
+      '#retroamp .ra-marquee.ra-tick span{position:absolute;left:0;top:0;white-space:nowrap;animation:raTick var(--dur,30s) linear infinite}',
+      '@keyframes raTick{from{transform:translateX(var(--w,400px))}to{transform:translateX(-100%)}}',
       '#retroamp .ra-rko{display:none;background:var(--ra-panel);border:1px solid var(--ra-edge);border-radius:6px;padding:10px;margin:8px 0}',
       '#retroamp .ra-rko.on{display:block}',
       '#retroamp .ra-rko .ra-row{margin:0 0 8px}',
@@ -61,6 +61,7 @@
     function ticker(text, secs) {
       var m = $('ra-status'); m.classList.add('ra-tick');
       m.innerHTML = '<span></span>'; var s = m.firstChild; s.textContent = text;
+      m.style.setProperty('--w', m.clientWidth + 'px');
       m.style.setProperty('--dur', (secs || Math.max(14, text.length / 9)) + 's');
     }
     function untick() { var m = $('ra-status'); m.classList.remove('ra-tick'); }
