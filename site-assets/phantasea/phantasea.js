@@ -105,6 +105,7 @@ root.innerHTML = `
     <button data-tab="sp" aria-pressed="true">Spotify player here</button>
     <button data-tab="gm" aria-pressed="false">🎮 Game music</button>
     <button data-tab="am" aria-pressed="false">🍎 Apple Music</button>
+    <button data-tab="acct" aria-pressed="false">🎧 My Spotify app</button>
     <button data-tab="mic" aria-pressed="false">🎤 Mic mode</button>
     <button data-tab="type" aria-pressed="false">Type my songs</button>
   </div>
@@ -113,6 +114,12 @@ root.innerHTML = `
     <div class="pq-row"><input id="pq-url" placeholder="…or paste any Spotify link" aria-label="Spotify link"><button id="pq-load">Load player</button></div>
     <div class="pq-embed" id="pq-embed"></div>
     <p class="pq-note">Press play in the Spotify player. The party only adventures while the music plays; each new song brings new monsters.</p>
+    <p class="pq-note">Only hearing 30-second clips? <a href="https://accounts.spotify.com/login" target="_blank" rel="noopener" style="color:#ffd27a">Log in to Spotify</a> in this browser for full songs, then come back and press play.</p>
+  </div>
+  <div class="pq-panel" data-panel="acct">
+    <div class="pq-row" id="pq-acct-btn"></div>
+    <p class="pq-note" id="pq-acct-status">Connect once and every Like the Fish game can follow your Spotify.</p>
+    <p class="pq-note">Play anything in the Spotify app (phone, computer, speaker) and the party adventures along, song by song.</p>
   </div>
   <div class="pq-panel" data-panel="gm">
     <div class="pq-row"><select id="pq-gmcoll" aria-label="Game music collection"></select><select id="pq-gmsub" aria-label="C64 remixes"></select></div>
@@ -1338,8 +1345,16 @@ document.addEventListener('keydown', (e) => { if (S.phase === 'roll' && e.key ==
 root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
   root.querySelectorAll('[data-tab]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   root.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('on', p.dataset.panel === b.dataset.tab));
-  MODE = b.dataset.tab;
+  MODE = b.dataset.tab; acctSync();
 }));
+/* My Spotify app: one connection for the whole site (rko/ltf-spotify.js) */
+if (!window.LTFSP) { const ss = document.createElement('script'); ss.src = GM_SRC.replace('gm.js', 'ltf-spotify.js'); document.head.appendChild(ss); }
+let acctStop = null;
+function acctSync() {
+  if (MODE === 'acct' && !acctStop && window.LTFSP) acctStop = window.LTFSP.follow({ onSong: (t) => songStart(t), onPlaying: (p) => { if (MODE === 'acct') setPlaying(p); }, onStatus: (t) => { $('#pq-acct-status').textContent = t; } });
+  if (MODE !== 'acct' && acctStop) { acctStop(); acctStop = null; }
+}
+(function acctInit(n) { if (!window.LTFSP) { if (n < 100) setTimeout(() => acctInit(n + 1), 100); return; } window.LTFSP.button($('#pq-acct-btn'), { className: 'go' }); acctSync(); })(0);
 root.querySelectorAll('[data-pace]').forEach((b) => b.addEventListener('click', () => { S.pace = +b.dataset.pace; root.querySelectorAll('[data-pace]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
 $('#pq-new').addEventListener('click', () => { if (S.songs.length && !confirmNew()) return; resetAll(); });
 function confirmNew() { return window.confirm ? window.confirm('Start over with a new party? This quest will end.') : true; }

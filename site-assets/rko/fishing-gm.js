@@ -4,6 +4,7 @@
 const root = document.getElementById('cif'); if (!root || root.dataset.gm) return; root.dataset.gm = '1';
 const SRC = (document.currentScript && document.currentScript.src) || '';
 if (!window.LTFGM) { const s = document.createElement('script'); s.src = SRC.replace(/fishing-gm\.js.*$/, 'gm.js'); document.head.appendChild(s); }
+if (!window.LTFSP) { const s2 = document.createElement('script'); s2.src = SRC.replace(/fishing-gm\.js.*$/, 'ltf-spotify.js'); document.head.appendChild(s2); }
 const st = document.createElement('style');
 st.textContent = `#cif .cif-gm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 14px 12px;background:#10142a}
 #cif .cif-gm b{font:10px/1 "Press Start 2P",monospace;color:#3ef06a;white-space:nowrap}
@@ -23,9 +24,9 @@ st.textContent = `#cif .cif-gm{display:flex;flex-wrap:wrap;gap:8px;align-items:c
 @media (max-width:600px){#cif .cif-gm b{display:none}}`;
 document.head.appendChild(st);
 const row = document.createElement('div'); row.className = 'cif-gm';
-row.innerHTML = '<b>GAME MUSIC</b><select class="cif-gmcoll" aria-label="Game music collection"><option value="">Loading…</option></select><select class="cif-gmsub" aria-label="C64 remixes" style="display:none"></select><button type="button" class="go cif-gmgo">▶ Play</button><button type="button" class="cif-gmnext">⏭</button>';
+row.innerHTML = '<b>GAME MUSIC</b><select class="cif-gmcoll" aria-label="Game music collection"><option value="">Loading…</option></select><select class="cif-gmsub" aria-label="C64 remixes" style="display:none"></select><button type="button" class="go cif-gmgo">▶ Play</button><button type="button" class="cif-gmnext">⏭</button><button type="button" class="cif-acct" title="Follow whatever is playing in your Spotify app">\u{1F3A7} MY SPOTIFY</button>';
 const cred = document.createElement('div'); cred.className = 'cif-gmcred';
-cred.innerHTML = '<span class="cif-gmnow"></span><audio class="cif-gmau" preload="none" style="display:none"></audio><br>C64 remixes from <a href="https://remix.kwed.org/" target="_blank" rel="noopener">Remix.Kwed.Org</a> · Relaxing, Encapsulating &amp; Insanity: music by Kevin MacLeod (<a href="https://incompetech.com/" target="_blank" rel="noopener">incompetech.com</a>), <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · MOBYGRATIS: free music from <a href="https://mobygratis.com/" target="_blank" rel="noopener">mobygratis.com</a>. Thank you, MOBYGRATIS!';
+cred.innerHTML = 'Only hearing 30-second clips? <a href="https://accounts.spotify.com/login" target="_blank" rel="noopener">Log in to Spotify</a> in this browser for full songs. <span class="cif-acctst"></span><br><span class="cif-gmnow"></span><audio class="cif-gmau" preload="none" style="display:none"></audio><br>C64 remixes from <a href="https://remix.kwed.org/" target="_blank" rel="noopener">Remix.Kwed.Org</a> · Relaxing, Encapsulating &amp; Insanity: music by Kevin MacLeod (<a href="https://incompetech.com/" target="_blank" rel="noopener">incompetech.com</a>), <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · MOBYGRATIS: free music from <a href="https://mobygratis.com/" target="_blank" rel="noopener">mobygratis.com</a>. Thank you, MOBYGRATIS!';
 const ctl = root.querySelector('.cif-ctl'); ctl.after(row); row.after(cred);
 /* full screen: the level fills the screen (landscape phones included), with a few controls floating on top */
 const stage = root.querySelector('.cif-stage'), cvs = root.querySelector('canvas.cif-screen');
@@ -63,8 +64,20 @@ go.addEventListener('click', () => { if (!G.list.length) return; if (!au.paused)
 $('.cif-gmnext').addEventListener('click', () => { if (!G.list.length) return; G.pos = (G.pos + 1) % G.order.length; load(true); });
 coll.addEventListener('change', () => { try { localStorage.setItem('cif.gm', coll.value); } catch (e) {} fillSub(); fill(); load(!au.paused); });
 sub.addEventListener('change', () => { fill(); load(!au.paused); });
+// My Spotify app: one connection for the whole site (rko/ltf-spotify.js); the fish follow whatever plays in the Spotify app
+let acctStop = null; const acctB = $('.cif-acct'), acctSt = $('.cif-acctst');
+function acctOff() { if (acctStop) { acctStop(); acctStop = null; } acctB.classList.remove('go'); acctB.textContent = '\u{1F3A7} MY SPOTIFY'; }
+acctB.addEventListener('click', () => {
+  if (!window.LTFSP) return;
+  if (acctStop) { acctOff(); setP(false); acctSt.textContent = ''; return; }
+  if (!window.LTFSP.connected()) { window.LTFSP.connect(); return; }
+  if (!au.paused) au.pause();
+  acctB.classList.add('go'); acctB.textContent = '\u25A0 FOLLOWING';
+  acctStop = window.LTFSP.follow({ onSong: (t) => { if (msg) msg.textContent = '\u266B ' + t + ' (from your Spotify app)'; }, onPlaying: (p) => setP(p), onStatus: (t) => { acctSt.textContent = t + '. '; } });
+});
+au.addEventListener('play', () => { if (acctStop) acctOff(); });
 // Spotify controls take over: stop game music when they're used
-['.cif-play', '.cif-rand'].forEach((s) => { const b = root.querySelector(s); if (b) b.addEventListener('click', () => { if (!au.paused) au.pause(); }, true); });
+['.cif-play', '.cif-rand'].forEach((s) => { const b = root.querySelector(s); if (b) b.addEventListener('click', () => { if (!au.paused) au.pause(); if (acctStop) acctOff(); }, true); });
 const pl = root.querySelector('.cif-pl'); if (pl) pl.addEventListener('change', () => { if (!au.paused) au.pause(); });
 (function init(n) {
   if (!window.LTFGM) { if (n < 100) setTimeout(() => init(n + 1), 100); return; }

@@ -1,6 +1,9 @@
 /* Rubber Tree Sessions: tidy top. No rainbow page title, the tree first, and one slim Quick Play bar
    (random Like The Fish Spotify playlist, C64 remixes, Kevin MacLeod moods, MOBYGRATIS). */
 (function () {
+  // one Spotify connection for the whole site: finishes sign-ins started on other pages and sends visitors back
+  var me = document.currentScript && document.currentScript.src;
+  if (me && !window.LTFSP) { var sp = document.createElement('script'); sp.src = me.replace(/rtg-top\.js.*$/, 'ltf-spotify.js'); document.head.appendChild(sp); }
   var css = document.createElement('style');
   css.textContent = [
     'body.page-id-1377 h1.wp-block-post-title{display:none!important}',

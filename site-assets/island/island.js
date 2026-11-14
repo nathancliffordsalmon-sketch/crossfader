@@ -7,6 +7,7 @@ const root = document.getElementById('isl-root'); if (!root || root.dataset.read
 const SRC = (document.currentScript && document.currentScript.src) || '';
 const GM_SRC = SRC.replace(/island\/island\.js.*$/, 'rko/gm.js');
 if (/gm\.js/.test(GM_SRC) && !window.LTFGM) { const gs = document.createElement('script'); gs.src = GM_SRC; document.head.appendChild(gs); }
+if (/gm\.js/.test(GM_SRC) && !window.LTFSP) { const ss = document.createElement('script'); ss.src = GM_SRC.replace('gm.js', 'ltf-spotify.js'); document.head.appendChild(ss); }
 const PLAYLISTS = (window.PQ_PLAYLISTS && window.PQ_PLAYLISTS.length) ? window.PQ_PLAYLISTS : [['Singing', '0Bxvmnd4tPBXrr8Adj47CL']];
 const HERO = 'Clifford';
 
@@ -61,13 +62,14 @@ root.innerHTML = `
   <div class="isl-hud"><span class="isl-now" id="isl-now">Play some music and see what washes ashore…</span><span class="isl-clock" id="isl-clock"></span></div>
   <div class="isl-box">
     <div class="isl-tabs" role="tablist">
-      <button data-tab="sp" aria-pressed="true" class="alt">Spotify player</button><button data-tab="gm" aria-pressed="false" class="alt">\u{1F3AE} Game music</button><button data-tab="mic" aria-pressed="false" class="alt">\u{1F3A4} Mic</button><button data-tab="am" aria-pressed="false" class="alt">\u{1F34E} Apple Music</button><button data-tab="type" aria-pressed="false" class="alt">Type my songs</button>
+      <button data-tab="sp" aria-pressed="true" class="alt">Spotify player</button><button data-tab="gm" aria-pressed="false" class="alt">\u{1F3AE} Game music</button><button data-tab="acct" aria-pressed="false" class="alt">\u{1F3A7} My Spotify app</button><button data-tab="mic" aria-pressed="false" class="alt">\u{1F3A4} Mic</button><button data-tab="am" aria-pressed="false" class="alt">\u{1F34E} Apple Music</button><button data-tab="type" aria-pressed="false" class="alt">Type my songs</button>
     </div>
     <div class="isl-pane on" data-pane="sp">
       <div class="isl-row"><select id="isl-pl" aria-label="Pick a Like The Fish playlist"><option value="">Pick a Like The Fish playlist…</option>${PLAYLISTS.map(([n, id]) => `<option value="${id}">${n.replace(/[<>&"]/g, '')}</option>`).join('')}</select><button id="isl-rand" class="alt">\u{1F3B2} Random</button></div>
       <div class="isl-row"><input type="text" id="isl-url" placeholder="…or paste any Spotify link"><button id="isl-load" class="alt">Load player</button></div>
       <div class="isl-embed" id="isl-embed"></div>
       <p class="isl-note">Press play in the Spotify player. Each new song sends a fresh raft toward the island.</p>
+      <p class="isl-note">Only hearing 30-second clips? <a href="https://accounts.spotify.com/login" target="_blank" rel="noopener">Log in to Spotify</a> in this browser for full songs, then come back and press play.</p>
     </div>
     <div class="isl-pane" data-pane="gm">
       <div class="isl-row"><select id="isl-gmcoll" aria-label="Game music collection"></select><select id="isl-gmsub" aria-label="C64 remixes"></select></div>
@@ -75,6 +77,11 @@ root.innerHTML = `
       <div class="isl-row"><button id="isl-gmnext" class="alt">⏭ Next song</button></div>
       <p class="isl-note" id="isl-gmcredit"></p>
       <p class="isl-note">C64 remixes stream from <a href="https://remix.kwed.org/" target="_blank" rel="noopener">Remix.Kwed.Org</a>. Relaxing, Encapsulating and Insanity are music by Kevin MacLeod (<a href="https://incompetech.com/" target="_blank" rel="noopener">incompetech.com</a>), licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons: By Attribution 4.0</a>. MOBYGRATIS moods are free music from <a href="https://mobygratis.com/" target="_blank" rel="noopener">mobygratis.com</a>. Thank you, MOBYGRATIS!</p>
+    </div>
+    <div class="isl-pane" data-pane="acct">
+      <div class="isl-row" id="isl-acct-btn"></div>
+      <p class="isl-note" id="isl-acct-status">Connect once and every Like the Fish game can follow your Spotify.</p>
+      <p class="isl-note">Play anything in the Spotify app (phone, computer, speaker) and the island follows along, song by song.</p>
     </div>
     <div class="isl-pane" data-pane="mic">
       <div class="isl-row"><button id="isl-mic">\u{1F3A4} Start listening</button></div>
@@ -169,7 +176,7 @@ root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', (
   root.querySelectorAll('[data-tab]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   root.querySelectorAll('[data-pane]').forEach((p) => p.classList.toggle('on', p.dataset.pane === b.dataset.tab));
   if (b.dataset.tab !== 'gm' && !gmau.paused) gmau.pause();
-  MODE = b.dataset.tab;
+  MODE = b.dataset.tab; if (typeof acctSync === 'function') acctSync();
 }));
 function tab(name) { const b = root.querySelector(`[data-tab="${name}"]`); if (b && MODE !== name) b.click(); }
 
@@ -228,6 +235,14 @@ $('#isl-gmsub').addEventListener('change', () => gmFill(false));
   }).catch(() => {});
 })(0);
 function gmPlay(key) { tab('gm'); if (!GM.ready) { GM.pending = key; return; } if (key && key !== GM.coll) { GM.coll = key; $('#isl-gmcoll').value = key; gmSub(); } gmFill(true); }
+
+/* My Spotify app (one connection for the whole site, via rko/ltf-spotify.js) */
+let acctStop = null;
+function acctSync() {
+  if (MODE === 'acct' && !acctStop && window.LTFSP) acctStop = window.LTFSP.follow({ onSong: (t) => songStart(t), onPlaying: (p) => { if (MODE === 'acct') setPlaying(p); }, onStatus: (t) => { $('#isl-acct-status').textContent = t; } });
+  if (MODE !== 'acct' && acctStop) { acctStop(); acctStop = null; }
+}
+(function acctInit(n) { if (!window.LTFSP) { if (n < 100) setTimeout(() => acctInit(n + 1), 100); return; } window.LTFSP.button($('#isl-acct-btn'), { ghostClass: 'alt' }); acctSync(); })(0);
 
 /* Mic */
 $('#isl-mic').addEventListener('click', async function () {
