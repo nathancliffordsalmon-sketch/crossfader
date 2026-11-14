@@ -86,6 +86,7 @@ root.innerHTML = `
   <div class="pq-hud"><span id="pq-status">READY.</span><span id="pq-songnow">♪ —</span></div>
   <div class="pq-tabs" role="tablist">
     <button data-tab="sp" aria-pressed="true">Spotify player here</button>
+    <button data-tab="am" aria-pressed="false">🍎 Apple Music</button>
     <button data-tab="mic" aria-pressed="false">🎤 Mic mode</button>
     <button data-tab="type" aria-pressed="false">Type my songs</button>
   </div>
@@ -94,6 +95,12 @@ root.innerHTML = `
     <div class="pq-row"><input id="pq-url" placeholder="…or paste any Spotify link" aria-label="Spotify link"><button id="pq-load">Load player</button></div>
     <div class="pq-embed" id="pq-embed"></div>
     <p class="pq-note">Press play in the Spotify player. The party only adventures while the music plays; each new song brings new monsters.</p>
+  </div>
+  <div class="pq-panel" data-panel="am">
+    <div class="pq-row"><input id="pq-amurl" placeholder="Paste an Apple Music playlist, album or song link" aria-label="Apple Music link"><button id="pq-amload">Load player</button></div>
+    <div class="pq-embed" id="pq-amembed"></div>
+    <div class="pq-row"><input id="pq-amname" placeholder="Song name (optional)" aria-label="Song name"><button id="pq-amnext" class="go">⏭ Next song</button><button id="pq-ampause">⏸ Pause</button></div>
+    <p class="pq-note">Press play in the Apple Music player and the party sets off. Apple doesn't tell web pages when songs change, so a new song is counted every 3½ minutes or so; tap ⏭ Next song when it changes to keep it exact, and ⏸ Pause if you pause. Only hearing short clips? <a href="https://music.apple.com/" target="_blank" rel="noopener" style="color:#ffd84a">Sign in to Apple Music</a> in this browser for full songs. Find a link in Apple Music with Share → Copy Link.</p>
   </div>
   <div class="pq-panel" data-panel="mic">
     <div class="pq-row"><button id="pq-mic" class="go">🎤 Start listening</button></div>
@@ -1145,6 +1152,28 @@ sel.addEventListener('change', () => { if (sel.value) loadEmbed('spotify:playlis
 $('#pq-rand').addEventListener('click', () => { const p = pick(PLAYLISTS); sel.value = p[1]; loadEmbed('spotify:playlist:' + p[1]); });
 $('#pq-load').addEventListener('click', () => { const u = toUri($('#pq-url').value); if (u) loadEmbed(u); else alertNote('That doesn’t look like a Spotify link. Try Share → Copy link in Spotify.'); });
 function alertNote(s) { $('#pq-status').textContent = upper(s).slice(0, 80); }
+
+/* Apple Music embed: Apple's player sends no events, so a song clock stands in (and ⏭ / ⏸ keep it honest) */
+const AM = { loaded: false, playing: false, t: 0, len: 210, timer: null };
+function amUrl(t) { t = (t || '').trim(); const m = t.match(/^https?:\/\/(?:embed\.)?music\.apple\.com\/(.+)$/i); return m ? 'https://embed.music.apple.com/' + m[1] : null; }
+function amLoad(url) {
+  const host = $('#pq-amembed'); const song = /[?&]i=|\/song\//.test(url);
+  host.innerHTML = `<iframe id="pq-amframe" src="${esc(url)}" height="${song ? 175 : 450}" style="width:100%;max-width:660px;overflow:hidden;border-radius:10px;border:0;background:transparent" allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" title="Apple Music player"></iframe>`;
+  AM.loaded = true; alertNote('Apple Music ready. Press play in the player.');
+}
+function amSet(on) {
+  AM.playing = on; $('#pq-ampause').textContent = on ? '⏸ Pause' : '▶ Resume'; setPlaying(on);
+  clearInterval(AM.timer); AM.timer = null;
+  if (on) AM.timer = setInterval(() => { if (MODE !== 'am' || !AM.playing || S.ended) return; AM.t += 1;
+    if (AM.t >= AM.len) { AM.t = 0; if (S.songs.length >= MAXSONGS) { endSession(true); amSet(false); } else { musicStarted(null); setPlaying(true); } } }, 1000);
+}
+function amStart() { if (AM.playing) return; if (S.curSong < 0 || S.phase === 'roll' || S.phase === 'intro') { AM.t = 0; musicStarted(($('#pq-amname').value || '').trim() || null); $('#pq-amname').value = ''; } amSet(true); }
+// a click inside the Apple Music player moves focus into its frame: treat the first one as "play"
+window.addEventListener('blur', () => setTimeout(() => { const a = document.activeElement; if (MODE === 'am' && a && a.id === 'pq-amframe' && !AM.playing) amStart(); }, 0));
+$('#pq-amload').addEventListener('click', () => { const u = amUrl($('#pq-amurl').value); if (u) amLoad(u); else alertNote('That doesn’t look like an Apple Music link. Try Share → Copy Link.'); });
+$('#pq-amurl').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#pq-amload').click(); });
+$('#pq-amnext').addEventListener('click', () => { const n = ($('#pq-amname').value || '').trim() || null; $('#pq-amname').value = ''; AM.t = 0; if (S.curSong < 0) { musicStarted(n); } else if (S.songs.length >= MAXSONGS) { endSession(true); amSet(false); return; } else { musicStarted(n); } amSet(true); });
+$('#pq-ampause').addEventListener('click', () => { if (AM.playing) amSet(false); else amStart(); });
 
 /* Mic mode: loudness drives battle fury, silence splits songs */
 let mic = null;
