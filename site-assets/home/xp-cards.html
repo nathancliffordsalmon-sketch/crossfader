@@ -1,0 +1,71 @@
+<style>
+/* Experience Music: every experience as a game card (shares .ltf-gcard with the home page) */
+#ltf-xp-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:22px 0 10px}
+#ltf-xp-cards .ltf-gcard{min-height:128px;color:#fff}
+#ltf-xp-cards .ltf-gcard b{white-space:normal}
+#ltf-xp-cards .ltf-gcard .gt{flex:1}
+@media (max-width:720px){#ltf-xp-cards{grid-template-columns:1fr;gap:14px}}
+/* RetroAmp: brushed steel skin, orange title bar, green LCD text */
+.ltf-g-ra{background:linear-gradient(180deg,#3a3f4b,#1d2027 60%,#121318)}
+.ltf-g-ra::after{background:linear-gradient(90deg,#ff7a1a,#ffd24a 55%,transparent 56%) top/100% 6px no-repeat}
+.ltf-g-ra b{font:17px/1.15 "Press Start 2P",monospace;color:#ffd24a;letter-spacing:1px;text-shadow:2px 2px 0 #7a2a00}
+.ltf-g-ra small{color:#9cff8a;text-shadow:0 0 6px rgba(120,255,110,.35)}
+.ltf-g-ra .chips i{border-color:rgba(255,154,60,.55)}
+.ltf-g-ra .orb{background:#0a0c10;border-radius:10px;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding:9px 8px;box-shadow:inset 0 0 0 2px #444,0 0 0 3px rgba(255,154,60,.35)}
+.ltf-g-ra .orb i{display:block;width:5px;background:linear-gradient(#ff3a2a,#ffd24a 45%,#3ef06a);animation:ltfXpEq 1.1s ease-in-out infinite}
+.ltf-g-ra .orb i:nth-child(2){animation-delay:-.3s}.ltf-g-ra .orb i:nth-child(3){animation-delay:-.6s}.ltf-g-ra .orb i:nth-child(4){animation-delay:-.15s}.ltf-g-ra .orb i:nth-child(5){animation-delay:-.45s}
+@keyframes ltfXpEq{0%,100%{height:8px}50%{height:30px}}
+/* FISHAMP: TRON neon on black */
+.ltf-g-famp{background:#03050a}
+.ltf-g-famp::before{background:linear-gradient(transparent 55%,rgba(0,234,255,.18)),repeating-linear-gradient(90deg,rgba(0,234,255,.16) 0 1px,transparent 1px 26px),repeating-linear-gradient(0deg,rgba(0,234,255,.12) 0 1px,transparent 1px 22px)}
+.ltf-g-famp{border-color:#00eaff;box-shadow:0 0 14px rgba(0,234,255,.45),5px 5px 0 #2b1055}
+.ltf-g-famp:hover{box-shadow:0 0 22px rgba(0,234,255,.7),7px 7px 0 #2b1055}
+.ltf-g-famp b{font:20px/1.1 "Press Start 2P",monospace;color:#5ff6ff;letter-spacing:2px;text-shadow:0 0 8px rgba(0,234,255,.9),0 0 18px rgba(0,234,255,.5)}
+.ltf-g-famp small{color:#ffd36a}
+.ltf-g-famp .chips i{border-color:rgba(0,234,255,.6);box-shadow:0 0 6px rgba(0,234,255,.3)}
+.ltf-g-famp .orb{background:radial-gradient(circle at 35% 30%,#5ff6ff,#008ca0 60%,#002a33);box-shadow:0 0 16px rgba(0,234,255,.8),inset -6px -8px 0 rgba(0,0,0,.3)}
+/* Fishing: night level, green and blue pixel pedestals */
+.ltf-g-fish{background:#0b0b18}
+.ltf-g-fish::before{background:radial-gradient(1px 1px at 12% 20%,#fff,transparent),radial-gradient(1px 1px at 48% 12%,#cfe8ff,transparent),radial-gradient(1px 1px at 80% 28%,#fff,transparent),radial-gradient(1px 1px at 66% 8%,#fff,transparent),
+  linear-gradient(transparent 78%,#1f8a34 78% 82%,#3ef06a 82% 84%,transparent 84%) 0 0/34% 100% no-repeat,linear-gradient(transparent 70%,#1a5fa8 70% 74%,#38b6ff 74% 76%,transparent 76%) 60% 0/26% 100% no-repeat}
+.ltf-g-fish::after{background:linear-gradient(90deg,rgba(11,11,24,.92) 0,rgba(11,11,24,.7) 60%,rgba(11,11,24,.1))}
+.ltf-g-fish b{font:18px/1.1 "Press Start 2P",monospace;color:#3ef06a;letter-spacing:1px;text-shadow:2px 2px 0 #08203a}
+.ltf-g-fish small{color:#9be7ff}
+.ltf-g-fish .chips i{border-color:rgba(62,240,106,.5)}
+.ltf-g-fish .orb{background:radial-gradient(circle at 35% 30%,#7af0ff,#38b6ff 55%,#0a3a6a)}
+/* Island Sessions: the island at night */
+.ltf-g-isl::before{background-image:url(https://cdn.jsdelivr.net/gh/nathancliffordsalmon-sketch/crossfader@SHA/site-assets/island/island-thumb.png);background-position:center 60%;image-rendering:pixelated}
+.ltf-g-isl::after{background:linear-gradient(90deg,rgba(12,16,40,.94) 0,rgba(12,16,40,.72) 58%,rgba(12,16,40,.12))}
+.ltf-g-isl b{font:italic 700 25px/1.05 Georgia,"Times New Roman",serif;color:#ffd27a;text-shadow:2px 2px 0 #8a3a10,4px 4px 0 #120a20}
+.ltf-g-isl small{color:#eef1ff}
+.ltf-g-isl .chips i{border-color:rgba(255,210,122,.5)}
+.ltf-g-isl .orb{background:radial-gradient(circle at 35% 30%,#fff3b0,#ff9a3c 60%,#a04a10)}
+/* The Fish Oracle: deep purple tank with bubbles */
+.ltf-g-orc{background:radial-gradient(circle at 80% 40%,#7a3ac8,#3a1a6a 45%,#14082a)}
+.ltf-g-orc::before{background:radial-gradient(circle at 70% 70%,rgba(255,255,255,.35) 0 3px,transparent 4px),radial-gradient(circle at 76% 45%,rgba(255,255,255,.3) 0 2px,transparent 3px),radial-gradient(circle at 64% 25%,rgba(255,255,255,.3) 0 4px,transparent 5px),radial-gradient(circle at 88% 20%,rgba(255,255,255,.25) 0 2px,transparent 3px)}
+.ltf-g-orc b{color:#f0d8ff;text-shadow:2px 2px 0 #5a1a8a,4px 4px 0 #14082a}
+.ltf-g-orc small{color:#ffe6a8}
+.ltf-g-orc .chips i{border-color:rgba(240,216,255,.5)}
+.ltf-g-orc .orb{background:radial-gradient(circle at 35% 30%,#ffffff,#c9a8ff 40%,#6a2aa8)}
+/* Name That Tune: game-show marquee */
+.ltf-g-ntt{background:linear-gradient(180deg,#c01a3a,#7a0a22)}
+.ltf-g-ntt::before{background:radial-gradient(circle,#ffe9a0 0 2px,transparent 3px) 0 0/16px 16px;-webkit-mask:linear-gradient(#000 0 6px,transparent 6px calc(100% - 6px),#000 calc(100% - 6px)),linear-gradient(90deg,#000 0 6px,transparent 6px calc(100% - 6px),#000 calc(100% - 6px));mask:linear-gradient(#000 0 6px,transparent 6px calc(100% - 6px),#000 calc(100% - 6px)),linear-gradient(90deg,#000 0 6px,transparent 6px calc(100% - 6px),#000 calc(100% - 6px));animation:ltfXpBulbs 1.2s steps(2) infinite}
+@keyframes ltfXpBulbs{50%{opacity:.35}}
+.ltf-g-ntt b{color:#ffd24a;text-shadow:2px 2px 0 #5a0010,4px 4px 0 #2a0008}
+.ltf-g-ntt small{color:#fff3d6}
+.ltf-g-ntt .chips i{border-color:rgba(255,210,74,.6)}
+.ltf-g-ntt .orb{background:radial-gradient(circle at 35% 30%,#fff3b0,#ffd24a 55%,#b07a10);color:#7a0a22;font:900 30px/1 "Luckiest Guy",sans-serif}
+@media (prefers-reduced-motion:reduce){.ltf-g-ra .orb i,.ltf-g-ntt::before{animation:none}}
+</style>
+<div id="ltf-xp-cards" class="ltf-xp-cards">
+<a class="ltf-gcard ltf-g-ra" href="/retroamp/" aria-label="Play RetroAmp: a Winamp-style player for Like the Fish playlists"><span class="gt"><b>RetroAmp</b><small>A Winamp-style player for my playlists. It really kicks the llama’s a$$.</small><span class="chips"><i>▶ playlists</i><i>🎚 10-band EQ</i><i>🎮 game music</i></span></span><span class="orb" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></a>
+<a class="ltf-gcard ltf-g-famp" href="/fishamp/" aria-label="Play FISHAMP: a neon fish music player with full-screen visualizers"><span class="gt"><b>FISHAMP</b><small>Aquarium tides, then eight full-screen visualizers, from stormy seas to light cycles.</small><span class="chips"><i>🐟 aquarium</i><i>⚡ 8 visualizers</i><i>📺 full screen</i></span></span><span class="orb" aria-hidden="true">🐟</span></a>
+<a class="ltf-gcard ltf-g-fsg" href="/final-songasy/" aria-label="Play Final Songasy: send your songs into battle as 16-bit knights"><span class="gt"><b>Final Songasy</b><small>Hast thou a favourite song? Thy songs duel as 16-bit knights. Last one standing wins.</small><span class="chips"><i>♪ up to 3 playlists</i><i>🛡 duels</i><i>👑 one champion</i></span></span><span class="orb" aria-hidden="true"><svg viewBox="0 0 46 62"><polygon points="23,2 40,22 23,60 6,22" fill="#7fd8ff" stroke="#fff" stroke-width="2"></polygon><polygon points="23,2 31,22 23,60 15,22" fill="#bfefff"></polygon><polygon points="6,22 40,22 23,60" fill="#3aa8e8" opacity=".55"></polygon></svg></span></a>
+<a class="ltf-gcard ltf-g-rts" href="/rubber-tree-sessions/" aria-label="Play Rubber Tree Sessions: grow a rubber tree to your music"><span class="gt"><b>Rubber Tree Sessions</b><small>Every song grows a leaf; roots reach the goldfish tank. Six feet = sparkle.</small><span class="chips"><i>🎲 random playlist</i><i>🎤 mic mode</i><i>🖨 tree print</i></span></span><span class="orb" aria-hidden="true">🌱</span></a>
+<a class="ltf-gcard ltf-g-pqs" href="/phantasea-sessions/" aria-label="Play Phantasea Sessions: roll a party and battle monsters to your music"><span class="gt"><b>PHANTASEA</b><span class="motto">SEX CARMINA TIBI TANTUM DANTUR</span><small>Roll a party; they battle monsters while your music plays. Six songs is all you get.</small><span class="chips"><i>🎲 3d6 heroes</i><i>⚔ 11 monster kinds</i><i>🔥 visualizer</i></span></span><span class="orb" aria-hidden="true"><span>20</span></span></a>
+<a class="ltf-gcard ltf-g-fish" href="/fishing/" aria-label="Play Fishing: 100 fish-headed lemmings dance to your music"><span class="gt"><b>FISHING</b><small>100 fish-headed lemmings drop onto pixel pedestals, dance to your music, then go out in fireworks.</small><span class="chips"><i>🐟 100 fish</i><i>🎆 fireworks</i><i>⏱ new level every 3 min</i></span></span><span class="orb" aria-hidden="true">🎆</span></a>
+<a class="ltf-gcard ltf-g-isl" href="/island-sessions/" aria-label="Play Island Sessions: Clifford's island comes alive to your music"><span class="gt"><b>Island Sessions</b><small>Clifford, three cats and whatever washes ashore: fireworks pots, drummers, dancers and pirates.</small><span class="chips"><i>🌙 night every 15 min</i><i>🛶 rafts</i><i>🏄 surfing</i></span></span><span class="orb" aria-hidden="true">🏝️</span></a>
+<a class="ltf-gcard ltf-g-orc" href="/fish-oracle/" aria-label="Ask the Fish Oracle to pick your playlist"><span class="gt"><b>The Fish Oracle</b><small>Fill her tank and she’ll pick your playlist.</small><span class="chips"><i>🔮 she decides</i><i>🐠 fill the tank</i></span></span><span class="orb" aria-hidden="true">🔮</span></a>
+<a class="ltf-gcard ltf-g-ntt" href="/name-that-tune/" aria-label="Play Name That Tune"><span class="gt"><b>Name That Tune</b><small>Clues pop up and the album cover unscrambles. Guess fast for more points.</small><span class="chips"><i>⏱ guess fast</i><i>🏆 high scores</i><i>🎉 party mode</i></span></span><span class="orb" aria-hidden="true">?</span></a>
+<a class="ltf-gcard ltf-g-ad" href="/music-bingo/" aria-label="Music Bingo (ad): 75 hit videos and free printable cards"><span class="adtag">AD</span><span class="gt"><b>Music Bingo</b><small>Throw a music bingo night: 75 hit videos from the 80s, 90s and 2000s, plus free printable cards.</small><span class="chips"><i>🎵 75 hit videos</i><i>🖨 printable cards</i></span></span><span class="orb" aria-hidden="true">B</span></a>
+</div>

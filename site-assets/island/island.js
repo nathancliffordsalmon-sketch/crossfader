@@ -48,6 +48,7 @@ const css = `
 #isl .isl-ov select,#isl .isl-ov button{font:600 13px Georgia,serif;padding:7px 10px;background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:999px}
 @media (max-height:500px){#isl.isl-full .isl-hud{padding:4px 10px;font-size:11px}#isl .isl-ov select,#isl .isl-ov button,#isl.isl-full .isl-fs{font-size:11px;padding:6px 8px}}
 html.isl-noscroll,html.isl-noscroll body{overflow:hidden!important}
+#isl.isl-full .ltf-cast-btn{display:none!important}
 @media (max-width:600px){#isl .isl-qp .lbl{display:none}#isl .isl-qp{gap:6px;padding:7px}#isl button{padding:9px 12px}#isl .isl-hud{font-size:13px}}
 #isl-print{display:none}
 @media print{body *{visibility:hidden!important}#isl-print,#isl-print *{visibility:visible!important}#isl-print{display:block!important;position:absolute;left:0;top:0;width:100%;color:#000;font-family:Georgia,serif}}
