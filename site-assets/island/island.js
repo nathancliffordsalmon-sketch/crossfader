@@ -286,7 +286,20 @@ const PACKS = {
 setPack(S.pack);
 
 /* ---------------- characters ---------------- */
-const hero = { x: 140, y: 186, dir: 1, state: 'idle', st: 0, target: 140, frame: 0, eat: 0, timer: 2, raft: null };
+const OUTFITS = [
+  { name: 'his castaway stripes', hat: 'straw', hc: '#e8c96a', hd: '#b8963a', sa: '#f4efe6', sb: '#d23a3a', pat: 'stripe', pants: '#3a5aa8' },
+  { name: 'a Hawaiian shirt', hat: 'bucket', hc: '#f2e0b0', hd: '#c8b080', sa: '#2fa7a0', sb: '#ff6fa8', pat: 'flowers', pants: '#e8d8b0' },
+  { name: 'his pirate captain coat', hat: 'tricorn', hc: '#1a1a1a', hd: '#d4af37', sa: '#a01a2a', sb: '#d4af37', pat: 'buttons', pants: '#1a1a2a', feet: '#2a1a10' },
+  { name: 'a tuxedo', hat: 'top', hc: '#1a1a1a', hd: '#a01a2a', sa: '#1a1a1a', sb: '#ffffff', pat: 'tux', pants: '#1a1a1a', feet: '#111111' },
+  { name: 'a space suit', hat: 'helmet', hc: '#e8eef8', hd: '#5ef0ff', sa: '#e8eef8', sb: '#ff8a3c', pat: 'belt', pants: '#d0d8e8', feet: '#9aa6c4' },
+  { name: 'lumberjack plaid', hat: 'beanie', hc: '#2f7a3a', hd: '#1f5a2a', sa: '#c02020', sb: '#2a1a1a', pat: 'plaid', pants: '#3a4a6a', feet: '#5a3a1c' },
+  { name: 'his disco suit', hat: 'afro', hc: '#3a2210', hd: '#2a160a', sa: '#ffffff', sb: '#ffd24a', pat: 'collar', pants: '#ffffff', feet: '#ffd24a' },
+  { name: 'board shorts', hat: 'bandana', hc: '#ff8a3c', hd: '#c05a1a', sa: 'skin', sb: '#ffd24a', pat: 'bare', pants: '#5ee0ff' },
+  { name: 'wizard robes', hat: 'wizard', hc: '#5a2a9a', hd: '#ffd24a', sa: '#5a2a9a', sb: '#ffd24a', pat: 'stars', pants: '#5a2a9a', feet: '#5a2a9a' },
+  { name: 'a sailor suit', hat: 'sailor', hc: '#ffffff', hd: '#2747b8', sa: '#ffffff', sb: '#2747b8', pat: 'stripe', pants: '#2747b8', feet: '#111111' }
+];
+const BOWLS = [206, 220, 234], FEED_X = 192;
+const hero = { outfit: 0, x: 140, y: 186, dir: 1, state: 'idle', st: 0, target: 140, frame: 0, eat: 0, timer: 2, raft: null };
 const CATS = [
   { x: 230, y: 0, dir: -1, col: '#e8913a', dark: '#b3621f', name: 'Marmalade', state: 'walk', t: 0, tx: 200, inside: false, peek: 0 },
   { x: 120, y: 0, dir: 1, col: '#2b2b33', dark: '#121218', name: 'Pepper', state: 'sit', t: 0, tx: 120, inside: false, peek: 0 },
@@ -490,16 +503,18 @@ function drawFire(d) {
 /* hero sprite: an original castaway (straw hat, beard, striped shirt, rolled trousers) */
 function heroSprite(x, y, f, d) {
   const dim = (c) => mix('#20203a', c, 0.4 + d * 0.6);
-  const skin = dim('#e6b68a'), hat = dim('#e8c96a'), hatD = dim('#b8963a'), beard = dim('#8a5a2b'), shirtA = dim('#f4efe6'), shirtB = dim('#d23a3a'), pants = dim('#3a5aa8'), feet = dim('#e6b68a');
+  const o = OUTFITS[hero.outfit || 0];
+  const skin = dim('#e6b68a'), hat = dim(o.hc), hatD = dim(o.hd), beard = dim('#8a5a2b'), shirtA = o.sa === 'skin' ? skin : dim(o.sa), shirtB = dim(o.sb), pants = dim(o.pants), feet = dim(o.feet || '#e6b68a');
+  const sleeve = o.pat === 'bare' ? skin : shirtA;
   const flip = hero.dir < 0;
   g.save(); g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
   const st = hero.state, ph = S.playing ? (S.beat % 1) : (S.t * 1.5 % 1), bob = st === 'dance' ? -Math.round(Math.abs(Math.sin(ph * Math.PI)) * 2) : st === 'strut' ? -Math.round(Math.abs(Math.sin(hero.frame * Math.PI / 2)) * 2) : 0;
-  const sit = st === 'sit' || st === 'eat';
+  const sit = st === 'sit' || st === 'eat' || st === 'pipe' || st === 'drink';
   const legY = sit ? -6 : 0;
   // legs
   if (sit) { R(-4, -8, 9, 3, pants); R(4, -8, 3, 7, pants); R(4, -1, 3, 1, feet); R(-2, -8, 3, 7, pants); R(-2, -1, 3, 1, feet); }
   else {
-    const step = (st === 'walk' || st === 'strut' || st === 'toWater' || st === 'wadeIn' || st === 'wadeOut') ? hero.frame % 4 : 0, kick = st === 'strut' ? 2 : 1;
+    const step = (st === 'walk' || st === 'strut' || st === 'toSeat' || st === 'toHut' || st === 'toFeed' || st === 'toWater' || st === 'wadeIn' || st === 'wadeOut') ? hero.frame % 4 : 0, kick = st === 'strut' ? 2 : 1;
     const lA = [0, kick, 0, -kick][step], lB = [0, -kick, 0, kick][step];
     let dl = 0, dr = 0; if (st === 'dance') { const mv = hero.move % 4; dl = mv === 1 ? -2 : mv === 3 ? 2 : 0; dr = -dl; }
     R(-3 + lA + dl, -9 + bob, 3, 9 - bob, pants); R(1 + lB + dr, -9 + bob, 3, 9 - bob, pants);
@@ -507,27 +522,57 @@ function heroSprite(x, y, f, d) {
   }
   const by = (sit ? -6 : 0) + bob;
   // body / striped shirt
-  for (let i = 0; i < 9; i++) R(-4, -18 + by + i, 9, 1, i % 2 ? shirtB : shirtA);
+  for (let i = 0; i < 9; i++) R(-4, -18 + by + i, 9, 1, o.pat === 'stripe' && i % 2 ? shirtB : shirtA);
+  const B = (px, py) => R(px, -18 + by + py, 1, 1, shirtB);
+  if (o.pat === 'flowers') [[-3, 1], [1, 2], [3, 5], [-2, 6], [0, 4], [2, 0], [-3, 4]].forEach(([a, b]) => B(a, b));
+  if (o.pat === 'buttons') [1, 3, 5, 7].forEach((b) => B(0, b));
+  if (o.pat === 'tux') { R(-1, -18 + by, 3, 9, shirtB); R(-1, -18 + by, 3, 1, dim('#c01a2a')); P(-2, -18 + by, dim('#c01a2a')); P(2, -18 + by, dim('#c01a2a')); }
+  if (o.pat === 'belt') { R(-4, -12 + by, 9, 1, shirtB); R(-2, -16 + by, 3, 2, dim('#5ef0ff')); }
+  if (o.pat === 'plaid') { for (let i = -4; i < 5; i += 3) R(i, -18 + by, 1, 9, shirtB); R(-4, -14 + by, 9, 1, shirtB); }
+  if (o.pat === 'collar') { R(-4, -18 + by, 3, 2, shirtB); R(2, -18 + by, 3, 2, shirtB); R(-1, -17 + by, 3, 3, skin); }
+  if (o.pat === 'bare') { R(-3, -17 + by, 7, 1, shirtB); P(0, -16 + by, dim('#5ee0ff')); }
+  if (o.pat === 'stars') [[-2, 2], [2, 4], [-1, 6], [3, 1]].forEach(([a, b]) => B(a, b));
   // arms
-  const arm = (side, pose) => { const ax = side < 0 ? -6 : 5; if (pose === 'up') { R(ax, -24 + by, 2, 7, shirtA); R(ax, -26 + by, 2, 2, skin); } else if (pose === 'out') { R(ax + side * 1, -17 + by, side * 5, 2, shirtA); R(ax + side * 6, -17 + by, 2, 2, skin); } else if (pose === 'eat') { R(ax, -17 + by, 2, 4, shirtA); R(ax - side * 2, -21 + by, 2, 4, skin); } else { R(ax, -17 + by, 2, 7, shirtA); R(ax, -10 + by, 2, 2, skin); } };
+  const arm = (side, pose) => { const ax = side < 0 ? -6 : 5, shirtA = sleeve; if (pose === 'up') { R(ax, -24 + by, 2, 7, shirtA); R(ax, -26 + by, 2, 2, skin); } else if (pose === 'out') { R(ax + side * 1, -17 + by, side * 5, 2, shirtA); R(ax + side * 6, -17 + by, 2, 2, skin); } else if (pose === 'eat') { R(ax, -17 + by, 2, 4, shirtA); R(ax - side * 2, -21 + by, 2, 4, skin); } else { R(ax, -17 + by, 2, 7, shirtA); R(ax, -10 + by, 2, 2, skin); } };
   let pl = 'down', pr = 'down';
   if (st === 'dance') { const mv = hero.move; pl = ['up', 'out', 'down', 'up', 'out'][mv % 5]; pr = ['down', 'out', 'up', 'up', 'down'][mv % 5]; }
   if (st === 'strut') { pl = hero.frame % 2 ? 'out' : 'down'; pr = hero.frame % 2 ? 'down' : 'out'; }
   if (st === 'eat') { pr = hero.eat > 0.5 ? 'eat' : 'down'; }
   if (st === 'cheer') { pl = 'up'; pr = 'up'; }
+  if (st === 'drink') pr = hero.eat > 0.5 ? 'eat' : 'down';
+  if (st === 'pipe') pr = 'eat';
+  if (st === 'feed' || st === 'clean') { pr = 'out'; pl = Math.floor(S.t * 3) % 2 ? 'out' : 'down'; }
   if (st === 'surf') { pl = 'out'; pr = S.playing && (S.beatN % 2) ? 'up' : 'out'; }
   if (st === 'paddle' || st === 'paddleBack') { pl = hero.frame % 2 ? 'up' : 'out'; pr = hero.frame % 2 ? 'out' : 'up'; }
   if (st === 'wade') { pl = 'out'; pr = hero.kick > 0 ? 'up' : 'down'; }
   arm(-1, pl); arm(1, pr);
   if (st === 'eat' && hero.eat > 0.5) { R(-1, -24 + by, 2, 3, hero.eatItem ? dim('#5aa0d0') : dim('#a0522d')); }
+  if (st === 'drink') { const beer = hero.drinkItem === 'beer', up = hero.eat > 0.5, cx = up ? -1 : 6, cy = up ? -24 + by : -12 + by;
+    R(cx, cy, 3, 3, beer ? dim('#e8a02a') : dim('#f4efe6')); R(cx, cy, 3, 1, beer ? dim('#ffffff') : dim('#a0522d')); P(cx + 3, cy + 1, beer ? dim('#e8a02a') : dim('#f4efe6'));
+    if (!beer && !up) { g.globalAlpha = 0.5; P(cx + 1, cy - 2 - Math.floor(S.t * 3) % 2, '#ffffff'); P(cx, cy - 4 + Math.floor(S.t * 3) % 2, '#ffffff'); g.globalAlpha = 1; } }
+  if (st === 'feed' || st === 'clean') { R(10, -16 + by, 4, 2, dim(st === 'feed' ? '#c8a060' : '#5aa0d0')); if (st === 'feed' && Math.floor(S.t * 6) % 2) P(12, -13 + by, dim('#8a5a2b')); }
   // head, beard, hat
   R(-3, -25 + by, 7, 7, skin); R(-3, -21 + by, 7, 3, beard); R(-2, -19 + by, 5, 2, beard); P(2, -23 + by, dim('#1a1a2a')); P(-1, -23 + by, dim('#1a1a2a'));
-  R(-6, -27 + by, 13, 2, hat); R(-3, -30 + by, 7, 3, hat); R(-3, -28 + by, 7, 1, hatD);
+  if (st === 'pipe') { R(3, -21 + by, 3, 1, dim('#5a3418')); R(5, -24 + by, 2, 3, dim('#5a3418')); P(5, -25 + by, Math.floor(S.t * 2) % 2 ? '#ff7a2a' : '#ffb04a'); }
+  const hy = by;
+  switch (o.hat) {
+    case 'straw': R(-6, -27 + hy, 13, 2, hat); R(-3, -30 + hy, 7, 3, hat); R(-3, -28 + hy, 7, 1, hatD); break;
+    case 'bucket': R(-5, -27 + hy, 11, 2, hat); R(-3, -30 + hy, 7, 3, hat); R(-5, -26 + hy, 11, 1, hatD); break;
+    case 'tricorn': R(-7, -27 + hy, 15, 2, hat); R(-4, -31 + hy, 9, 4, hat); R(-7, -27 + hy, 15, 1, hatD); P(0, -29 + hy, dim('#ffffff')); break;
+    case 'top': R(-5, -26 + hy, 11, 1, hat); R(-3, -33 + hy, 7, 7, hat); R(-3, -28 + hy, 7, 1, hatD); break;
+    case 'helmet': R(-5, -29 + hy, 11, 2, hat); R(-5, -27 + hy, 2, 9, hat); R(4, -27 + hy, 2, 9, hat); g.globalAlpha = 0.35; R(-3, -27 + hy, 7, 6, hatD); g.globalAlpha = 1; P(-4, -30 + hy, '#ff3a3a'); break;
+    case 'beanie': R(-4, -29 + hy, 9, 4, hat); R(-4, -26 + hy, 9, 1, hatD); P(0, -30 + hy, hatD); break;
+    case 'afro': R(-5, -32 + hy, 11, 7, hat); R(-5, -25 + hy, 2, 4, hat); R(4, -25 + hy, 2, 4, hat); break;
+    case 'bandana': R(-3, -26 + hy, 7, 2, hat); P(-4, -25 + hy, hat); P(-5, -24 + hy, hatD); P(-5, -23 + hy, hat); break;
+    case 'wizard': R(-6, -27 + hy, 13, 2, hat); for (let i = 0; i < 9; i++) R(-3 + Math.floor(i / 3), -28 - i + hy, 7 - Math.floor(i / 3) * 2, 1, hat); P(0, -31 + hy, hatD); P(1, -35 + hy, hatD); break;
+    case 'sailor': R(-4, -28 + hy, 9, 3, hat); R(-4, -26 + hy, 9, 1, hatD); break;
+  }
   g.restore();
 }
 function catSprite(x, y, dir, c, sil, lit) {
   const col = sil ? (lit ? '#2a1a10' : '#111') : c.col, dark = sil ? col : c.dark;
   g.save(); g.translate(Math.round(x), Math.round(y)); if (dir < 0) g.scale(-1, 1);
+  if (c.state === 'eatBowl' && !sil) { const b = Math.floor(S.t * 4) % 2; R(0, -4, 8, 3, col); R(7, -4 + b, 3, 3, col); P(7, -5 + b, col); P(9, -5 + b, col); R(-3, -6, 3, 1, dark); P(-3, -7, dark); R(1, -1, 1, 1, dark); R(6, -1, 1, 1, dark); g.restore(); return; }
   if (c.state === 'sit' || sil) { R(0, -5, 5, 5, col); R(1, -8, 4, 3, col); P(1, -9, col); P(4, -9, col); R(-2, -2, 3, 1, dark); if (!sil) { P(2, -7, '#2a2'); P(4, -7, '#2a2'); } }
   else { const f = Math.floor(S.t * 6) % 2; R(0, -4, 8, 3, col); R(7, -6, 3, 3, col); P(7, -7, col); P(9, -7, col); R(-3, -6 + f, 3, 1, dark); P(-3, -7 + f, dark); R(1, -1, 1, 1 + f, dark); R(6, -1, 1, 2 - f, dark); if (!sil) P(9, -5, '#222'); }
   g.restore();
@@ -776,9 +821,10 @@ function heroThink(dt, d) {
   hero.timer -= dt; hero.st += dt;
   const night = d < 0.3;
   if (waterThink(dt, d)) return;
+  if (homeThink(dt, d)) return;
   // walk to a newly landed pot and light it
   const pot = S.rafts.find((r) => r.type === 'pot' && r.state === 'landed' && r.lit <= 0 && !r.claimed);
-  if (pot && hero.state !== 'toRaft' && hero.state !== 'light') { pot.claimed = true; hero.raft = pot; hero.target = pot.x - 14; hero.state = 'toRaft'; }
+  if (pot && hero.state !== 'toRaft' && hero.state !== 'light' && !HOME[hero.state]) { pot.claimed = true; hero.raft = pot; hero.target = pot.x - 14; hero.state = 'toRaft'; }
   if (hero.state === 'toRaft' || hero.state === 'walk' || hero.state === 'strut') {
     const sp = (hero.state === 'strut' ? 16 : 22) * dt; const dx = hero.target - hero.x;
     hero.dir = dx >= 0 ? 1 : -1; hero.x += clamp(dx, -sp, sp);
@@ -791,14 +837,40 @@ function heroThink(dt, d) {
   if (hero.state === 'eat') { hero.eat = (Math.sin(hero.st * 1.4) + 1) / 2; if (hero.eat < 0.05 && rnd() < 0.02) hero.eatItem = !hero.eatItem; }
   if (hero.timer > 0) return;
   // choose what to do next
+  const r0 = rnd();
+  if (r0 < 0.07) { hero.state = 'toHut'; return; }
+  if (r0 < 0.13 && S.t - (S.lastFeed || -999) > 150) { hero.state = 'toFeed'; S.lastFeed = S.t; return; }
+  if (r0 < 0.21) { const n = d < 0.3; hero.next = 'pipe'; hero.state = 'toSeat'; hero.seatX = n ? FIRE - 22 : CHAIR + 5; hero.timer = 10 + rnd() * 8; hero.st = 0; toast(HERO + ' is taking a pipe break'); return; }
+  if (r0 < 0.29) { const n = d < 0.3; hero.next = 'drink'; hero.state = 'toSeat'; hero.drinkItem = rnd() < 0.5 ? 'tea' : 'beer'; hero.seatX = n ? FIRE - 22 : CHAIR + 5; hero.timer = 9 + rnd() * 8; hero.st = 0; toast(HERO + (hero.drinkItem === 'tea' ? ' is having a cup of tea' : ' cracked open a cold beer')); return; }
   const r = rnd();
-  if (night && !S.playing && r < 0.7) { hero.state = 'eat'; hero.x = FIRE - 22; hero.dir = 1; hero.timer = 8 + rnd() * 10; hero.st = 0; return; }
-  if (night && S.playing && r < 0.25) { hero.state = 'eat'; hero.x = FIRE - 22; hero.dir = 1; hero.timer = 6 + rnd() * 6; hero.st = 0; return; }
-  if (!night && !S.playing && r < 0.25) { hero.state = 'sit'; hero.x = CHAIR + 5; hero.dir = 1; hero.timer = 6 + rnd() * 8; return; }
+  if (night && !S.playing && r < 0.7) { hero.next = 'eat'; hero.state = 'toSeat'; hero.seatX = FIRE - 22; hero.timer = 8 + rnd() * 10; hero.st = 0; return; }
+  if (night && S.playing && r < 0.25) { hero.next = 'eat'; hero.state = 'toSeat'; hero.seatX = FIRE - 22; hero.timer = 6 + rnd() * 6; hero.st = 0; return; }
+  if (!night && !S.playing && r < 0.25) { hero.next = 'sit'; hero.state = 'toSeat'; hero.seatX = CHAIR + 5; hero.timer = 6 + rnd() * 8; return; }
   if (S.playing && S.energy > 0.55 && r < 0.55) { hero.state = 'dance'; hero.timer = 4 + rnd() * 6; return; }
   if (rnd() < (d > 0.4 ? 0.24 : 0.07)) { hero.state = 'toWater'; hero.target = 18 + rnd() * 30; return; }
   hero.target = clamp(40 + rnd() * 190, 30, 232);
   hero.state = S.playing && rnd() < 0.55 ? 'strut' : 'walk'; hero.timer = 0;
+}
+/* home life: outfit changes, feeding the cats, pipe and drinks */
+const HOME = { toSeat: 1, toHut: 1, inside: 1, toFeed: 1, feed: 1, watchCats: 1, clean: 1, pipe: 1, drink: 1 };
+S.bowls = null;
+function homeThink(dt, d) {
+  const st = hero.state; if (!HOME[st]) return false;
+  const walk = (tx) => { hero.frameT = (hero.frameT || 0) + dt * 6; hero.frame = Math.floor(hero.frameT); return stepTo(tx, FLOOR, 22, dt); };
+  if (st === 'toSeat') { const keep = hero.timer + dt; if (walk(hero.seatX)) { hero.state = hero.next; hero.dir = 1; hero.st = 0; } hero.timer = keep; return true; }
+  if (st === 'toHut') { if (walk(HUT.door + 6)) { hero.state = 'inside'; hero.timer = 4 + rnd() * 4; } return true; }
+  if (st === 'inside') { if (hero.timer <= 0) { let n; do { n = Math.floor(rnd() * OUTFITS.length); } while (n === hero.outfit); hero.outfit = n; hero.state = 'idle'; hero.timer = 1.5; hero.dir = -1; toast(HERO + ' changed into ' + OUTFITS[n].name); } return true; }
+  if (st === 'toFeed') { if (walk(FEED_X)) { hero.state = 'feed'; hero.dir = 1; hero.timer = 2.4; } return true; }
+  if (st === 'feed') { if (hero.timer <= 0) { S.bowls = { food: [1, 1, 1] }; CATS.forEach((c, i) => { c.inside = false; if (c.x > HUT.door - 10 && c.x < HUT.door + 20) c.x = HUT.door + 4; c.state = 'toBowl'; c.tx = BOWLS[i] - 9; c.bowl = i; }); hero.state = 'watchCats'; hero.timer = 16; toast(HERO + ' is feeding Marmalade, Pepper and Biscuit'); } return true; }
+  if (st === 'watchCats') { hero.dir = 1; if (hero.timer <= 0 || CATS.every((c) => c.state !== 'toBowl' && c.state !== 'eatBowl')) { hero.state = 'clean'; hero.timer = 2.6; } return true; }
+  if (st === 'clean') { if (hero.timer <= 0) { S.bowls = null; hero.state = 'idle'; hero.timer = 1; } return true; }
+  if (st === 'pipe') { if (rnd() < dt * 0.9) puff(hero.x + 6, hero.y - 31, 0.45); if (hero.timer <= 0) { hero.state = 'idle'; hero.timer = 0.5; } return true; }
+  if (st === 'drink') { hero.eat = (Math.sin(hero.st * 1.1) + 1) / 2; if (hero.timer <= 0) { hero.state = 'idle'; hero.timer = 0.5; } return true; }
+  return false;
+}
+function drawBowls(d) {
+  if (!S.bowls) return; const dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65);
+  BOWLS.forEach((bx, i) => { R(bx - 3, FLOOR - 2, 7, 2, dim(['#e8413a', '#2fa7a0', '#f2c230'][i])); R(bx - 2, FLOOR, 5, 1, dim('#2a2a3a')); if (S.bowls.food[i] && hero.state !== 'clean') R(bx - 2, FLOOR - 3, 5, 1, dim('#8a5a2b')); });
 }
 /* the cove: wade in, dip toes, and (by day, mostly) paddle out to surf */
 const WET = { toWater: 1, wadeIn: 1, wade: 1, paddle: 1, surf: 1, paddleBack: 1, wadeOut: 1 };
@@ -807,7 +879,6 @@ function stepTo(tx, ty, sp, dt) { const dx = tx - hero.x, dy = ty - hero.y, dist
 function splash(x, y, n) { for (let i = 0; i < n; i++) S.sparks.push({ x: x + rnd() * 6 - 3, y, vx: (rnd() - 0.5) * 22, vy: -12 - rnd() * 16, l: 0.7, c: rnd() < 0.5 ? '#d9f6ff' : '#9fe8ff' }); }
 function waterThink(dt, d) {
   const st = hero.state; if (!WET[st]) return false;
-  hero.st += dt; hero.timer -= dt;
   const walkAnim = (f) => { hero.frameT = (hero.frameT || 0) + dt * f; hero.frame = Math.floor(hero.frameT); };
   if (st === 'toWater') { walkAnim(6); if (stepTo(hero.target, FLOOR, 22, dt)) { hero.wx = hero.x; hero.wy = shoreY(hero.x) - 5; hero.state = 'wadeIn'; } return true; }
   if (st === 'wadeIn') { walkAnim(4); if (stepTo(hero.wx, hero.wy, 9, dt)) { hero.state = 'wade'; hero.timer = 5 + rnd() * 5; splash(hero.x, hero.y - 2, 6); } return true; }
@@ -843,7 +914,7 @@ function waterOver(x, y, cover, d) {
   for (let i = -8; i <= 8; i++) if ((i + Math.floor(S.t * 6)) % 3) P(x + i, y - cover + Math.round(Math.sin(S.t * 4 + i) * 0.6), foam);
 }
 function drawHero(d) {
-  const st = hero.state;
+  const st = hero.state; if (st === 'inside') return;
   if (st === 'surf' || st === 'paddle' || st === 'paddleBack') {
     const paddling = st !== 'surf', by = Math.round(hero.y);
     if (!paddling) { // the curl of the wave behind him
@@ -862,6 +933,8 @@ function catsThink(dt) {
   CATS.forEach((c) => {
     c.t -= dt; c.peek -= dt;
     if (c.inside) { if (c.peek <= 0 && rnd() < 0.004) { c.peek = 2 + rnd() * 4; c.peekAt = rnd() < 0.7 ? 'win' : 'door'; c.peekX = ri(0, 10); } if (c.t <= 0) { c.inside = false; c.x = HUT.door + 6; c.state = 'walk'; c.tx = 150 + rnd() * 120; c.t = 3; } return; }
+    if (c.state === 'toBowl') { const dx = c.tx - c.x; c.dir = dx >= 0 ? 1 : -1; c.x += clamp(dx, -22 * dt, 22 * dt); if (Math.abs(dx) < 1) { c.state = 'eatBowl'; c.dir = 1; c.t = 6 + rnd() * 5; } return; }
+    if (c.state === 'eatBowl') { if (c.t <= 0) { if (S.bowls) S.bowls.food[c.bowl] = 0; c.state = 'sit'; c.t = 3 + rnd() * 4; } return; }
     if (c.state === 'walk' || c.state === 'goHome') {
       const dx = c.tx - c.x; c.dir = dx >= 0 ? 1 : -1; c.x += clamp(dx, -14 * dt, 14 * dt);
       if (Math.abs(dx) < 1) { if (c.state === 'goHome') { c.inside = true; c.t = 8 + rnd() * 20; c.peek = 1 + rnd() * 2; c.peekAt = rnd() < 0.5 ? 'door' : 'win'; } else { c.state = 'sit'; c.t = 2 + rnd() * 6; } }
@@ -897,7 +970,7 @@ function frame(now) {
   S.rafts.filter((r) => r.state === 'landed').forEach((r) => { drawRaft(r, d); });
   S.rafts.forEach((r) => potFire(r));
   smokeThink(dt, d);
-  catsThink(dt); CATS.forEach((c) => { if (!c.inside) catSprite(c.x, FLOOR - 2 + (c.x % 7 > 3 ? 1 : 0), c.dir, c, false, false); });
+  drawBowls(d); catsThink(dt); CATS.forEach((c) => { if (!c.inside) catSprite(c.x, FLOOR - 2 + (c.x % 7 > 3 ? 1 : 0), c.dir, c, false, false); });
   heroThink(dt, d); drawHero(d);
   raftsThink(dt); visitorsThink(dt); shipThink(dt); swirlThink(dt); drawSparks(dt, d);
   // night tint over the island
