@@ -4,7 +4,7 @@
 	if (!root || !window.LTF_NTT) return;
 	var CFG = window.LTF_NTT;
 	var RKO = 'https://remix.kwed.org';
-	var GM_JS = CFG.gmJs || 'https://cdn.jsdelivr.net/gh/nathancliffordsalmon-sketch/crossfader@325099fe5343e1bebb9ff25231f1b19fa4706dad/site-assets/rko/gm.js';
+	var GM_JS = CFG.gmJs || 'https://cdn.jsdelivr.net/gh/nathancliffordsalmon-sketch/crossfader@3cab8cbf4f52691e2faf1f9d68e20a10bc0653a3/site-assets/rko/gm.js';
 	var CLIP = { easy: 12, normal: 6, pro: 3 };
 	var ROUND_TIME = 15;
 	var state = { game: null, i: 0, score: 0, streak: 0, best: 0, correct: 0, audio: null, timer: null, started: 0, answered: false, clip: 6, mode: 'quick', src: 'spotify' };

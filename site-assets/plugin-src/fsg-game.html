@@ -476,7 +476,7 @@ if (design !== 11 && design !== 3) { c.fillStyle = g === '#ffd84a' ? '#fff6c0' :
 /* ================= YOUTUBE MIRROR ================= */
 let yt = null, ytState = -1, ytErr = null, ytCurId = null;
 /* ---------- C64 remixes (Remix.Kwed.Org): streamed from RKO, played through a stand-in for the YouTube player ---------- */
-const GM_JS = 'https://cdn.jsdelivr.net/gh/nathancliffordsalmon-sketch/crossfader@325099fe5343e1bebb9ff25231f1b19fa4706dad/site-assets/rko/gm.js';
+const GM_JS = 'https://cdn.jsdelivr.net/gh/nathancliffordsalmon-sketch/crossfader@3cab8cbf4f52691e2faf1f9d68e20a10bc0653a3/site-assets/rko/gm.js';
 let rkoData = null, realYT = null, rkoOn = false, rkoPendingStart = 0;
 const rkoAu = new Audio(); rkoAu.preload = 'auto'; rkoAu.setAttribute('playsinline', '');
 rkoAu.addEventListener('playing', () => { if (rkoOn) { ytState = 1; $('#tap').style.display = 'none'; } });
