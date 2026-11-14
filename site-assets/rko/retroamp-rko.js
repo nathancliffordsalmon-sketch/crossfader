@@ -140,7 +140,7 @@
     el.addEventListener('ended', function () { next(1); });
     var errs = 0;
     el.addEventListener('error', function () { if (RA.mode() !== 'rko') return; errs++; RA.msg('That remix wouldn’t load from RKO, skipping…'); if (errs < 5) setTimeout(function () { next(1); }, 1200); });
-    el.addEventListener('playing', function () { errs = 0; });
+    el.addEventListener('playing', function () { errs = 0; RA.msg(''); });
 
     RA.synth = synth;
     RA.time = function () { return el.currentTime || 0; };
