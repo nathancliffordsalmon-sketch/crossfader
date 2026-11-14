@@ -239,7 +239,7 @@ const HATS = ['none', 'none', 'none', 'none', 'cap', 'cowboy', 'captain', 'toque
 const ACCS = ['none', 'none', 'none', 'glasses', 'shades', 'beard'];
 const FIRST = ['Doreen', 'Gerald', 'Marg', 'Wade', 'Shelley', 'Darrell', 'Krista', 'Bev', 'Murray', 'Tanya', 'Cyril', 'Joanie', 'Lloyd', 'Heather', 'Stacey', 'Ross', 'Paulette', 'Trevor', 'Bonnie', 'Clarence', 'Amira', 'Kenji', 'Priya', 'Malik', 'Sofia', 'Owen', 'Chloe', 'Mateo', 'Nadia', 'Liam', 'Aisha', 'Hugo', 'Jess', 'Rory', 'Faith', 'Duncan', 'Moira', 'Angus', 'Leah', 'Callum', 'Mi-rae', 'Tomas', 'Rita', 'Benoit', 'Gwen', 'Dev'];
 const PLACES = ['Hubbards', 'Mahone Bay', 'Chester', 'Fox Point', 'Queensland', 'Black Point', 'Boutiliers Point', 'Head of St. Margarets Bay', 'Peggys Cove', 'Lunenburg', 'Tantallon', 'Bayswater', 'Aspotogan', 'Halifax', 'Dartmouth', 'Windsor', 'Bridgewater', 'East River', 'Mill Cove', 'Ingramport'];
-const QUIRK = ['regular since 19', 'first dance here in 19', 'met their sweetheart here in 19', 'hasn\u2019t missed a Saturday since 19', 'still has the ticket stub from 19', 'came for the lobster supper in 19'];
+const QUIRK = ['regular since ', 'first dance here in ', 'met their sweetheart here in ', 'hasn\u2019t missed a Saturday since ', 'still has the ticket stub from ', 'came for the lobster supper in '];
 const ROSTER = [];
 (function () {
   const r = RNG(1946), seen = new Set();
