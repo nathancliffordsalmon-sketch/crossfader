@@ -56,6 +56,21 @@ const css = `
 #pq .pq-logo span{font-size:clamp(7px,1.4vh,13px);color:#d8d0ff;letter-spacing:.3em}
 #pq .pq-tv.full .pq-fsinfo{display:block;font-size:clamp(7px,1.4vh,12px);color:#ffe060;text-align:center;line-height:1.8}
 #pq .pq-tv.full .pq-fsx{display:block;position:absolute;top:12px;right:12px;font-size:14px;padding:6px 10px}
+#pq .pq-tv.full{height:100vh;height:100dvh}
+#pq .pq-rot{display:none}
+#pq .pq-tv.full .pq-fsbar,#pq .pq-tv.full .pq-fsinfo,#pq .pq-tv.full .pq-fsx{transition:opacity .5s}
+#pq .pq-tv.full.idle .pq-fsbar,#pq .pq-tv.full.idle .pq-fsinfo,#pq .pq-tv.full.idle .pq-fsx{opacity:.18}
+@media (orientation:portrait) and (max-width:700px){#pq .pq-tv.full .pq-rot{display:block;font-size:9px;line-height:1.8;color:#fff4b0;text-align:center;padding:0 16px;text-shadow:2px 2px 0 #1c1040;animation:pqRot 2.4s ease-in-out infinite}}
+@keyframes pqRot{50%{opacity:.45}}
+@media (orientation:landscape) and (max-height:560px){
+#pq .pq-tv.full{padding:0;gap:0;background:#0e0a24}
+#pq .pq-tv.full .pq-logo{display:none}
+#pq .pq-tv.full canvas#pq-cv{width:min(calc(100vw - 16px),calc((100vh - 8px) * 1.6));width:min(calc(100vw - 16px),calc((100dvh - 8px) * 1.6));box-shadow:0 0 0 3px #4a3f9a}
+#pq .pq-tv.full .pq-fsbar{top:auto;bottom:max(8px,env(safe-area-inset-bottom));left:max(6px,env(safe-area-inset-left));width:calc((100vw - min(100vw - 16px, (100dvh - 8px) * 1.6)) / 2 - 14px);min-width:64px}
+#pq .pq-tv.full .pq-fsbar button{font-size:7px;padding:6px;width:100%;text-align:left;white-space:normal}
+#pq .pq-tv.full .pq-fsinfo{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(6px,env(safe-area-inset-left));width:calc((100vw - min(100vw - 16px, (100dvh - 8px) * 1.6)) / 2 - 14px);min-width:64px;font-size:7px;line-height:1.7;text-align:left}
+#pq .pq-tv.full .pq-fsx{top:max(8px,env(safe-area-inset-top));right:max(6px,env(safe-area-inset-right));font-size:12px;padding:6px 9px}
+}
 #pq-sheet{display:none}
 @media print{
   body *{visibility:hidden!important}
@@ -84,7 +99,7 @@ const st = document.createElement('style'); st.textContent = css; document.head.
 root.innerHTML = `
 <div id="pq">
   <div class="pq-title"><b>PHANTASEA SESSIONS</b><span>roll a party · press play · battle to the music</span></div>
-  <div class="pq-tv" id="pq-tv"><button class="pq-fscorner" id="pq-fs2" title="Full screen (F)" aria-label="Full screen">⛶</button><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
+  <div class="pq-tv" id="pq-tv"><button class="pq-fscorner" id="pq-fs2" title="Full screen (F)" aria-label="Full screen">⛶</button><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><div class="pq-rot" aria-hidden="true">↻ TURN YOUR PHONE SIDEWAYS FOR THE BIG SCREEN</div><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
   <div class="pq-hud"><span id="pq-status">READY.</span><span id="pq-songnow">♪ —</span></div>
   <div class="pq-tabs" role="tablist">
     <button data-tab="sp" aria-pressed="true">Spotify player here</button>
@@ -697,7 +712,7 @@ function encounter() {
   S.phase = 'battle'; S.battles++; S.turnQ = []; S.turnT = 900; S.log = [];
   if (!S.bigBattle || S.foes.length > S.bigBattle.n) S.bigBattle = { n: S.foes.length, name: t.name, song: S.curSong };
   const names = [t, t2].filter(Boolean).map((x) => `${S.foes.filter((f) => f.type === x).length} ${upper(x.name)}`).join(' & ');
-  say(`ENCOUNTER! ${names}`);
+  say(narEncounter(t, t2)); narEvent('enc', { t, t2 });
   if (S.curSong >= 0) S.songs[S.curSong].foes.push(...[t, t2].filter(Boolean).map((x) => x.name));
 }
 function layoutFoes() {
@@ -713,6 +728,209 @@ function layoutFoes() {
 /* ---------- log ---------- */
 function say(s) { S.log.push(upper(s)); if (S.log.length > 3) S.log.shift(); }
 function chronicle(s) { S.chronicle.push({ song: S.curSong, text: s }); }
+
+/* ---------- the narrator: a Dragon Warrior-style storyteller ----------
+   Tells the tale while the party walks (landscape, banter, finds, rumours), announces battles,
+   marks each song as a chapter, and closes with a saga of names, steps and damage.
+   Lines it has used are remembered (in this browser) so the next few runs don't repeat. */
+const NARR_KEY = 'pq.narr.v1', NARR_MAX = 1200;
+const NR = { q: [], cur: null, t: 0, cool: 3, recent: [], set: new Set(), dirty: 0, epi: null };
+try { NR.recent = JSON.parse(localStorage.getItem(NARR_KEY) || '[]').slice(-NARR_MAX); NR.recent.forEach((k) => NR.set.add(k)); } catch (e) {}
+function narSave() { try { localStorage.setItem(NARR_KEY, JSON.stringify(NR.recent.slice(-NARR_MAX))); } catch (e) {} }
+function narMark(k) { NR.recent.push(k); NR.set.add(k); while (NR.recent.length > NARR_MAX) NR.set.delete(NR.recent.shift()); if (++NR.dirty % 4 === 0) narSave(); }
+const mr = (n) => Math.floor(Math.random() * n);
+const cap1 = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+const commas = (n) => Math.round(n).toLocaleString('en-US');
+const plural = (n, w, p) => `${n} ${n === 1 ? w : (p || w + 's')}`;
+
+const LAND = {
+  meadow: { sight: ['wildflowers nod beside the road', 'a windmill turns slowly on a far hill', 'sheep scatter off the path', 'a stone bridge crosses a lazy stream', 'a scarecrow wears an old bard\'s hat', 'the tall grass hisses in the wind', 'a ruined watchtower is full of swallows', 'a farm cart sits abandoned, one wheel missing', 'a rainbow hangs over the far fields', 'a well with a bucket still on the rope'], sound: ['larks singing overhead', 'the creak of the windmill', 'a cowbell somewhere', 'bees busy in the clover', 'a farmer whistling'], air: ['warm and sweet', 'full of the smell of cut hay', 'thick with pollen and dust', 'soft as a summer morning'], hazard: ['slimes are said to gather here at dusk', 'the shepherds warn of wolves', 'the bridges here charge a toll in songs'], place: 'tall grass' },
+  forest: { sight: ['moss hangs from the branches like old beards', 'a fallen oak blocks half the path', 'mushrooms glow in a fairy ring', 'a face is carved into a tree trunk', 'sunlight falls in thin gold columns', 'an owl watches without blinking', 'a hunter\'s snare has just been sprung', 'a hollow log is big enough to sleep in', 'a stag stands frozen, then is gone', 'acorns crunch under every boot'], sound: ['a woodpecker drumming', 'a branch snapping far behind', 'the hush of a thousand leaves', 'something large breathing in the dark', 'a stream they cannot see'], air: ['damp and green', 'sharp with pine sap', 'cool and very still', 'heavy with rain that has not fallen yet'], hazard: ['the trees seem closer than they were', 'travellers here walk in circles for days', 'the elves say the woods are listening'], place: 'trees' },
+  cave: { sight: ['crystals pulse with a cold blue light', 'water drips into black pools', 'old pickaxes rust against the wall', 'a narrow bridge spans a chasm', 'bones are stacked neatly in an alcove', 'a vein of gold glints in the rock', 'runes are cut into the ceiling', 'hundreds of bats hang overhead', 'a minecart waits on broken rails', 'a lantern burns with no one near it'], sound: ['water dripping', 'the echo of their own footsteps', 'a low rumble far below', 'wings rustling', 'stones settling in the dark'], air: ['cold and stale', 'sour with sulphur and wet stone', 'so thin the torches gutter', 'colder with every step'], hazard: ['the torch is burning low', 'the ceiling groans as they pass', 'the map ends here; someone drew a skull'], place: 'dark' },
+  desert: { sight: ['dunes ripple to the horizon', 'a bleached skull of some great beast lies half buried', 'a mirage of a city shimmers ahead', 'an oasis with three crooked palms', 'half a stone face pokes out of the sand', 'a caravan\'s tracks are already fading', 'a cactus taller than any of them', 'the sun sits like a coin of white fire', 'a sunken temple roof breaks the sand', 'a lone camel watches them pass'], sound: ['wind hissing over the sand', 'a vulture calling', 'nothing at all', 'sand trickling into their boots', 'a far-off caravan bell'], air: ['dry as old parchment', 'hot enough to bake bread', 'full of fine red grit', 'shimmering with heat'], hazard: ['water is running low', 'scorpions hide under every stone', 'the sand swallows the road in places'], place: 'sand' },
+  snow: { sight: ['icicles hang like teeth from the cliffs', 'a waterfall has frozen solid', 'the snow is up to their knees', 'a frozen lake creaks underfoot', 'a lonely pine sags under the snow', 'footprints far too big to be human', 'an abandoned sled lies on its side', 'the peaks glow pink in the low sun', 'an ice cave yawns blue and silent', 'a snowman wears a goblin\'s helmet'], sound: ['the crunch of snow', 'wind howling through the pass', 'a distant avalanche', 'ice cracking somewhere below', 'wolves calling to each other'], air: ['bitter and sharp', 'so cold their breath freezes', 'clean and very thin', 'full of sparkling ice'], hazard: ['frostbite nips at their fingers', 'the pass may close if the storm comes', 'the snow hides deep crevasses'], place: 'snowdrift' },
+  swamp: { sight: ['will-o\'-the-wisps bob between the reeds', 'the moon floats in black water', 'a sunken boat sticks up prow first', 'a heron stands perfectly still', 'a hut on stilts swings its door open and shut', 'bubbles rise from the mud', 'a signpost points every direction at once', 'mist curls around their ankles', 'a crocodile pretends to be a log', 'lily pads big enough to stand on'], sound: ['frogs croaking in chorus', 'something slithering', 'the slurp of deep mud', 'a bell tolling from nowhere', 'mosquitoes, endless mosquitoes'], air: ['thick and rotten', 'heavy with peat and old fish', 'warm and wet', 'buzzing with insects'], hazard: ['the ground swallows a boot', 'leeches find every gap in the armour', 'the lights in the water lead travellers astray'], place: 'mud' },
+  dusk: { sight: ['the sky burns orange, then violet', 'long shadows stretch out ahead', 'the first stars come out', 'a lantern glows in a far window', 'crows settle on a dead tree', 'the moon rises huge and red', 'fireflies drift over the grass', 'a roadside shrine holds one candle', 'bats pour from a bell tower', 'the road turns silver in the moonlight'], sound: ['crickets starting up', 'a dog barking far away', 'a lute from a distant inn', 'the wind dying down', 'an owl\'s first call'], air: ['cooling fast', 'smoky from a far chimney', 'still and golden', 'sweet with night flowers'], hazard: ['night creatures are stirring', 'it will be dark soon', 'the inns lock their doors at moonrise'], place: 'shadows' },
+  volcano: { sight: ['rivers of lava glow between black rocks', 'ash falls like grey snow', 'the mountain spits fire into the sky', 'obsidian glitters along the path', 'a charred signpost reads TURN BACK', 'steam vents roar out of the cracks', 'the ground is warm through their boots', 'a shed dragon scale lies there, big as a shield', 'a lava fall pours into a glowing lake', 'a burnt-out wagon of fire-salts'], sound: ['rumbling underfoot', 'hissing steam', 'rocks cracking in the heat', 'a far-off roar', 'lava popping like porridge'], air: ['choking with sulphur', 'hot enough to singe eyebrows', 'thick with smoke', 'shimmering and orange'], hazard: ['one wrong step means a burnt foot', 'the mountain is getting angrier', 'the rocks here are too hot to touch'], place: 'smoke' },
+  beach: { sight: ['waves roll in white and slow', 'a shipwreck lies on its side', 'crabs scuttle sideways out of the way', 'shells crunch underfoot', 'a message in a bottle (it is blank)', 'gulls wheel over a fishing village', 'a lighthouse blinks on the point', 'tide pools are full of tiny fish', 'a sandcastle someone worked very hard on', 'a dolphin leaps just past the breakers'], sound: ['surf on the sand', 'gulls arguing', 'a ship\'s bell offshore', 'a sail snapping in the wind', 'children laughing far down the shore'], air: ['salty and fresh', 'full of seaweed and sunshine', 'bright and breezy', 'misty with spray'], hazard: ['the tide is coming in', 'something big moves under the waves', 'the fishermen say the sea has been restless'], place: 'surf' },
+  ruins: { sight: ['broken columns lean like tired soldiers', 'a statue has lost its head', 'a throne room lies open to the sky', 'mosaics show forgotten kings', 'vines strangle an iron gate', 'a well, very deep, very dark', 'banners rot on the walls', 'a staircase climbs to nowhere', 'a sundial stopped at a quarter past doom', 'an empty suit of armour salutes'], sound: ['stones settling', 'wind whistling through the arches', 'an echo of marching feet', 'pigeons in the rafters', 'a harp string breaking somewhere'], air: ['dusty and old', 'heavy with moss and candle wax', 'strangely cold', 'still, like a held breath'], hazard: ['ghosts are said to keep watch here', 'the floor is not to be trusted', 'the old king\'s curse is mentioned on every wall'], place: 'rubble' },
+};
+const ACT = {
+  Fighter: ['polishes a dented shield', 'counts the notches on their sword', 'walks in front, as always', 'tests the edge of a blade with a thumb', 'grumbles about the pace', 'practises a parry on a passing fly'],
+  Barbarian: ['eats an entire loaf while walking', 'challenges a tree to a fight (and wins)', 'hums a war chant', 'carries everyone\'s packs without being asked', 'sniffs the air for enemies', 'arm-wrestles a boulder'],
+  Paladin: ['offers a quiet prayer', 'straightens a crooked cape', 'lectures the party about honesty', 'blesses the road ahead', 'reads from a small holy book', 'helps a beetle across the path'],
+  Ranger: ['spots fresh tracks in the dirt', 'fletches a few new arrows', 'points out a hawk overhead', 'scouts ahead and comes back grinning', 'names every bird they pass', 'reads the wind with a wet finger'],
+  Rogue: ['picks a lock just for practice', 'flips a coin across their knuckles', 'vanishes for a moment and returns with an apple', 'counts the party\'s gold. Twice.', 'whistles a suspicious tune', 'checks every chest for traps, including a tree stump'],
+  Monk: ['walks on their hands for a while', 'meditates mid-stride', 'catches a fly with two fingers', 'balances a stone on their head', 'breathes in for four, out for eight', 'does a backflip for no reason'],
+  Cleric: ['tends a blister on someone\'s heel', 'rings a tiny bell for luck', 'hands out healing herbs', 'hums a hymn', 'checks everyone\'s wounds', 'sprinkles holy water on a suspicious puddle'],
+  Druid: ['talks to a passing squirrel', 'grows a flower from an acorn', 'listens to the soil', 'braids a vine into their hair', 'turns into a cat for a moment, then back', 'apologises to the grass for stepping on it'],
+  Wizard: ['reads while walking and trips', 'argues with their spellbook', 'lights a pipe with a fingertip spark', 'scribbles notes about the local rocks', 'claims to know a shortcut', 'mutters the names of the stars'],
+  Sorcerer: ['sparks a little fire by accident', 'sneezes, and their hair changes colour', 'floats a few inches off the ground', 'hums, and the air shimmers', 'frowns at the sky until it clears', 'juggles three tiny lightning bolts'],
+  Warlock: ['whispers to something no one else can see', 'writes in a black notebook', 'smiles at a crow, and it bows', 'polishes a strange green ring', 'says their patron is in a good mood today', 'reads a letter that wasn\'t there a moment ago'],
+  Bard: ['composes a song about the last battle', 'tunes the lute for the fifth time', 'makes up a rude verse about the Fighter', 'plays along to music only they can hear', 'tells a joke nobody laughs at', 'writes the party\'s names into a ballad'],
+};
+const RACEQ = { Human: 'yawns and stretches', Elf: 'notices everything, says nothing', Dwarf: 'complains about all this open sky', Halfling: 'asks about second breakfast', Gnome: 'tinkers with a clockwork beetle', 'Half-Orc': 'grins with both tusks', Tiefling: 'flicks their tail impatiently', Dragonborn: 'breathes out a puff of smoke' };
+const BANTER = ['How much further?', 'I have a good feeling about this song.', 'Did anyone else hear that?', 'Next inn, the drinks are on me.', 'I miss my bed.', 'This music makes me want to fight something.', 'Stay close. Something is watching us.', 'Remind me why we took this job?', 'If we survive this, I am writing a song about it.', 'My boots are full of the last region.', 'I could walk to this beat forever.', 'Who packed the snacks? Nobody packed the snacks.', 'Six songs. We can do this.', 'Turn it up!', 'Is it me, or are the monsters getting bigger?', 'I think the castle is that way.', 'We should have brought a horse.', 'Quiet. Listen to the music.', 'I named my sword. Don\'t laugh.', 'One more fight and I\'m level up, I can feel it.', 'That last monster owes me a new cloak.', 'Is it just me, or does this road loop?', 'Thou art all doing great, by the way.', 'Whoever chose this song: good choice.'];
+const PAIR = ['argue about the map', 'share the last of the bread', 'race to the next tree', 'swap old war stories', 'trade insults, cheerfully', 'sing a marching song badly', 'compare scars', 'bet on what the next monster will be', 'play rock-paper-scissors for first watch', 'agree, for once, about something'];
+const SIGN = ['A wooden sign', 'A mossy milestone', 'A painted rock', 'A board nailed to a tree', 'A carved post'];
+const SIGNT = ['THE CASTLE: SIX SONGS', 'BEWARE OF SLIMES', 'INN CLOSED (FISH)', 'NO DRAGONS PAST THIS POINT (MOSTLY)', 'TURN BACK. OR DON\'T.', 'HERE LIES BOB. HE STOPPED THE MUSIC.', 'THE TEMPLE OF THE FISH: ALL HEROES WELCOME', 'LISTEN WELL, OR PERISH', 'KEEP OFF THE GRASS (MONSTERS)', 'THIS WAY TO ADVENTURE', 'LOST: ONE GRIFFIN. ANSWERS TO "STEVE".', 'TOLL: ONE GOOD SONG'];
+const RUMOR = ['The king loves a good drum solo.', 'A dragon guards the castle bridge. Or used to.', 'The fish in the temple are older than the gods.', 'Six songs. Not five. Not seven.', 'The music keeps the monsters away. Mostly.', 'Somebody saw a golden slime by the river.', 'The castle gate only opens to the sound of fireworks.', 'Heroes who skip songs are never seen again.', 'There is a secret level after the sixth song. Probably.', 'The monsters dance too, when nobody is looking.', 'A wizard once played one song for a whole year.', 'The bard who wrote the ballad of the road is still walking it.'];
+const FIND = ['a copper coin', 'a medical herb', 'a rusty key', 'a single lost glove', 'a fishbone charm', 'a map with one X on it', 'a bottle of fairy water', 'a feather of every colour', 'a tiny silver bell', 'a love letter, unsigned', 'a slime\'s lost hat', 'a guitar pick made of dragon tooth'];
+const FINDR = ['and pockets it', 'and shows everyone', 'and throws it away', 'but it crumbles to dust', 'and gives it to the Bard', 'and swears it is lucky'];
+const HAZR = ['keeps a hand on their weapon', 'takes the lead', 'suggests walking faster', 'pretends not to be scared', 'checks the map again', 'starts humming louder'];
+const LASTR = ['A shiver.', 'A grin.', '"Never again."', '"It was easy," they lie.', 'They rub the bruise.', 'They tell the story a little bigger this time.'];
+
+function narCtx() {
+  const P = S.party, alive = P.filter((h) => h.alive), b = S.biome || 'meadow';
+  const L = LAND[b] || LAND.meadow, song = S.songs[S.curSong];
+  return { P, alive: alive.length ? alive : P, L, region: REGION[b] || 'the road', song: song && song.title, steps: Math.round(S.steps || 0), left: MAXSONGS - S.songs.length };
+}
+/* templates: each returns a line, or '' if it doesn't fit right now. pk() picks and records the choice. */
+const NT = [
+  (c, pk) => { const h = pk(c.alive, 'h'); return `${h.name} ${pk(ACT[h.cls] || ACT.Fighter, 'a')}.`; },
+  (c, pk) => `${c.region}: ${pk(c.L.sight, 's')}.`,
+  (c, pk) => `The air is ${pk(c.L.air, 'a')}. ${(() => { const h = pk(c.alive, 'h'); return `${h.name} ${pk(ACT[h.cls] || ACT.Fighter, 'c')}.`; })()}`,
+  (c, pk) => `They hear ${pk(c.L.sound, 'n')}. ${(() => { const h = pk(c.alive, 'h'); return `${h.name} ${RACEQ[h.race] || 'listens'}.`; })()}`,
+  (c, pk) => c.steps > 50 ? `${commas(c.steps)} steps since the journey began. ${cap1(pk(c.L.sight, 's'))}.` : '',
+  (c, pk) => { const h = pk(c.alive, 'h'); return `${h.name}: "${pk(BANTER, 'b')}"`; },
+  (c, pk) => `Thou seest ${pk(c.L.sight, 's')}.`,
+  (c, pk) => `Somewhere ahead, ${pk(c.L.sound, 'n')}. ${cap1(pk(c.L.hazard, 'z'))}.`,
+  (c, pk) => { const h = c.alive.filter((x) => x.hp < x.max * 0.6)[0]; return h ? `${h.name} is down to ${h.hp} of ${h.max} HP and ${pk(['limps a little', 'grits their teeth', 'jokes about it', 'asks the Cleric for a look', 'says it is only a scratch'], 'w')}.` : ''; },
+  (c, pk) => { const h = c.P.slice().sort((a, b) => b.lvl - a.lvl)[0]; return h && h.lvl > 1 ? `${h.name} is level ${h.lvl} now and ${pk(['walks a little taller', 'won\'t stop mentioning it', 'has a new swagger', 'wants a bigger hat'], 'w')}.` : ''; },
+  (c, pk) => S.gold > 0 ? `The purse holds ${commas(S.gold)} gold. ${pk(c.alive, 'h').name} ${pk(['wants to spend it all at the next inn', 'counts it again', 'dreams of a new sword', 'insists on saving it'], 'w')}.` : '',
+  (c, pk) => c.song ? `"${c.song}" keeps the party marching in step.` : '',
+  (c, pk) => { const k = c.P.slice().sort((a, b) => b.kills - a.kills)[0]; return k && k.kills > 1 ? `${k.name} has slain ${k.kills} monsters and ${pk(['is keeping count', 'carves a notch for each', 'wants a rematch with the rest', 'gives each one a name'], 'w')}.` : ''; },
+  (c, pk) => { const a = pk(c.alive, 'h'), b = c.alive.filter((x) => x !== a); return b.length ? `${a.name} and ${pk(b, 'g').name} ${pk(PAIR, 'p')}.` : ''; },
+  (c, pk) => `${pk(SIGN, 'g')} by the road reads: "${pk(SIGNT, 't')}"`,
+  (c, pk) => `A traveller passes and whispers: "${pk(RUMOR, 'r')}"`,
+  (c, pk) => { const h = pk(c.alive, 'h'); return `${h.name} finds ${pk(FIND, 'f')} by the road, ${pk(FINDR, 'r')}.`; },
+  (c, pk) => `${cap1(pk(c.L.hazard, 'z'))}. ${pk(c.alive, 'h').name} ${pk(HAZR, 'r')}.`,
+  (c, pk) => c.left > 0 && S.songs.length ? `The castle is still ${plural(c.left, 'song')} away.` : '',
+  (c, pk) => { const b = S.bestiary[S.bestiary.length - 1]; if (!b) return ''; const h = pk(c.alive, 'h'); return `${h.name} remembers the ${b.name}. ${pk(LASTR, 'l')}`; },
+  (c, pk) => c.song ? `${pk(c.alive, 'h').name} hums along to "${c.song}".` : '',
+  (c, pk) => `The party rests a moment. ${(() => { const h = pk(c.alive, 'h'); return `${h.name} ${pk(ACT[h.cls] || ACT.Fighter, 'a')}`; })()}. Then on they go.`,
+  (c, pk) => `The road bends. ${cap1(pk(c.L.sight, 's'))}, and ${pk(c.L.sound, 'n')} fills the air.`,
+  (c, pk) => `${plural(c.alive.length, 'pair')} of boots, one road. ${commas(c.steps)} steps and counting.`,
+  (c, pk) => S.battles ? `Battle count: ${S.battles}. Wins: ${S.wins}. ${pk(['Not bad.', 'The bards will hear of this.', 'The monsters are taking notes.', 'Thy legend grows.'], 'w')}` : '',
+  (c, pk) => `STATUS: ${c.P.map((h) => `${upper(h.name)} ${h.alive ? h.hp + '/' + h.max : 'KO'}`).join('  ')}`,
+  (c, pk) => { const h = c.P.filter((x) => x.dmg > 0).sort((a, b) => b.dmg - a.dmg)[0]; return h ? `${h.name} has dealt ${commas(h.dmg)} damage so far. ${pk(['Nobody argues with that.', 'The others are impressed.', 'They want it to be more.', 'The monsters have noticed.'], 'w')}` : ''; },
+  (c, pk) => { const h = c.P.filter((x) => (x.taken || 0) > 0).sort((a, b) => b.taken - a.taken)[0]; return h ? `${h.name} has taken ${commas(h.taken)} damage and ${pk(['is still standing', 'is covered in bandages', 'calls it "character building"', 'blames the Bard'], 'w')}.` : ''; },
+];
+function narGen(pool, c, tag) {
+  for (let tries = 0; tries < 18; tries++) {
+    const ti = mr(pool.length), ch = [];
+    const pk = (arr, t) => { const i = mr(arr.length); ch.push(t + i); return arr[i]; };
+    let s = ''; try { s = pool[ti](c, pk); } catch (e) { s = ''; }
+    if (!s) continue;
+    const key = tag + ti + ':' + ch.join(',');
+    if (!NR.set.has(key) || tries >= 16) { narMark(key); return s; }
+  }
+  return '';
+}
+function narSay(s, front) { if (!s) return; const lines = wrap(upper(s), 46), pages = []; for (let i = 0; i < lines.length; i += 4) pages.push(lines.slice(i, i + 4)); if (front) NR.q.unshift(...pages); else NR.q.push(...pages); if (NR.q.length > 7) NR.q.splice(7); }
+/* event lines (kept short for the battle log, longer for the walk box) */
+function narEncounter(t, t2) {
+  const n = S.foes.filter((f) => f.type === t).length, nm = t.base, pl = n > 1 ? `${n} ${nm}S` : `A ${nm}`;
+  const place = (LAND[S.biome] || LAND.meadow).place;
+  const opts = [`${pl} ${n > 1 ? 'draw' : 'draws'} near!`, `${pl} ${n > 1 ? 'block' : 'blocks'} the road!`, `Thou art attacked! ${pl}!`, `From the ${place}: ${pl}!`, `${pl} ${n > 1 ? 'appear' : 'appears'}!`, `${pl} ${n > 1 ? 'leap' : 'leaps'} out!`];
+  return opts[mr(opts.length)] + (t2 ? ' And more!' : '');
+}
+function narEvent(kind, o) {
+  const c = narCtx(), pick2 = (a) => a[mr(a.length)];
+  if (kind === 'enc') { if (S.battles === 1) narSay(`The first battle of the journey! ${c.region} will not let them pass quietly.`); return; }
+  if (kind === 'win') {
+    const lastHit = S.lastBlow; const t = o.types[0];
+    narSay(pick2([
+      `${lastHit ? lastHit + ' lands the final blow on the ' + t.name + '. ' : ''}${o.xp} XP and ${o.gold} gold.`,
+      `The ${t.name}${S.foes.length > 1 ? ' and its friends are' : ' is'} defeated! ${o.gold} gold jingles into the purse.`,
+      `Victory${S.wins > 1 ? ' number ' + S.wins : ''}! ${lastHit ? lastHit + ' wipes their weapon clean.' : 'The party catches its breath.'}`,
+      `The ${t.base.toLowerCase()} is no more. ${o.xp} XP earned${S.chBest ? `; best blow this song: ${S.chBest.h}, ${S.chBest.dm} damage` : ''}.`,
+    ]));
+    return;
+  }
+  if (kind === 'temple') { narSay(pick2([`All is dark... then the Temple of the Fish. The priests revive the party${o.lost ? ` and keep ${o.lost} gold` : ''}.`, `The ${o.foe} wins this time. The Temple of the Fish brings everyone back, a little wetter than before.`, `Thou art dead. Just kidding: the Temple of the Fish says rise${o.lost ? `, and that will be ${o.lost} gold` : ''}.`]), true); return; }
+}
+function narNote(kind, h, x) {
+  if (kind === 'lvl') narSay(`${h.name} the ${h.cls} reached level ${h.lvl}! ${[`HP is now ${h.max}.`, 'The party cheers.', 'The music swells.', `${h.name} feels stronger.`][mr(4)]}`);
+  if (kind === 'fall') narSay(`${h.name} fell to the ${x.name}${h.taken ? ` after taking ${h.taken} damage` : ''}.`);
+}
+/* chapters: one per song */
+function narSnap() { const o = {}; S.party.forEach((h) => { o[h.name] = { dmg: h.dmg, taken: h.taken || 0, kills: h.kills, lvl: h.lvl, downs: h.downs || 0 }; }); return o; }
+function narCloseChap() {
+  const ch = S.chaps && S.chaps[S.chaps.length - 1]; if (!ch || ch.done) return;
+  ch.done = true; ch.steps = Math.round((S.steps || 0) - ch.s0); ch.battles = S.battles - ch.b0; ch.wins = S.wins - ch.w0; ch.gold = S.gold - ch.g0; ch.best = S.chBest;
+  ch.heroes = S.party.map((h) => { const a = ch.snap[h.name] || { dmg: 0, taken: 0, kills: 0, lvl: h.lvl, downs: 0 }; return { name: h.name, cls: h.cls, dmg: h.dmg - a.dmg, taken: (h.taken || 0) - a.taken, kills: h.kills - a.kills, lv: h.lvl - a.lvl, lvl: h.lvl, downs: (h.downs || 0) - a.downs }; });
+  const s = S.songs[ch.song]; ch.title = s ? s.title : ''; ch.region = (s && s.region) || ch.region; ch.foes = s ? [...new Set(s.foes)] : [];
+}
+function narChapter(quiet) {
+  if (!S.chaps) S.chaps = [];
+  narCloseChap();
+  const prev = S.chaps[S.chaps.length - 1];
+  S.chaps.push({ song: S.curSong, n: S.songs.length, region: REGION[S.biome], s0: S.steps || 0, b0: S.battles, w0: S.wins, g0: S.gold, snap: narSnap() });
+  S.chBest = null;
+  if (quiet) return;
+  const c = narCtx(), n = S.songs.length;
+  narSay(`CHAPTER ${n}: "${c.song}". ${n === MAXSONGS ? 'The final song! The castle towers rise in the distance.' : `The road leads into ${c.region}. ${cap1((LAND[S.biome] || LAND.meadow).sight[mr(10)])}.`}`, n > 1);
+  if (prev && prev.done) { const top = prev.heroes.slice().sort((a, b) => b.dmg - a.dmg)[0]; narSay(`End of chapter ${prev.n}: ${commas(prev.steps)} steps, ${plural(prev.battles, 'battle')}${top && top.dmg ? `, ${top.name} dealt the most damage (${top.dmg})` : ''}.`, true); }
+}
+function narBegin() {
+  S.steps = S.steps || 0; S.chaps = S.chaps || [];
+  const P = S.party, names = P.map((h) => `${h.name} the ${h.race} ${h.cls}`);
+  narSay([`Hear now the tale of ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}.`, `Four heroes meet at the crossroads: ${names.join(', ')}.`, `The bards will sing of ${P.map((h) => h.name).join(', ')}. Their story begins now.`][mr(3)]);
+  narSay(['Six songs stand between them and the castle. Listen well, or perish.', 'The road is long, the music is loud, and the monsters are hungry.', 'Somewhere past the sixth song, a castle waits.'][mr(3)]);
+}
+function narReset() { NR.q = []; NR.cur = null; NR.cool = 3; NR.epi = null; }
+/* the dialogue box while walking */
+function narBox(lines, shown) {
+  box(4, 153, 312, 44, 0, 1);
+  let left = shown; lines.forEach((ln, i) => { if (left <= 0) return; txt(ln.slice(0, left), 12, 159 + i * 9, 1, 'left', 6); left -= ln.length; });
+  if (shown >= lines.join('').length && Math.floor(performance.now() / 400) % 2) { g.fillStyle = C[1]; g.fillRect(304, 189, 4, 4); }
+}
+function narWalk(rawDt, dt) {
+  if (!S.playing) { if (NR.cur) narBox(NR.cur.lines, 999); return; }
+  if (!NR.cur) {
+    NR.cool -= rawDt / 1000;
+    if (NR.q.length) NR.cur = { lines: NR.q.shift(), t: 0 };
+    else if (NR.cool <= 0) { const s = narGen(NT, narCtx(), 'w'); if (s) { narSay(s); NR.cur = { lines: NR.q.shift(), t: 0 }; } NR.cool = 1; }
+    if (!NR.cur) return;
+  }
+  const cur = NR.cur; cur.t += rawDt; const len = cur.lines.join('').length, shown = Math.floor(cur.t / 28);
+  narBox(cur.lines, shown);
+  if (shown > len && cur.t > len * 28 + 3800) { NR.cur = null; NR.cool = 1.5 + Math.random() * 2.5; }
+}
+/* the saga, for the end screen and the chronicle sheet */
+function narSaga() {
+  narCloseChap();
+  const out = [];
+  (S.chaps || []).filter((ch) => ch.done).forEach((ch) => {
+    const top = ch.heroes.slice().sort((a, b) => b.dmg - a.dmg)[0], tank = ch.heroes.slice().sort((a, b) => b.taken - a.taken)[0];
+    const lv = ch.heroes.filter((h) => h.lv > 0), downs = ch.heroes.filter((h) => h.downs > 0);
+    let t = `Chapter ${ch.n}${ch.title ? ` — "${ch.title}"` : ''}. In ${ch.region || 'the wilds'} the party walked ${commas(ch.steps)} steps and fought ${plural(ch.battles, 'battle')}`;
+    t += ch.foes.length ? ` (${ch.foes.slice(0, 3).join(', ')}${ch.foes.length > 3 ? ' and more' : ''}).` : '.';
+    if (top && top.dmg) t += ` ${top.name} dealt the most damage (${top.dmg}${top.kills ? `, ${plural(top.kills, 'kill')}` : ''}).`;
+    if (ch.best) t += ` The best blow: ${ch.best.h}, ${ch.best.dm} on the ${ch.best.foe}.`;
+    if (tank && tank.taken) t += ` ${tank.name} took the most punishment (${tank.taken}).`;
+    if (lv.length) t += ` ${lv.map((h) => `${h.name} reached level ${h.lvl}`).join('; ')}.`;
+    if (downs.length) { const dn = downs.map((h) => h.name); t += ` ${dn.length > 1 ? dn.slice(0, -1).join(', ') + ' and ' + dn[dn.length - 1] : dn[0]} fell, and rose again.`; }
+    if (ch.gold > 0) t += ` +${ch.gold} gold.`;
+    out.push(t);
+  });
+  return out;
+}
+function narHeroLines() { return S.party.map((h) => `${h.name} the ${h.race} ${h.cls}: level ${h.lvl}, ${commas(h.dmg)} damage dealt, ${commas(h.taken || 0)} taken, ${plural(h.kills, 'kill')}${h.best ? `, best blow ${h.best.dm}` : ''}${h.fell ? '. Perished at the end.' : '.'}`); }
+function narClose() {
+  const saga = narSaga(); S.saga = saga;
+  const lines = [`THE END. ${commas(S.steps || 0)} steps, ${plural(S.battles, 'battle')}, ${S.wins} won, across ${plural(S.songs.length, 'song')}.`].concat(narHeroLines());
+  NR.epi = { pages: [], i: 0, t: 0 };
+  lines.forEach((l) => { const w = wrap(upper(l), 46); for (let i = 0; i < w.length; i += 4) NR.epi.pages.push(w.slice(i, i + 4)); });
+}
+function narEpilogue(rawDt) {
+  const E = NR.epi; if (!E || !E.pages.length) return; E.t += rawDt;
+  const p = E.pages[E.i % E.pages.length], len = p.join('').length;
+  narBox(p, Math.floor(E.t / 24));
+  if (E.t > len * 24 + 4200) { E.t = 0; E.i++; }
+}
+
 
 /* ---------- battle ---------- */
 const HW = 22, HH = 32;
@@ -757,24 +975,24 @@ function foeAct(f) {
   S.anim = { kind: 'bounce', actor: f, foe: true, tgt, t: 0, dur: 600, dmg: dm, col: 2 };
   say(dm ? `${f.type.base} ${pick(['bites', 'claws', 'slams', 'lashes', 'zaps', 'gnaws'])} ${tgt.name} for ${dm}` : `${f.type.base} misses ${tgt.name}`);
 }
-function hurtFoe(f, dm, h) { if (!h.best || dm > h.best.dm) h.best = { dm, foe: f.type.name, song: S.curSong }; f.hp -= dm; f.flash = 300; floater({ x: f.x + f.w / 2, y: f.y }, String(dm), 7); h.dmg += dm; if (f.hp <= 0 && f.alive) { f.alive = false; h.kills++; f.type.slain++; f.type.slainBy[h.name] = (f.type.slainBy[h.name] || 0) + 1; } }
+function hurtFoe(f, dm, h) { if (!h.best || dm > h.best.dm) h.best = { dm, foe: f.type.name, song: S.curSong }; if (!S.chBest || dm > S.chBest.dm) S.chBest = { dm, h: h.name, foe: f.type.name }; f.hp -= dm; f.flash = 300; floater({ x: f.x + f.w / 2, y: f.y }, String(dm), 7); h.dmg += dm; if (f.hp <= 0 && f.alive) { f.alive = false; h.kills++; S.lastBlow = h.name; f.type.slain++; f.type.slainBy[h.name] = (f.type.slainBy[h.name] || 0) + 1; } }
 function resolveAnim(a) {
-  if (a.foe) { if (a.dmg) { a.tgt.hp -= a.dmg; a.tgt.flash = 300; floater(heroPos(S.party.indexOf(a.tgt)), String(a.dmg), 2); if (a.tgt.hp > 0 && a.tgt.hp <= Math.max(2, a.tgt.max * 0.15)) { a.tgt.close = (a.tgt.close || 0) + 1; a.tgt.closeFoe = a.actor.type.name; } if (a.tgt.hp <= 0) { a.tgt.alive = false; a.tgt.hp = 0; a.tgt.downs = (a.tgt.downs || 0) + 1; a.tgt.downBy = a.actor.type.name; say(`${a.tgt.name} falls!`); chronicle(`${a.tgt.name} fell to the ${a.actor.type.name}.`); } } return; }
+  if (a.foe) { if (a.dmg) { a.tgt.taken = (a.tgt.taken || 0) + a.dmg; a.tgt.hp -= a.dmg; a.tgt.flash = 300; floater(heroPos(S.party.indexOf(a.tgt)), String(a.dmg), 2); if (a.tgt.hp > 0 && a.tgt.hp <= Math.max(2, a.tgt.max * 0.15)) { a.tgt.close = (a.tgt.close || 0) + 1; a.tgt.closeFoe = a.actor.type.name; } if (a.tgt.hp <= 0) { a.tgt.alive = false; a.tgt.hp = 0; a.tgt.downs = (a.tgt.downs || 0) + 1; a.tgt.downBy = a.actor.type.name; say(`${a.tgt.name} falls!`); narNote('fall', a.tgt, a.actor.type); chronicle(`${a.tgt.name} fell to the ${a.actor.type.name}.`); } } return; }
   if (a.tgt && a.dmg) hurtFoe(a.tgt, a.dmg, a.actor);
 }
 function victory() {
   const types = [...new Set(S.foes.map((f) => f.type))]; const xp = types.reduce((s, t) => s + t.xp * S.foes.filter((f) => f.type === t).length, 0);
   const gold = ri(5, 25) * Math.max(1, Math.round(xp / 30)); S.gold += gold; S.wins++;
   const alive = S.party.filter((h) => h.alive);
-  alive.forEach((h) => { h.xp += Math.round(xp / alive.length); const need = h.lvl * 100; if (h.xp >= need) { h.xp -= need; h.lvl++; const up = Math.max(2, Math.ceil(h.info.hd / 2) + Math.floor((h.stats.CON - 10) / 2)); h.max += up; h.hp = h.max; say(`${h.name} reaches level ${h.lvl}!`); chronicle(`${h.name} the ${h.cls} reached level ${h.lvl}.`); } });
+  alive.forEach((h) => { h.xp += Math.round(xp / alive.length); const need = h.lvl * 100; if (h.xp >= need) { h.xp -= need; h.lvl++; const up = Math.max(2, Math.ceil(h.info.hd / 2) + Math.floor((h.stats.CON - 10) / 2)); h.max += up; h.hp = h.max; say(`${h.name} reaches level ${h.lvl}!`); narNote('lvl', h); chronicle(`${h.name} the ${h.cls} reached level ${h.lvl}.`); } });
   S.party.forEach((h) => { if (!h.alive && rnd() < 0.5) { h.alive = true; h.hp = Math.ceil(h.max / 3); } else if (h.alive) h.hp = Math.min(h.max, h.hp + Math.ceil(h.max * 0.15)); });
-  say(`Victory! ${xp} XP, ${gold} gold`);
+  say(`Victory! ${xp} XP, ${gold} gold`); narEvent('win', { types, xp, gold });
   chronicle(`Defeated ${types.map((t) => t.name).join(' and ')} (+${xp} XP, ${gold} gold).`);
   S.phase = 'loot'; S.lootT = 1800;
 }
 function partyWiped() {
   S.deaths++; const lost = Math.floor(S.gold / 2); S.gold -= lost;
-  say('The party has fallen...'); chronicle(`The party fell to ${S.foes[0].type.name}. The Temple of the Fish revived them${lost ? ` for ${lost} gold` : ''}.`);
+  say('The party has fallen...'); narEvent('temple', { lost, foe: S.foes[0].type.name }); chronicle(`The party fell to ${S.foes[0].type.name}. The Temple of the Fish revived them${lost ? ` for ${lost} gold` : ''}.`);
   S.phase = 'temple'; S.lootT = 3200;
 }
 function floater(p, s, col) { S.floaters.push({ x: p.x, y: p.y, s, col, t: 0 }); }
@@ -790,7 +1008,7 @@ function songStart(title) {
   S.curSong = S.songs.length - 1; S.playing = true; if (typeof VZ !== 'undefined') VZ.bpm = 86 + rnd() * 60;
   S.party.forEach((h) => { h.lvlBySong[S.curSong] = h.lvl; });
   S.banner = { text: '♪ ' + (title || `TRACK ${S.songs.length}`), t: 0 };
-  newRegion();
+  newRegion(); narChapter();
   if (S.phase === 'walk' && S.nextEnc - S.walkT > 3) S.nextEnc = S.walkT + 3;
   renderSongs(); setStatus();
 }
@@ -1027,13 +1245,13 @@ function frame(now) {
   const speed = S.pace * (0.6 + S.energy * 0.9);
   const dt = S.playing ? rawDt * speed : 0;
   acct(); if (++questTick % 15 === 0) renderQuest(); if (typeof drawViz === 'function') try { drawViz(rawDt); } catch (e) {}
-  if (S.phase === 'fireworks') { drawFireworks(rawDt); requestAnimationFrame(frame); return; }
-  if (S.phase === 'graveyard') { drawGraveyard(rawDt); requestAnimationFrame(frame); return; }
+  if (S.phase === 'fireworks') { drawFireworks(rawDt); narEpilogue(rawDt); requestAnimationFrame(frame); return; }
+  if (S.phase === 'graveyard') { drawGraveyard(rawDt); narEpilogue(rawDt); requestAnimationFrame(frame); return; }
   if (S.phase === 'intro') { drawIntro(rawDt); if (S.introT > 6500) S.phase = 'roll'; requestAnimationFrame(frame); return; }
   if (S.phase === 'roll') drawRoll(now);
   else if (S.phase === 'walk') {
-    S.walkT += dt / 1000; S.fieldX += dt * 0.04;
-    drawField(now, dt);
+    S.walkT += dt / 1000; S.fieldX += dt * 0.04; S.steps = (S.steps || 0) + dt * 0.0125;
+    drawField(now, dt); narWalk(rawDt, dt);
     if (S.walkT >= S.nextEnc && S.playing) encounter();
   } else if (S.phase === 'battle') {
     if (S.anim) { S.anim.t += dt; if (S.anim.t >= S.anim.dur) { const a = S.anim; S.anim = null; resolveAnim(a); S.turnT = 260; } }
@@ -1048,7 +1266,7 @@ function frame(now) {
 }
 
 /* ---------- controls ---------- */
-function begin() { if (S.phase === 'intro') S.phase = 'roll'; if (S.phase !== 'roll') return; S.phase = 'walk'; S.walkT = 0; S.nextEnc = 5; chronicle(`The party gathered: ${S.party.map((h) => `${h.name} ${h.epi} (${h.race} ${h.cls})`).join(', ')}.`); setStatus(); }
+function begin() { if (S.phase === 'intro') S.phase = 'roll'; if (S.phase !== 'roll') return; S.phase = 'walk'; S.walkT = 0; S.nextEnc = 5; narBegin(); chronicle(`The party gathered: ${S.party.map((h) => `${h.name} ${h.epi} (${h.race} ${h.cls})`).join(', ')}.`); setStatus(); }
 /* ---------- the graveyard (and a sad song: Chopin's Funeral March, public domain, played on a SID-style synth) ---------- */
 const GY = { t: 0, rain: [] };
 function startGraveyard() {
@@ -1125,7 +1343,7 @@ root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', (
 root.querySelectorAll('[data-pace]').forEach((b) => b.addEventListener('click', () => { S.pace = +b.dataset.pace; root.querySelectorAll('[data-pace]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
 $('#pq-new').addEventListener('click', () => { if (S.songs.length && !confirmNew()) return; resetAll(); });
 function confirmNew() { return window.confirm ? window.confirm('Start over with a new party? This quest will end.') : true; }
-function resetAll() { dirge.stop(); Object.assign(S, { phase: 'intro', introT: 0, gold: 0, foes: [], bestiary: [], songs: [], curSong: -1, log: [], chronicle: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), anim: null, banner: null, ended: false, simFrom: null, bigBattle: null, result: null }); FW.parts = []; rollParty(); renderSongs(); setStatus(); $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); }
+function resetAll() { dirge.stop(); Object.assign(S, { phase: 'intro', introT: 0, gold: 0, foes: [], bestiary: [], songs: [], curSong: -1, log: [], chronicle: [], deaths: 0, battles: 0, wins: 0, started: Date.now(), anim: null, banner: null, ended: false, simFrom: null, bigBattle: null, result: null, steps: 0, chaps: [], chBest: null, saga: null, lastBlow: null }); narReset(); FW.parts = []; rollParty(); renderSongs(); setStatus(); $('#pq-sheet').classList.remove('show'); $('#pq-sheetbar').classList.remove('on'); }
 let MODE = 'sp';
 // any music starting begins the quest if the party is still being rolled
 function musicStarted(title) {
@@ -1255,7 +1473,8 @@ function makeStory() {
   const P = S.party, names = (a) => a.length <= 1 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
   const out = [], first = S.songs[0], slain = S.bestiary.reduce((t, b) => t + b.slain, 0);
   out.push(`${names(P.map((h) => `${h.name} the ${h.race} ${h.cls}`))} set out${first ? ` to the sound of "${first.title}"` : ''}.`);
-  out.push(`Across ${S.songs.length} song${S.songs.length === 1 ? '' : 's'} they fought ${S.battles} battle${S.battles === 1 ? '' : 's'} and slew ${slain} monsters.`);
+  out.push(`Across ${S.songs.length} song${S.songs.length === 1 ? '' : 's'} they walked ${commas(S.steps || 0)} steps, fought ${S.battles} battle${S.battles === 1 ? '' : 's'} and slew ${slain} monsters.`);
+  const dd = P.slice().sort((a, b) => b.dmg - a.dmg); if (dd[0] && dd[0].dmg) out.push(`Damage dealt: ${dd.map((h) => `${h.name} ${commas(h.dmg)}`).join(', ')}.`);
   const big = P.filter((h) => h.best).sort((a, b) => b.best.dm - a.best.dm)[0]; if (big) out.push(`The mightiest blow belonged to ${big.name}, who struck the ${big.best.foe} for ${big.best.dm}${S.songs[big.best.song] ? ` during "${S.songs[big.best.song].title}"` : ''}.`);
   if (S.bigBattle && S.bigBattle.n >= 4) out.push(`Their biggest fight was against ${S.bigBattle.n} foes led by the ${S.bigBattle.name}.`);
   const tough = S.bestiary.slice().sort((a, b) => b.lvl * b.mult - a.lvl * a.mult)[0]; if (tough && tough.mult >= 1.6) out.push(`The most fearsome creature met was the ${tough.size.toLowerCase()} ${tough.name}${tough.slain ? `, brought down by ${Object.keys(tough.slainBy)[0]}` : ', which escaped'}.`);
@@ -1283,6 +1502,7 @@ function makeSheet() {
     <h2>THE PARTY</h2><table>${party}</table>
     <h2>THE TALE${S.simFrom != null ? ' (SIMULATED FROM SONG ' + (S.simFrom + 1) + ')' : ''}</h2><p style="font-size:8px;line-height:1.9;margin:0">${esc(makeStory())}</p>
     <div class="sub" style="margin-top:6px">${S.battles} BATTLES · ${S.wins} VICTORIES · ${S.deaths} TRIPS TO THE TEMPLE · ${S.gold} GOLD · ${S.bestiary.reduce((s, t) => s + t.slain, 0)} MONSTERS SLAIN</div>
+    ${S.saga && S.saga.length ? `<h2>THE SAGA, SONG BY SONG</h2>${S.saga.map((t) => `<p style="font-size:8px;line-height:1.9;margin:0 0 8px">${esc(t)}</p>`).join('')}<h2>THE HEROES AT THE END</h2>${narHeroLines().map((t) => `<p style="font-size:8px;line-height:1.9;margin:0 0 6px">${esc(t)}</p>`).join('')}<div class="sub">${commas(S.steps || 0)} STEPS IN ALL</div>` : ''}
     ${questBlock()}
     <h2>THE SONGS OF THIS QUEST</h2><ol>${songs || '<li>No songs yet</li>'}</ol>
     <h2>BESTIARY (${S.bestiary.length} CREATURES)</h2><div class="best">${best || '<div>No monsters met.</div>'}</div>
@@ -1302,7 +1522,7 @@ function endSession(auto) {
   else if (r === 'won') { startFireworks(false); chronicle('The whole party survived the six songs and reached the castle.'); }
   else if (r === 'partial') { startFireworks(false); chronicle(`${fallen.join(', ')} perished on the road; the rest reached the castle.`); }
   else if (r === 'lost') { startGraveyard(); chronicle('The music ran out and the whole party perished.'); }
-  makeSheet(); renderQuest();
+  narClose(); makeSheet(); renderQuest();
   if (!document.fullscreenElement && !$('#pq-tv').classList.contains('full')) cv.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 $('#pq-endbtn').addEventListener('click', () => endSession(false));
@@ -1312,6 +1532,7 @@ function simulateToEnd() {
   const cur = S.songs[S.curSong];
   // the pace so far (time heard ÷ songs so far) carries on for every song that's left
   const L = totalSecs() / S.songs.length;
+  const stepRate = (S.steps || 0) / Math.max(30, totalSecs()) || 3;
   const heard = Math.max(60, totalSecs()), perSec = Math.max(S.battles, 1) / heard;
   S.simFrom = S.songs.length - 1;
   const fightOne = () => {
@@ -1324,7 +1545,7 @@ function simulateToEnd() {
   const curFights = Math.max(0, Math.round(perSec * cur.secs) - cur.foes.length); for (let k = 0; k < curFights; k++) fightOne();
   while (S.songs.length < MAXSONGS) {
     const len = L;
-    S.songs.push({ title: `Simulated song ${S.songs.length + 1}`, foes: [], at: Date.now(), secs: len, uri: null, sim: true }); S.curSong = S.songs.length - 1; newRegion();
+    S.songs.push({ title: `Simulated song ${S.songs.length + 1}`, foes: [], at: Date.now(), secs: len, uri: null, sim: true }); S.curSong = S.songs.length - 1; newRegion(); narChapter(true); S.steps = (S.steps || 0) + len * stepRate;
     S.party.forEach((h) => { h.lvlBySong[S.curSong] = h.lvl; });
     const n = Math.max(1, Math.round(perSec * len)); for (let k = 0; k < n; k++) fightOne();
   }
@@ -1541,16 +1762,21 @@ $('#pq-vzmic').addEventListener('click', (e) => { e.stopPropagation(); vizMicTog
 vcv.addEventListener('click', () => vizNext());
 
 function isFull() { return tv.classList.contains('full'); }
+const coarse = () => window.matchMedia && matchMedia('(pointer:coarse)').matches;
+function lockLand() { try { if (coarse() && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} }
+let idleT = 0; function wakeFs() { tv.classList.remove('idle'); clearTimeout(idleT); if (isFull()) idleT = setTimeout(() => tv.classList.add('idle'), 3500); }
+['pointerdown', 'pointermove', 'touchstart'].forEach((ev) => tv.addEventListener(ev, wakeFs, { passive: true }));
 function setFull(on) {
   if (on === isFull()) return;
-  tv.classList.toggle('full', on); renderQuest();
-  if (on) { if (tv.requestFullscreen) tv.requestFullscreen().catch(() => {}); else if (tv.webkitRequestFullscreen) tv.webkitRequestFullscreen(); }
-  else if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  tv.classList.toggle('full', on); renderQuest(); document.documentElement.style.overflow = on ? 'hidden' : ''; wakeFs();
+  if (on) { const p = tv.requestFullscreen ? tv.requestFullscreen({ navigationUI: 'hide' }) : tv.webkitRequestFullscreen ? tv.webkitRequestFullscreen() : null; if (p && p.then) p.then(lockLand, () => {}); else lockLand(); }
+  else { try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {} if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen(); }
 }
 $('#pq-fs').addEventListener('click', () => setFull(true)); $('#pq-fs2').addEventListener('click', (e) => { e.stopPropagation(); setFull(true); });
 $('#pq-fsx').addEventListener('click', () => setFull(false));
 cv.addEventListener('dblclick', () => setFull(!isFull()));
-document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && isFull()) { tv.classList.remove('full'); } });
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && isFull()) { tv.classList.remove('full'); document.documentElement.style.overflow = ''; } });
+document.addEventListener('webkitfullscreenchange', () => { if (!document.webkitFullscreenElement && isFull() && tv.webkitRequestFullscreen && !tv.requestFullscreen) { tv.classList.remove('full'); document.documentElement.style.overflow = ''; } });
 document.addEventListener('keydown', (e) => { if (/input|select|textarea/i.test(e.target.tagName)) return; if (e.key === 'f' || e.key === 'F') setFull(!isFull()); if ((e.key === 'v' || e.key === 'V') && isFull()) vizNext(); if (e.key === 'Escape' && isFull()) setFull(false); });
 
 /* ---------- go ---------- */
