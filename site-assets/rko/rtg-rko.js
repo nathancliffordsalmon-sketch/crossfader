@@ -1,15 +1,15 @@
-/* Rubber Tree Sessions: C64 remixes from Remix.Kwed.Org (RKO).
-   Every remix streams straight from remix.kwed.org; nothing is rehosted.
-   Each song gets a typed thank-you on the wall for its composer, remixer and RKO page. */
+/* Rubber Tree Sessions: Game music. C64 remixes from Remix.Kwed.Org, or three Kevin MacLeod moods from incompetech.com (CC BY 4.0).
+   Every track streams from its own site; nothing is rehosted.
+   Each song types a thank-you on the wall to its composer and remixer. */
 (function () {
   var BASE = (document.currentScript && document.currentScript.src || '').replace(/rtg-rko\.js.*$/, '');
-  var RKO = 'https://remix.kwed.org';
-  function wait(n) { if (window.rtgHook && document.getElementById('rtg-rko')) return init(); if (n > 150) return; setTimeout(function () { wait(n + 1); }, 100); }
+  if (!window.LTFGM) { var gs = document.createElement('script'); gs.src = BASE + 'gm.js'; document.head.appendChild(gs); }
+  function wait(n) { if (window.rtgHook && window.LTFGM && document.getElementById('rtg-rko')) return init(); if (n > 150) return; setTimeout(function () { wait(n + 1); }, 100); }
   wait(0);
 
   function init() {
     var host = document.getElementById('rtg-rko'); if (host.dataset.ready) return; host.dataset.ready = '1';
-    var H = window.rtgHook, root = document.getElementById('rtg');
+    var H = window.rtgHook, root = document.getElementById('rtg'), G = window.LTFGM;
     var css = document.createElement('style');
     css.textContent = [
       '#rtg-rko audio{width:100%;margin:8px 0 4px}',
@@ -24,16 +24,16 @@
     ].join('\n');
     document.head.appendChild(css);
     host.innerHTML =
-      '<div class="rtg-row"><select id="rko-sel" aria-label="Pick C64 remixes"></select><button type="button" class="btn ghost" id="rko-shuf">Shuffle: on</button></div>' +
+      '<div class="rtg-row"><select id="gm-coll" aria-label="Pick game music"></select><select id="rko-sel" aria-label="Pick C64 remixes"></select><button type="button" class="btn ghost" id="rko-shuf">Shuffle: on</button></div>' +
       '<audio id="rko-audio" controls preload="none"></audio>' +
-      '<div class="rtg-row"><button type="button" class="btn" id="rko-next">⏭ Next remix</button></div>' +
+      '<div class="rtg-row"><button type="button" class="btn" id="rko-next">⏭ Next song</button></div>' +
       '<div class="rko-credit" id="rko-credit"></div>' +
       '<div class="rko-list" id="rko-list"></div>' +
-      '<p class="rtg-hint">Classic Commodore 64 game music, remixed by fans and streamed straight from <a href="https://remix.kwed.org/" target="_blank" rel="noopener">Remix.Kwed.Org</a>. ' +
-      'Press play and the tree grows; each song types a thank-you on the wall to its composer and remixer. Love one? Visit its RKO page and vote.</p>';
+      '<p class="rtg-hint">C64 remixes stream straight from <a href="https://remix.kwed.org/" target="_blank" rel="noopener">Remix.Kwed.Org</a>. The three moods are music by Kevin MacLeod (<a href="https://incompetech.com/" target="_blank" rel="noopener">incompetech.com</a>), ' +
+      'licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">Creative Commons: By Attribution 4.0</a>. Press play and the tree grows; each song types a thank-you on the wall.</p>';
 
-    var sel = host.querySelector('#rko-sel'), au = host.querySelector('#rko-audio'), box = host.querySelector('#rko-list'), credit = host.querySelector('#rko-credit');
-    var DATA = null, list = [], order = [], pos = 0, shuffle = true, startedId = null, thankedRKO = false;
+    var csel = host.querySelector('#gm-coll'), sel = host.querySelector('#rko-sel'), au = host.querySelector('#rko-audio'), box = host.querySelector('#rko-list'), credit = host.querySelector('#rko-credit');
+    var READY = false, coll = 'c64', list = [], order = [], pos = 0, shuffle = true, startedId = null, thanked = {};
     function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
     function cur() { return list[order[pos]]; }
     function makeOrder(first) {
@@ -42,24 +42,29 @@
       if (first >= 0) { order.splice(order.indexOf(first), 1); order.unshift(first); }
       pos = 0;
     }
-    function fill() {
-      var g = sel.value; list = DATA.filter(function (x) { return g === '*' ? x.pick : g === 'all' ? true : x.g === g; });
+    function syncSub() {
+      sel.innerHTML = ''; var o = G.subOptions(coll);
+      o.forEach(function (p) { var op = document.createElement('option'); op.value = p[0]; op.textContent = p[1]; sel.appendChild(op); });
+      sel.style.display = o.length ? '' : 'none';
+    }
+    function fill(autoplay) {
+      list = G.items(coll, sel.value);
       box.innerHTML = '';
       list.forEach(function (x, i) {
         var d = document.createElement('div');
-        d.innerHTML = (x.r === 'Outstanding' ? '★ ' : '') + esc(x.t) + ' <small>— ' + esc(x.a) + ' · ' + esc(x.g) + '</small>';
+        d.innerHTML = (x.rating === 'Outstanding' ? '★ ' : '') + esc(x.title) + ' <small>— ' + esc(x.src === 'c64' ? x.by + ' · ' + x.game : (x.feel || 'Kevin MacLeod')) + '</small>';
         d.onclick = function () { makeOrder(i); load(true); };
         box.appendChild(d);
       });
-      makeOrder(-1); load(false);
+      makeOrder(-1); load(!!autoplay);
     }
     function load(autoplay) {
       var x = cur(); if (!x) return;
-      au.src = RKO + x.dl; startedId = null;
-      credit.innerHTML = '<b>' + esc(x.t) + '</b><br>remix by <b>' + esc(x.a) + '</b> · original ' + esc(x.g) + ' music by <b>' + esc(x.c) + '</b>' +
-        (x.r ? ' · rated ' + esc(x.r) + ' on RKO' : '') + (x.len ? ' · ' + esc(x.len) : '') +
-        '<br><a href="' + RKO + '/remix/' + x.id + '" target="_blank" rel="noopener">RKO page ↗</a>' +
-        (x.sid ? ' · <a href="https://deepsid.chordian.net/?file=' + esc(x.sid) + '" target="_blank" rel="noopener">original SID ↗</a>' : '');
+      au.src = x.url; startedId = null;
+      credit.innerHTML = '<b>' + esc(x.title) + '</b><br>' + esc(x.credit) + (x.len ? ' · ' + esc(x.len) : '') + '<br>' +
+        (x.src === 'c64'
+          ? '<a href="' + x.page + '" target="_blank" rel="noopener">RKO page ↗</a>' + (x.sid ? ' · <a href="https://deepsid.chordian.net/?file=' + esc(x.sid) + '" target="_blank" rel="noopener">original SID ↗</a>' : '')
+          : '<a href="https://incompetech.com/" target="_blank" rel="noopener">incompetech.com ↗</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">license ↗</a>');
       [].forEach.call(box.children, function (d, i) { d.classList.toggle('cur', list[i] === x); });
       if (autoplay) { var p = au.play(); if (p && p.catch) p.catch(function () {}); }
     }
@@ -68,35 +73,40 @@
       if (!inp || !b) return; var keep = inp.value; inp.value = text; b.click(); inp.value = keep;
     }
     function thank(x) {
-      var t = 'Thank you ' + x.c + ' for the ' + x.g + ' music, and ' + x.a + ' for this remix, “' + x.t + '.”' +
-        ' remix.kwed.org/remix/' + x.id + (x.r ? ' · rated ' + x.r : '') + (x.date ? ' · ' + x.date : '');
-      if (!thankedRKO) { thankedRKO = true; wall('Thank you, Remix.Kwed.Org, home of C64 remakes since 2001, and every remixer keeping the SID alive.'); setTimeout(function () { wall(t); }, 9000); }
-      else wall(t);
+      var first = !thanked[x.src === 'c64' ? 'c64' : 'kev'];
+      if (first) {
+        thanked[x.src === 'c64' ? 'c64' : 'kev'] = 1;
+        wall(x.src === 'c64' ? 'Thank you, Remix.Kwed.Org, home of C64 remakes since 2001, and every remixer keeping the SID alive.' : 'Thank you, Kevin MacLeod, for 20+ years of free music at incompetech.com. Licensed under Creative Commons: By Attribution 4.0.');
+        setTimeout(function () { wall(x.thanks); }, 9000);
+      } else wall(x.thanks);
     }
     au.addEventListener('play', function () {
       if (H.src() !== 'rko') return;
       var x = cur(); if (!x) return;
-      if (startedId !== x.id) { startedId = x.id; H.start(x.t + ' — ' + x.a); setTimeout(function () { thank(x); }, 1500); }
+      if (startedId !== x.uid) { startedId = x.uid; H.start(x.src === 'c64' ? x.title + ' — ' + x.by : x.title + ' — Kevin MacLeod'); setTimeout(function () { thank(x); }, 1500); }
       H.play(true);
     });
     au.addEventListener('pause', function () { if (!au.ended) H.play(false); });
     au.addEventListener('ended', function () { H.play(false); pos = (pos + 1) % order.length; load(true); });
     var errs = 0;
-    au.addEventListener('error', function () { if (!au.getAttribute('src')) return; errs++; credit.insertAdjacentHTML('afterbegin', '<em>That remix wouldn’t load from RKO, skipping…</em><br>'); if (errs < 5) setTimeout(function () { pos = (pos + 1) % order.length; load(true); }, 1200); });
+    au.addEventListener('error', function () { if (!au.getAttribute('src')) return; errs++; credit.insertAdjacentHTML('afterbegin', '<em>That track wouldn’t load, skipping…</em><br>'); if (errs < 5) setTimeout(function () { pos = (pos + 1) % order.length; load(true); }, 1200); });
     au.addEventListener('playing', function () { errs = 0; });
     host.querySelector('#rko-next').onclick = function () { pos = (pos + 1) % order.length; load(true); };
     host.querySelector('#rko-shuf').onclick = function () { shuffle = !shuffle; this.textContent = 'Shuffle: ' + (shuffle ? 'on' : 'off'); var c = order[pos]; makeOrder(c); };
-    sel.onchange = fill;
-    // leaving the tab pauses the music
+    csel.onchange = function () { coll = csel.value; syncSub(); fill(); };
+    sel.onchange = function () { fill(); };
     root.querySelectorAll('.rtg-tabs button').forEach(function (b) { b.addEventListener('click', function () { if (b.dataset.src !== 'rko' && !au.paused) au.pause(); }); });
 
-    fetch(BASE + 'remixes.json').then(function (r) { return r.json(); }).then(function (j) {
-      DATA = j.remixes;
-      var o = function (v, t) { var op = document.createElement('option'); op.value = v; op.textContent = t; sel.appendChild(op); };
-      o('*', '★ RKO Outstanding starter mix (' + DATA.filter(function (x) { return x.pick; }).length + ')');
-      o('all', 'Every remix of these games (' + DATA.length + ')');
-      j.games.forEach(function (g) { o(g, g + ' (' + DATA.filter(function (x) { return x.g === g; }).length + ')'); });
-      fill();
-    }).catch(function () { credit.textContent = 'Couldn’t load the C64 remix list. Try again in a moment.'; });
+    G.collections.forEach(function (c) { var op = document.createElement('option'); op.value = c.key; op.textContent = c.label; csel.appendChild(op); });
+    var pending = null;
+    G.load().then(function () { READY = true; syncSub(); fill(); if (pending) { var k = pending; pending = null; window.rtgGM.play(k); } })
+      .catch(function () { credit.textContent = 'Couldn’t load the game music list. Try again in a moment.'; });
+    // quick play from the top bar
+    window.rtgGM = { play: function (key) {
+      var tab = root.querySelector('.rtg-tabs button[data-src="rko"]'); if (tab && H.src() !== 'rko') tab.click();
+      if (!READY) { pending = key || coll; return; }
+      if (key && key !== coll) { coll = key; csel.value = key; syncSub(); }
+      fill(true);
+    } };
   }
 })();

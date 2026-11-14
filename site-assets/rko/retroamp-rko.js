@@ -5,8 +5,9 @@
 (function () {
   var root = document.getElementById('retroamp');
   if (!root || root.dataset.rko) return;
-  function waitRA(n) { if (window.RA) return init(); if (n > 100) return; setTimeout(function () { waitRA(n + 1); }, 100); }
   var BASE = (document.currentScript && document.currentScript.src || '').replace(/retroamp-rko\.js.*$/, '');
+  function waitRA(n) { if (window.RA && window.LTFGM) return init(); if (n > 150) return; setTimeout(function () { waitRA(n + 1); }, 100); }
+  if (!window.LTFGM) { var gs = document.createElement('script'); gs.src = BASE + 'gm.js'; document.head.appendChild(gs); }
   var RKO = 'https://remix.kwed.org';
   waitRA(0);
 
@@ -37,13 +38,13 @@
     document.head.appendChild(css);
 
     // source button, next to Files / Line-In
-    var btn = document.createElement('button'); btn.id = 'ra-rkobtn'; btn.type = 'button'; btn.textContent = '\u{1F579} C64 Remixes';
-    btn.title = 'Stream Commodore 64 remixes from Remix.Kwed.Org';
+    var btn = document.createElement('button'); btn.id = 'ra-rkobtn'; btn.type = 'button'; btn.textContent = '\u{1F3AE} Game Music';
+    btn.title = 'C64 remixes from Remix.Kwed.Org, or Kevin MacLeod moods from incompetech.com';
     var tabBtn = $('ra-tab'); tabBtn.parentNode.insertBefore(btn, tabBtn.nextSibling);
 
     var panel = document.createElement('div'); panel.className = 'ra-rko';
     panel.innerHTML =
-      '<div class="ra-row"><span class="ra-label">C64 remixes</span><select id="ra-rkosel"></select>' +
+      '<div class="ra-row"><span class="ra-label">Game music</span><select id="ra-gmcoll"></select><select id="ra-rkosel"></select>' +
       '<button type="button" id="ra-rkoshuf">Shuffle: on</button></div>' +
       '<div class="ra-rkolist" id="ra-rkolist"></div>' +
       '<div class="ra-credit" id="ra-rkocredit"></div>' +
@@ -52,10 +53,10 @@
       'Their server doesn’t let web pages re-tune its streams, so the EQ rests and the visualizers dance to the beat.</div>';
     var eq = $('ra-eq'); eq.parentNode.insertBefore(panel, eq);
 
-    var DATA = null, list = [], order = [], pos = -1, shuffle = true, started = false;
+    var READY = false, list = [], order = [], pos = -1, shuffle = true, started = false, coll = 'c64';
     var el = new Audio(); el.preload = 'auto'; el.setAttribute('playsinline', '');
     el.volume = Math.min(1, $('ra-vol').value / 100);
-    var sel = panel.querySelector('#ra-rkosel'), box = panel.querySelector('#ra-rkolist'), credit = panel.querySelector('#ra-rkocredit');
+    var csel = panel.querySelector('#ra-gmcoll'), sel = panel.querySelector('#ra-rkosel'), box = panel.querySelector('#ra-rkolist'), credit = panel.querySelector('#ra-rkocredit');
 
     function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
     function ticker(text, secs) {
@@ -65,32 +66,29 @@
       m.style.setProperty('--dur', (secs || Math.max(14, text.length / 9)) + 's');
     }
     function untick() { var m = $('ra-status'); m.classList.remove('ra-tick'); }
-    function names(arr) { var seen = {}, out = []; arr.forEach(function (x) { x.split(/\s*(?:,|&|\+|\/| feat\.? | and )\s*/i).forEach(function (n) { n = n.trim(); if (n && !seen[n.toLowerCase()]) { seen[n.toLowerCase()] = 1; out.push(n); } }); }); return out; }
-    function introTicker() {
-      var rm = names(list.map(function (x) { return x.a; })), cp = names(list.map(function (x) { return x.c; })).filter(function (n) { return !/^unknown$/i.test(n); });
-      ticker('★ THANK YOU, REMIX.KWED.ORG (RKO) ★ Home of C64 remakes since 2001 ★ Remixed by: ' + rm.join(' · ') +
-        ' ★ Original SID music by: ' + cp.join(' · ') + ' ★ Press play and enjoy ★');
-    }
-    function songTicker(x) {
-      ticker('♫ NOW PLAYING: ' + x.t + ' ★ remixed by ' + x.a + ' ★ original ' + x.g + ' music by ' + x.c +
-        (x.r ? ' ★ rated ' + x.r + ' on RKO' : '') + ' ★ remix.kwed.org/remix/' + x.id + ' ★ thank you ' + x.a + ' & ' + x.c + '! ★');
-    }
+    function introTicker() { ticker(LTFGM.intro(coll, list) + ' Press play and enjoy ★'); }
+    function songTicker(x) { ticker('♫ NOW PLAYING: ' + x.ticker + ' ★'); }
     function showCredit(x) {
-      credit.innerHTML = '<b>' + esc(x.t) + '</b> · remix by <b>' + esc(x.a) + '</b> · original ' + esc(x.g) + ' music by <b>' + esc(x.c) + '</b>' +
-        (x.r ? ' · rated ' + esc(x.r) : '') + (x.len ? ' · ' + esc(x.len) : '') + (x.date ? ' · released on RKO ' + esc(x.date) : '') +
-        '<br><a href="' + RKO + '/remix/' + x.id + '" target="_blank" rel="noopener">RKO page ↗</a>' +
-        (x.sid ? ' · <a href="https://deepsid.chordian.net/?file=' + esc(x.sid) + '" target="_blank" rel="noopener">hear the original SID ↗</a>' : '');
+      credit.innerHTML = '<b>' + esc(x.title) + '</b> · ' + esc(x.credit) + (x.len ? ' · ' + esc(x.len) : '') + (x.date ? ' · released on RKO ' + esc(x.date) : '') +
+        '<br>' + (x.src === 'c64'
+          ? '<a href="' + x.page + '" target="_blank" rel="noopener">RKO page ↗</a>' + (x.sid ? ' · <a href="https://deepsid.chordian.net/?file=' + esc(x.sid) + '" target="_blank" rel="noopener">hear the original SID ↗</a>' : '')
+          : '<a href="https://incompetech.com/" target="_blank" rel="noopener">incompetech.com ↗</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">license ↗</a>' + (x.desc ? '<br><small>' + esc(x.desc) + '</small>' : ''));
     }
     function fill() {
-      var g = sel.value; list = DATA.filter(function (x) { return g === '*' ? x.pick : g === 'all' ? true : x.g === g; });
+      list = LTFGM.items(coll, sel.value);
       box.innerHTML = '';
       list.forEach(function (x, i) {
         var d = document.createElement('div');
-        d.innerHTML = (x.r === 'Outstanding' ? '<span class="st">★</span> ' : '') + esc(x.t) + ' <small>— ' + esc(x.a) + ' · ' + esc(x.g) + '</small>';
+        d.innerHTML = (x.rating === 'Outstanding' ? '<span class="st">★</span> ' : '') + esc(x.title) + ' <small>— ' + esc(x.src === 'c64' ? x.by + ' · ' + x.game : (x.feel || 'Kevin MacLeod')) + '</small>';
         d.onclick = function () { start(i); };
         box.appendChild(d);
       });
-      makeOrder(-1);
+      makeOrder(-1); started = false;
+    }
+    function syncSub() {
+      sel.innerHTML = ''; var o = LTFGM.subOptions(coll);
+      o.forEach(function (p) { var op = document.createElement('option'); op.value = p[0]; op.textContent = p[1]; sel.appendChild(op); });
+      sel.style.display = o.length ? '' : 'none';
     }
     function makeOrder(first) {
       order = list.map(function (_, i) { return i; });
@@ -129,17 +127,17 @@
     function play() {
       if (!list.length) return;
       if (pos < 0) pos = 0; if (pos >= order.length) { makeOrder(-1); pos = 0; }
-      var x = list[order[pos]];
-      seed = (x.id % 97) / 9; BPM = 110 + (x.id * 37) % 46;
-      el.src = RKO + x.dl; var p = el.play(); if (p && p.catch) p.catch(function () { RA.msg('Tap ⏯ to start the music.'); });
+      var x = list[order[pos]], h = parseInt(x.uid.slice(3), 10) || 1;
+      seed = (h % 97) / 9; BPM = parseInt(x.bpm, 10) > 60 ? Math.min(180, parseInt(x.bpm, 10)) : 110 + (h * 37) % 46;
+      el.src = x.url; var p = el.play(); if (p && p.catch) p.catch(function () { RA.msg('Tap \u23ef to start the music.'); });
       RA.setPlaying(''); songTicker(x); showCredit(x); mark(); RA.msg('');
-      if (!started) { started = true; introTicker(); setTimeout(function () { if (RA.mode() === 'rko') songTicker(list[order[pos]]); }, Math.min(60000, 4000 + $('ra-status').textContent.length * 110)); }
-      if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = new MediaMetadata({ title: x.t, artist: x.a + ' (orig. ' + x.c + ')', album: x.g + ' · Remix.Kwed.Org' }); } catch (e) {} }
+      if (!started) { started = true; introTicker(); setTimeout(function () { if (RA.mode() === 'rko' && list[order[pos]]) songTicker(list[order[pos]]); }, Math.min(60000, 4000 + $('ra-status').textContent.length * 110)); }
+      if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = new MediaMetadata({ title: x.title, artist: x.src === 'c64' ? x.by + ' (orig. ' + x.orig + ')' : 'Kevin MacLeod', album: x.src === 'c64' ? x.game + ' \u00b7 Remix.Kwed.Org' : 'incompetech.com \u00b7 CC BY 4.0' }); } catch (e) {} }
     }
     function next(d) { if (!list.length) return; pos = (pos + (d || 1) + order.length) % order.length; RA.setMode('rko'); play(); }
     el.addEventListener('ended', function () { next(1); });
     var errs = 0;
-    el.addEventListener('error', function () { if (RA.mode() !== 'rko') return; errs++; RA.msg('That remix wouldn’t load from RKO, skipping…'); if (errs < 5) setTimeout(function () { next(1); }, 1200); });
+    el.addEventListener('error', function () { if (RA.mode() !== 'rko') return; errs++; RA.msg('That track wouldn’t load, skipping…'); if (errs < 5) setTimeout(function () { next(1); }, 1200); });
     el.addEventListener('playing', function () { errs = 0; RA.msg(''); });
 
     RA.synth = synth;
@@ -155,21 +153,20 @@
 
     btn.onclick = function () {
       panel.classList.add('on');
-      if (!DATA) { RA.msg('Loading the C64 remix list…'); return; }
+      if (!READY) { RA.msg('Loading the game music\u2026'); pendingStart = true; return; }
       if (RA.mode() === 'rko' && !el.paused) return;
       start(0);
     };
-
-    fetch(BASE + 'remixes.json').then(function (r) { return r.json(); }).then(function (j) {
-      DATA = j.remixes;
-      var o = function (v, t) { var op = document.createElement('option'); op.value = v; op.textContent = t; sel.appendChild(op); };
-      o('*', '★ RKO Outstanding starter mix (' + DATA.filter(function (x) { return x.pick; }).length + ')');
-      o('all', 'Every remix of these games (' + DATA.length + ')');
-      j.games.forEach(function (g) { o(g, g + ' (' + DATA.filter(function (x) { return x.g === g; }).length + ')'); });
-      fill();
-      if (RA.msg && /Loading the C64/.test($('ra-msg').textContent)) { RA.msg(''); start(0); }
-    }).catch(function () { RA.msg('Couldn’t load the C64 remix list. Try again in a moment.'); });
+    var pendingStart = false;
+    LTFGM.collections.forEach(function (c) { var op = document.createElement('option'); op.value = c.key; op.textContent = c.label; csel.appendChild(op); });
+    LTFGM.load().then(function () {
+      READY = true; syncSub(); fill();
+      if (pendingStart) { pendingStart = false; RA.msg(''); start(0); }
+    }).catch(function () { RA.msg('Couldn\u2019t load the game music list. Try again in a moment.'); });
+    csel.onchange = function () { coll = csel.value; syncSub(); fill(); if (RA.mode() === 'rko') start(0); };
     sel.onchange = function () { fill(); if (RA.mode() === 'rko') start(0); };
+    // quick play from elsewhere on the page
+    window.RAgm = { play: function (key) { panel.classList.add('on'); if (key) { csel.value = key; coll = key; } var go = function () { syncSub(); fill(); start(0); }; if (READY) go(); else LTFGM.load().then(function () { READY = true; go(); }); } };
     panel.querySelector('#ra-rkoshuf').onclick = function () { shuffle = !shuffle; this.textContent = 'Shuffle: ' + (shuffle ? 'on' : 'off'); var cur = pos >= 0 ? order[pos] : -1; makeOrder(cur); if (cur >= 0) pos = 0; };
   }
 })();

@@ -1,0 +1,81 @@
+
+/* ---------- Name That Tune high scores (PG names only) ---------- */
+function ltf_ntt_name_ok( $name ) {
+	$any  = array( 'fuck', 'fuk', 'fck', 'shit', 'cunt', 'bitch', 'biatch', 'nigg', 'nigr', 'niga', 'fagg', 'faggot', 'slut', 'whore', 'porn', 'penis', 'vagina', 'pussy', 'boob', 'blowjob', 'handjob', 'dildo', 'jizz', 'cumshot', 'rapist', 'nazi', 'hitler', 'kkk', 'retard', 'bastard', 'asshole', 'arsehole', 'wank', 'twat', 'bollock', 'testicle', 'horny', 'milf', 'onlyfans', 'motherf', 'spic', 'chink', 'kike', 'tranny', 'molest', 'pedo', 'paedo', 'incest', 'killyourself', 'kys' );
+	$word = array( 'ass', 'arse', 'dick', 'dik', 'cock', 'cum', 'tit', 'tits', 'sex', 'sexy', 'anal', 'anus', 'rape', 'raped', 'piss', 'fag', 'fags', 'homo', 'dyke', 'hoe', 'hoes', 'balls', 'wtf', 'stfu', 'gtfo' );
+	$n     = strtr( mb_strtolower( $name ), array( '0' => 'o', '1' => 'i', '!' => 'i', '|' => 'i', '3' => 'e', '4' => 'a', '@' => 'a', '5' => 's', '$' => 's', '7' => 't', '8' => 'b', '9' => 'g' ) );
+	$flat  = preg_replace( '/[^a-z]/', '', $n );
+	$squash = preg_replace( '/(.)\1+/', '$1', $flat );
+	foreach ( $any as $b ) {
+		if ( false !== strpos( $flat, $b ) || false !== strpos( $squash, $b ) ) { return false; }
+	}
+	foreach ( preg_split( '/[^a-z]+/', $n, -1, PREG_SPLIT_NO_EMPTY ) as $w ) {
+		$sq = preg_replace( '/(.)\1+/', '$1', $w );
+		if ( in_array( $w, $word, true ) || in_array( $sq, $word, true ) || in_array( preg_replace( '/s$/', '', $w ), $word, true ) ) { return false; }
+	}
+	return true;
+}
+function ltf_ntt_boards() { return array( 'spotify-quick', 'spotify-listen', 'c64-quick', 'c64-listen' ); }
+function ltf_ntt_scores_data() {
+	$d = get_option( 'ltf_ntt_scores', array() );
+	return is_array( $d ) ? $d : array();
+}
+add_action( 'rest_api_init', function () {
+	register_rest_route( 'ltf/v1', '/ntt/scores', array(
+		array(
+			'methods'             => 'GET',
+			'permission_callback' => '__return_true',
+			'callback'            => function ( WP_REST_Request $req ) {
+				$b = (string) $req->get_param( 'board' );
+				if ( ! in_array( $b, ltf_ntt_boards(), true ) ) { $b = 'spotify-quick'; }
+				$d = ltf_ntt_scores_data();
+				return array( 'board' => $b, 'top' => array_slice( isset( $d[ $b ] ) ? $d[ $b ] : array(), 0, 10 ) );
+			},
+		),
+		array(
+			'methods'             => 'POST',
+			'permission_callback' => '__return_true',
+			'callback'            => function ( WP_REST_Request $req ) {
+				$site = wp_parse_url( home_url(), PHP_URL_HOST );
+				$from = $req->get_header( 'origin' ) ? $req->get_header( 'origin' ) : $req->get_header( 'referer' );
+				if ( $from && strtolower( (string) wp_parse_url( $from, PHP_URL_HOST ) ) !== strtolower( $site ) ) {
+					return new WP_Error( 'ltf_forbidden', 'Scores can only be saved from likethefish.ca.', array( 'status' => 403 ) );
+				}
+				$b = (string) $req->get_param( 'board' );
+				if ( ! in_array( $b, ltf_ntt_boards(), true ) ) {
+					return new WP_Error( 'ltf_board', 'Unknown high score table.', array( 'status' => 400 ) );
+				}
+				$name = preg_replace( '/[^\p{L}\p{N} ._\'-]/u', '', (string) $req->get_param( 'name' ) );
+				$name = trim( preg_replace( '/\s+/', ' ', $name ) );
+				$name = mb_substr( $name, 0, 16 );
+				if ( mb_strlen( $name ) < 2 ) {
+					return new WP_Error( 'ltf_name', 'Type a name with at least 2 letters.', array( 'status' => 400 ) );
+				}
+				if ( ! ltf_ntt_name_ok( $name ) ) {
+					return new WP_Error( 'ltf_name', 'Let’s keep it PG. Pick another name!', array( 'status' => 400 ) );
+				}
+				$rounds  = max( 1, min( 10, (int) $req->get_param( 'rounds' ) ) );
+				$correct = max( 0, min( $rounds, (int) $req->get_param( 'correct' ) ) );
+				$score   = (int) $req->get_param( 'score' );
+				$max     = $correct * 150 + 10 * ( $correct * ( $correct - 1 ) / 2 );
+				if ( $score < 1 || $score > $max ) {
+					return new WP_Error( 'ltf_score', 'That score doesn’t add up.', array( 'status' => 400 ) );
+				}
+				if ( function_exists( 'fsg_limit' ) && ! fsg_limit( 'ltf_nttsc_', 'Ymd', 40, DAY_IN_SECONDS ) ) {
+					return new WP_Error( 'ltf_limit', 'That’s a lot of high scores today. Try again tomorrow!', array( 'status' => 429 ) );
+				}
+				$entry = array( 'n' => $name, 's' => $score, 'c' => $correct, 'r' => $rounds, 't' => time() );
+				$d     = ltf_ntt_scores_data();
+				$list  = isset( $d[ $b ] ) ? $d[ $b ] : array();
+				$list[] = $entry;
+				usort( $list, function ( $x, $y ) { return ( $y['s'] - $x['s'] ) ?: ( $x['t'] - $y['t'] ); } );
+				$list  = array_slice( $list, 0, 25 );
+				$rank  = 0;
+				foreach ( $list as $i => $e ) { if ( $e === $entry ) { $rank = $i + 1; break; } }
+				$d[ $b ] = $list;
+				update_option( 'ltf_ntt_scores', $d, false );
+				return array( 'ok' => true, 'rank' => $rank && $rank <= 10 ? $rank : 0, 'entry' => $entry );
+			},
+		),
+	) );
+} );

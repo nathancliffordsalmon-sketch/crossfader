@@ -3,6 +3,8 @@
 (function () {
 'use strict';
 const root = document.getElementById('pq-root'); if (!root) return;
+const GM_SRC = (document.currentScript && document.currentScript.src || '').replace(/phantasea\/phantasea\.js.*$/, 'rko/gm.js');
+if (GM_SRC && !window.LTFGM && /gm\.js/.test(GM_SRC)) { const gs = document.createElement('script'); gs.src = GM_SRC; document.head.appendChild(gs); }
 const PLAYLISTS = (window.PQ_PLAYLISTS && window.PQ_PLAYLISTS.length) ? window.PQ_PLAYLISTS : [['Singing', '0Bxvmnd4tPBXrr8Adj47CL']];
 
 /* ---------- C64 palette (Pepto) ---------- */
@@ -86,6 +88,7 @@ root.innerHTML = `
   <div class="pq-hud"><span id="pq-status">READY.</span><span id="pq-songnow">♪ —</span></div>
   <div class="pq-tabs" role="tablist">
     <button data-tab="sp" aria-pressed="true">Spotify player here</button>
+    <button data-tab="gm" aria-pressed="false">🎮 Game music</button>
     <button data-tab="am" aria-pressed="false">🍎 Apple Music</button>
     <button data-tab="mic" aria-pressed="false">🎤 Mic mode</button>
     <button data-tab="type" aria-pressed="false">Type my songs</button>
@@ -95,6 +98,13 @@ root.innerHTML = `
     <div class="pq-row"><input id="pq-url" placeholder="…or paste any Spotify link" aria-label="Spotify link"><button id="pq-load">Load player</button></div>
     <div class="pq-embed" id="pq-embed"></div>
     <p class="pq-note">Press play in the Spotify player. The party only adventures while the music plays; each new song brings new monsters.</p>
+  </div>
+  <div class="pq-panel" data-panel="gm">
+    <div class="pq-row"><select id="pq-gmcoll" aria-label="Game music collection"></select><select id="pq-gmsub" aria-label="C64 remixes"></select></div>
+    <audio id="pq-gmau" controls preload="none" style="width:100%;margin-top:8px"></audio>
+    <div class="pq-row"><button id="pq-gmnext" class="go">⏭ Next song</button><button id="pq-gmshuf">Shuffle: on</button></div>
+    <p class="pq-note" id="pq-gmcredit"></p>
+    <p class="pq-note">C64 remixes stream from <a href="https://remix.kwed.org/" target="_blank" rel="noopener" style="color:#ffd84a">Remix.Kwed.Org</a>. The moods are music by Kevin MacLeod (<a href="https://incompetech.com/" target="_blank" rel="noopener" style="color:#ffd84a">incompetech.com</a>), licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener" style="color:#ffd84a">Creative Commons: By Attribution 4.0</a>. Press play and the party sets off; every new song brings new monsters.</p>
   </div>
   <div class="pq-panel" data-panel="am">
     <div class="pq-row"><input id="pq-amurl" placeholder="Paste an Apple Music playlist, album or song link" aria-label="Apple Music link"><button id="pq-amload">Load player</button></div>
@@ -1178,6 +1188,45 @@ $('#pq-amload').addEventListener('click', () => { const u = amUrl($('#pq-amurl')
 $('#pq-amurl').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#pq-amload').click(); });
 $('#pq-amnext').addEventListener('click', () => { const n = amName(); AM.t = 0; if (S.curSong < 0) { musicStarted(n); } else if (S.songs.length >= MAXSONGS) { endSession(true); amSet(false); return; } else { musicStarted(n); } amSet(true); });
 $('#pq-ampause').addEventListener('click', () => { if (AM.playing) amSet(false); else amStart(); });
+
+/* Game music: C64 remixes (Remix.Kwed.Org) or Kevin MacLeod moods (incompetech.com), real song names and credits */
+const GM = { ready: false, coll: 'c64', list: [], order: [], pos: 0, shuffle: true, startedUid: null, pending: null };
+const gmau = $('#pq-gmau');
+function gmEsc(s) { return esc(s); }
+function gmOrder(first) { GM.order = GM.list.map((_, i) => i); if (GM.shuffle) GM.order = GM.order.sort(() => Math.random() - 0.5); if (first >= 0) { GM.order.splice(GM.order.indexOf(first), 1); GM.order.unshift(first); } GM.pos = 0; }
+function gmSub() { const sel = $('#pq-gmsub'); sel.innerHTML = ''; const o = window.LTFGM.subOptions(GM.coll); o.forEach(([v, t]) => { const op = document.createElement('option'); op.value = v; op.textContent = t; sel.appendChild(op); }); sel.style.display = o.length ? '' : 'none'; }
+function gmFill(autoplay) { GM.list = window.LTFGM.items(GM.coll, $('#pq-gmsub').value); gmOrder(-1); gmLoad(autoplay); }
+function gmCur() { return GM.list[GM.order[GM.pos]]; }
+function gmLoad(autoplay) {
+  const x = gmCur(); if (!x) return; gmau.src = x.url; GM.startedUid = null;
+  $('#pq-gmcredit').innerHTML = `<b>${gmEsc(x.title)}</b> · ${gmEsc(x.credit)}${x.len ? ' · ' + gmEsc(x.len) : ''} · <a href="${x.src === 'c64' ? x.page : 'https://incompetech.com/'}" target="_blank" rel="noopener" style="color:#ffd84a">${x.src === 'c64' ? 'RKO page' : 'incompetech.com'} ↗</a>`;
+  if (autoplay) { const p = gmau.play(); if (p && p.catch) p.catch(() => {}); }
+}
+gmau.addEventListener('play', () => {
+  if (MODE !== 'gm') return; const x = gmCur(); if (!x) return;
+  if (GM.startedUid !== x.uid) { GM.startedUid = x.uid; musicStarted(x.src === 'c64' ? `${x.title} — ${x.by}` : `${x.title} — Kevin MacLeod`); }
+  setPlaying(true);
+});
+gmau.addEventListener('pause', () => { if (MODE === 'gm' && !gmau.ended) setPlaying(false); });
+gmau.addEventListener('ended', () => { if (MODE !== 'gm') return; setPlaying(false); if (S.songs.length >= MAXSONGS) { endSession(true); return; } GM.pos = (GM.pos + 1) % GM.order.length; gmLoad(true); });
+let gmErrs = 0; gmau.addEventListener('error', () => { if (!gmau.getAttribute('src') || MODE !== 'gm') return; gmErrs++; alertNote('That track would not load. Skipping.'); if (gmErrs < 5) setTimeout(() => { GM.pos = (GM.pos + 1) % GM.order.length; gmLoad(true); }, 1200); });
+gmau.addEventListener('playing', () => { gmErrs = 0; });
+$('#pq-gmnext').addEventListener('click', () => { GM.pos = (GM.pos + 1) % GM.order.length; gmLoad(true); });
+$('#pq-gmshuf').addEventListener('click', function () { GM.shuffle = !GM.shuffle; this.textContent = 'Shuffle: ' + (GM.shuffle ? 'on' : 'off'); gmOrder(GM.order[GM.pos]); });
+$('#pq-gmcoll').addEventListener('change', function () { GM.coll = this.value; gmSub(); gmFill(false); });
+$('#pq-gmsub').addEventListener('change', () => gmFill(false));
+root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { if (b.dataset.tab !== 'gm' && !gmau.paused) gmau.pause(); }));
+(function gmInit(n) {
+  if (!window.LTFGM) { if (n < 100) setTimeout(() => gmInit(n + 1), 100); else $('#pq-gmcredit').textContent = 'Game music could not load right now.'; return; }
+  window.LTFGM.collections.forEach((c) => { const op = document.createElement('option'); op.value = c.key; op.textContent = c.label; $('#pq-gmcoll').appendChild(op); });
+  window.LTFGM.load().then(() => { GM.ready = true; gmSub(); gmFill(false); if (GM.pending) { const k = GM.pending; GM.pending = null; window.pqGM.play(k); } }).catch(() => { $('#pq-gmcredit').textContent = 'Game music could not load right now.'; });
+})(0);
+window.pqGM = { play(key) {
+  const tab = root.querySelector('[data-tab="gm"]'); if (MODE !== 'gm') tab.click();
+  if (!GM.ready) { GM.pending = key || GM.coll; return; }
+  if (key && key !== GM.coll) { GM.coll = key; $('#pq-gmcoll').value = key; gmSub(); }
+  gmFill(true);
+} };
 
 /* Mic mode: loudness drives battle fury, silence splits songs */
 let mic = null;
