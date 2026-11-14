@@ -15,7 +15,7 @@ function ltf_ntt_name_ok( $name ) {
 	}
 	return true;
 }
-function ltf_ntt_boards() { return array( 'spotify-quick', 'spotify-listen', 'c64-quick', 'c64-listen' ); }
+function ltf_ntt_boards() { return array( 'spotify-quick', 'spotify-listen', 'c64-quick', 'c64-listen', 'kevin-quick', 'kevin-listen' ); }
 function ltf_ntt_scores_data() {
 	$d = get_option( 'ltf_ntt_scores', array() );
 	return is_array( $d ) ? $d : array();
