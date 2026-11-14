@@ -19,7 +19,7 @@
     '.ltf-cast-note{font-size:12px;opacity:.75;margin-top:8px}',
     '.ltf-cast-btn.ltf-cast-inline{display:inline-block;margin:10px 0 4px;cursor:pointer;border:2px solid #00eaff;border-radius:999px;padding:8px 12px;background:#05070c;color:#e9fdff;font:700 13px system-ui,sans-serif;box-shadow:0 0 12px rgba(0,234,255,.5)}'
   ].join('\n');
-  function addCss() { if (document.getElementById('ltf-cast-css')) return; var s = document.createElement('style'); s.id = 'ltf-cast-css'; s.textContent = css + '\n.rtg-full .ltf-cast-inline,.cif-full .ltf-cast-inline{display:none}'; document.head.appendChild(s); }
+  function addCss() { if (document.getElementById('ltf-cast-css')) return; var s = document.createElement('style'); s.id = 'ltf-cast-css'; s.textContent = css + '\n.rtg-full .ltf-cast-inline,.cif-full .ltf-cast-inline{display:none}\niframe.ltf-fakefs{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:2147483000!important;border-radius:0!important;margin:0!important}\n.ltf-fake-x{display:none;position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));z-index:2147483001;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.6);color:#fff;font-size:18px;cursor:pointer}'; document.head.appendChild(s); }
   var ua = navigator.userAgent || '', iOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var android = /Android/.test(ua), mac = !iOS && /Mac/.test(ua), win = /Windows/.test(ua), cros = /CrOS/.test(ua), chromium = /Chrome|CriOS|Edg/.test(ua) && !/OPR/.test(ua);
   var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
@@ -72,12 +72,19 @@
       else { b.className = 'ltf-cast-btn ltf-cast-inline'; root.appendChild(b); }
     });
   }
-  function attachWp() { // Final Songasy: its Full Screen button is a WordPress button outside the game frame
-    if (!document.getElementById('fsg-frame') || document.querySelector('.ltf-cast-wp')) return;
-    var fs = [].filter.call(document.querySelectorAll('.wp-block-button .wp-element-button'), function (b) { return /full ?screen/i.test(b.textContent); })[0]; if (!fs) return;
-    var wrap = fs.closest('.wp-block-button'), d = document.createElement('div'); d.className = (wrap.className || 'wp-block-button') + ' ltf-cast-wp';
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'wp-block-button__link wp-element-button ltf-cast-btn'; b.textContent = '\ud83d\udcfa Share to TV'; b.addEventListener('click', open);
-    d.appendChild(b); wrap.parentNode.insertBefore(d, wrap.nextSibling);
+  function attachWp() { // Final Songasy: the game is an iframe with its own Full Screen button just below it
+    var f = document.getElementById('fsg-frame'); if (!f || f.__ltfDone) return;
+    var host = f.closest('.fsg-embed') || f.parentNode;
+    var fs = [].filter.call(host.querySelectorAll('button,a'), function (b) { return /full ?screen/i.test(b.textContent); })[0]; if (!fs) return;
+    f.__ltfDone = 1;
+    var b = document.createElement('button'); b.type = 'button'; b.className = (fs.className || '') + ' ltf-cast-btn ltf-cast-wp'; b.textContent = '\ud83d\udcfa Share to TV'; b.addEventListener('click', open);
+    fs.parentNode.insertBefore(b, fs.nextSibling);
+    /* phones without the Fullscreen API (iPhone): fill the screen with the game instead */
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'ltf-fake-x'; x.textContent = '\u2715'; x.setAttribute('aria-label', 'Exit full screen'); document.body.appendChild(x);
+    function fake(on) { f.classList.toggle('ltf-fakefs', on); x.style.display = on ? 'block' : 'none'; document.documentElement.style.overflow = on ? 'hidden' : ''; try { f.contentWindow.focus(); } catch (e) {} }
+    x.addEventListener('click', function () { fake(false); });
+    fs.addEventListener('click', function () { setTimeout(function () { if (!document.fullscreenElement && !document.webkitFullscreenElement) fake(true); }, 350); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && f.classList.contains('ltf-fakefs')) fake(false); });
   }
   var n = 0; function tick() { attach(); attachWp(); if (++n < 20) setTimeout(tick, 600); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick); else tick();
