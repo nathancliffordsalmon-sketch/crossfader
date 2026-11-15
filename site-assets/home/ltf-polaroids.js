@@ -1,9 +1,10 @@
-/* Concert-review Polaroids that rotate in among the cut-paper "saying" fish on the home page.
+/* Concert-review Polaroids: the home page's bottom row shows only these snapshots, rotating through every show.
    Reads posts tagged "concert-reviews" (they live in Sound Club Notes): featured photo, excerpt = the line
    under the Polaroid, post date = show date, and an "Overall" score from the review's scorecard. */
 (function () {
   'use strict';
   var grid = document.querySelector('.ltf-sayings'); if (!grid || grid.dataset.pol) return; grid.dataset.pol = '1';
+  grid.classList.add('ltf-pol-only'); var hide = document.createElement('style'); hide.textContent = '.ltf-sayings.ltf-pol-only > .ltf-saying{visibility:hidden}'; document.head.appendChild(hide);
   if (!document.getElementById('ltf-pol-font')) { var l = document.createElement('link'); l.id = 'ltf-pol-font'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap'; document.head.appendChild(l); }
   var css = '.ltf-pol{position:relative;opacity:1!important;filter:none!important;background:#fbfaf6;border-radius:3px!important;padding:10px 10px 12px!important;box-shadow:3px 4px 0 #2b1055,0 6px 18px rgba(0,0,0,.18)!important;border:1.5px solid #2b1055;transform:rotate(var(--tilt,-2deg));transition:transform .25s;color:#1b1b1b;text-align:center;display:flex;flex-direction:column}' +
     '.ltf-pol:hover{transform:rotate(0deg) scale(1.03)}' +
@@ -34,20 +35,19 @@
     if (!t || !t[0]) return null;
     return fetch('/wp-json/wp/v2/posts?tags=' + t[0].id + '&per_page=20&orderby=date&order=desc&_embed=wp:featuredmedia&_fields=id,date,link,title,excerpt,content,_links,_embedded').then(function (r) { return r.json(); });
   }).then(function (posts) {
-    if (!posts || !posts.length) return;
-    var pols = posts.map(card), pi = 0, slots = [].slice.call(grid.children);
-    if (!slots.length) return;
-    var showing = {}; // slot index -> original saying node, while a Polaroid is in it
+    if (!posts || !posts.length) { grid.classList.remove('ltf-pol-only'); return; }
+    // snapshots only: every slot shows a concert Polaroid, rotating through all the shows
+    var pols = posts.map(card), slots = [].slice.call(grid.children), n = Math.min(slots.length || 4, pols.length), pi = 0;
+    grid.innerHTML = '';
+    for (var i = 0; i < n; i++) { var p0 = pols[pi++]; grid.appendChild(p0); }
+    grid.classList.remove('ltf-pol-only');
+    if (pols.length <= n) return;
     function swap() {
-      var keys = Object.keys(showing);
-      if (keys.length && (keys.length >= Math.max(1, Math.min(2, pols.length)) || Math.random() < 0.5)) {
-        var k = keys[Math.floor(Math.random() * keys.length)], cur = grid.children[k], orig = showing[k]; delete showing[k];
-        cur.replaceWith(orig); orig.classList.remove('ltf-swapin'); void orig.offsetWidth; orig.classList.add('ltf-swapin'); return;
-      }
-      var free = slots.map(function (_, i) { return i; }).filter(function (i) { return !(i in showing); }); if (!free.length) return;
-      var s = free[Math.floor(Math.random() * free.length)], node = grid.children[s], pol = pols[pi++ % pols.length];
-      if (pol.isConnected) return; showing[s] = node; node.replaceWith(pol); pol.classList.remove('ltf-swapin'); void pol.offsetWidth; pol.classList.add('ltf-swapin');
+      var k = Math.floor(Math.random() * n), cur = grid.children[k], nx = null;
+      for (var t = 0; t < pols.length; t++) { var c = pols[pi++ % pols.length]; if (!c.isConnected) { nx = c; break; } }
+      if (!nx || !cur) return; nx.style.setProperty('--tilt', (k % 2 ? 2.5 : -2.5) + 'deg');
+      cur.replaceWith(nx); nx.classList.remove('ltf-swapin'); void nx.offsetWidth; nx.classList.add('ltf-swapin');
     }
-    setTimeout(swap, 2500); setInterval(function () { if (!document.hidden) swap(); }, 7000);
+    setInterval(function () { if (!document.hidden) swap(); }, 7000);
   }).catch(function () {});
 })();
