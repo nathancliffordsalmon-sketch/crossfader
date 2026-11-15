@@ -1005,7 +1005,7 @@ function sceneDeck() {
   if (!MARK) { const gr = g.createLinearGradient(0, 404, 0, 540); gr.addColorStop(0, 'rgba(20,24,48,.35)'); gr.addColorStop(1, 'rgba(255,200,140,.05)'); g.fillStyle = gr; g.fillRect(0, 404, W, 136); }
   g.strokeStyle = MARK ? INK : 'rgba(40,36,30,.45)'; g.lineWidth = 1; g.beginPath(); for (let i = -22; i <= 22; i++) { g.moveTo(520 + i * 30, 406); g.lineTo(520 + i * 110, H); } g.stroke();
   if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.06)'; g.beginPath(); for (let i = 0; i < 30; i++) { const y = 420 + i * 4.2, x = (i * 97) % W; g.moveTo(x, y); g.lineTo(x + 80, y + 1); } g.stroke(); }
-  redCouch(236, 440, 0.9); redCouch(560, 450, 1);
+  redCouch(236, 440, 0.9); redCouch(66, 444, 0.95);
   // criss-crossed Edison string lights
   edison(-20, 30, 600, 262, 50, 22); edison(-20, 110, 520, 270, 40, 18); edison(-20, 190, 470, 276, 30, 14); edison(120, -10, 760, 140, 60, 20); edison(300, -10, 900, 230, 50, 20); edison(-20, 70, 960, 70, 80, 30);
   // chalkboard with tonight's act
