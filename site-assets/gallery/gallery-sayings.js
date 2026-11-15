@@ -55,35 +55,54 @@
     for (var b = 0; b < 4; b++) { g.beginPath(); g.arc(cx + dir * (bw + 20 + b * 6), cy - 30 - b * 26, 5 + b * 3, 0, 7); g.strokeStyle = 'rgba(0,119,182,.55)'; g.lineWidth = 2; g.stroke(); }
   }
 
-  var CSS = '.ltf-gsay{display:flex;flex-direction:column;justify-content:space-around;gap:28px;margin-top:32px;padding:0 var(--wp--preset--spacing--40,16px)}' +
-    '.ltf-gsay .ltf-saying{background:#fff;border:1.6px solid #2b1055;border-radius:14px;box-shadow:4px 4px 0 #2b1055;padding:12px 12px 14px;text-align:center;transform:rotate(var(--tilt,0deg));max-width:340px;margin:0 auto;width:100%;box-sizing:border-box}' +
+  var CSS = '.ltf-gsay{margin-top:32px;padding:0 var(--wp--preset--spacing--40,16px);box-sizing:border-box}' +
+    '.ltf-gsay-stick{position:sticky;top:calc(var(--wp-admin--admin-bar--height,0px) + 24px);display:flex;flex-direction:column;gap:26px}' +
+    '.ltf-gsay .ltf-saying{background:#fff;border:1.6px solid #2b1055;border-radius:14px;box-shadow:4px 4px 0 #2b1055;padding:12px 12px 14px;text-align:center;transform:rotate(var(--tilt,0deg));max-width:340px;margin:0 auto;width:100%;box-sizing:border-box;transition:opacity .5s,transform .5s}' +
+    '.ltf-gsay .ltf-saying.out{opacity:0;transform:rotate(var(--tilt,0deg)) translateY(10px)}' +
     '.ltf-gsay canvas.ltf-carle{display:block;width:80%;height:auto;aspect-ratio:4/3;margin:0 auto 6px}' +
     '.ltf-gsay h4{font-size:1.1rem;margin:0 0 4px;line-height:1.2}.ltf-gsay p{font-size:.88rem;line-height:1.4;margin:0}' +
-    '@media (max-width:781px){.ltf-gsay{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;height:auto!important}.ltf-gsay .ltf-saying{transform:none}}' +
-    '@media (max-width:480px){.ltf-gsay{grid-template-columns:1fr}}';
+    '@media (max-width:781px){.ltf-gsay{height:auto!important}.ltf-gsay-stick{position:static;display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.ltf-gsay .ltf-saying{transform:none}}' +
+    '@media (max-width:480px){.ltf-gsay-stick{grid-template-columns:1fr}}';
+
+  function make(q, i) {
+    var c = document.createElement('div'); c.className = 'ltf-saying'; c.style.setProperty('--tilt', (i % 2 ? 1.5 : -1.5) + 'deg');
+    var cv = document.createElement('canvas'); cv.className = 'ltf-carle'; cv.setAttribute('aria-hidden', 'true'); c.appendChild(cv);
+    var h = document.createElement('h4'); c.appendChild(h); var p = document.createElement('p'); c.appendChild(p);
+    fill(c, q); return c;
+  }
+  function fill(c, q) { c.querySelector('h4').textContent = q[0]; c.querySelector('p').textContent = q[1]; c._q = q; paint(c.querySelector('canvas')); }
 
   function init() {
     var main = document.querySelector('main .wp-block-columns > .wp-block-column');
     var side = main && main.nextElementSibling;
     if (!side || side.querySelector('.ltf-gsay')) return;
     var s = document.createElement('style'); s.id = 'ltf-gsay-css'; s.textContent = CSS; document.head.appendChild(s);
+    var deck = SAYINGS.slice().sort(function () { return Math.random() - 0.5; });
     var box = document.createElement('div'); box.className = 'ltf-gsay';
-    SAYINGS.slice().sort(function () { return Math.random() - 0.5; }).forEach(function (q, i) {
-      var c = document.createElement('div'); c.className = 'ltf-saying'; c.style.setProperty('--tilt', (i % 2 ? 1.5 : -1.5) + 'deg');
-      var cv = document.createElement('canvas'); cv.className = 'ltf-carle'; cv.setAttribute('aria-hidden', 'true'); c.appendChild(cv);
-      var h = document.createElement('h4'); h.textContent = q[0]; c.appendChild(h);
-      var p = document.createElement('p'); p.textContent = q[1]; c.appendChild(p);
-      box.appendChild(c); paint(cv);
-    });
+    var stick = document.createElement('div'); stick.className = 'ltf-gsay-stick'; box.appendChild(stick);
     side.appendChild(box);
-    // spread the fish down the side so they run alongside the whole gallery
+    var wide = false, di = 0;
+    function build() {
+      var w = innerWidth >= 782; if (w === wide && stick.children.length) return; wide = w;
+      stick.innerHTML = ''; di = 0;
+      var n = w ? (innerHeight >= 1050 ? 3 : 2) : deck.length;
+      for (var i = 0; i < n; i++) stick.appendChild(make(deck[di++ % deck.length], i));
+    }
+    // the side column stretches the full length of the gallery; the fish ride down it as you scroll
     function fit() {
-      box.style.height = '';
-      if (innerWidth < 782) return;
-      var room = main.getBoundingClientRect().bottom - box.getBoundingClientRect().top - 40;
-      if (room > box.scrollHeight) box.style.height = room + 'px';
+      build(); box.style.height = '';
+      if (!wide) return;
+      var room = main.getBoundingClientRect().bottom - box.getBoundingClientRect().top;
+      if (room > stick.offsetHeight) box.style.height = room + 'px';
     }
     fit(); addEventListener('resize', fit); addEventListener('load', fit); setTimeout(fit, 2500);
+    var k = 0;
+    setInterval(function () {
+      if (!wide || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      var cards = stick.children, c = cards[k++ % cards.length], showing = [].map.call(cards, function (x) { return x._q; }), q;
+      do { q = deck[di++ % deck.length]; } while (showing.indexOf(q) >= 0);
+      c.classList.add('out'); setTimeout(function () { fill(c, q); c.classList.remove('out'); }, 520);
+    }, 8000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
