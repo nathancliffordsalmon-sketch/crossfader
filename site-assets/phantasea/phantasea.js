@@ -53,7 +53,9 @@ const css = `
 #pq .pq-tv.full .pq-fsx{position:absolute;z-index:2}
 #pq .pq-tv.full .pq-fsbar{display:flex;flex-direction:column;align-items:flex-start;gap:6px;position:absolute;top:12px;left:12px;z-index:2}
 #pq .pq-tv.full .pq-fsbar button{font-size:9px;padding:6px 9px;background:rgba(20,16,50,.75)}
-#pq .pq-tv.full .pq-logo,#pq .pq-tv.full .pq-fsinfo{pointer-events:none}
+#pq .pq-tv.full .pq-logo{pointer-events:none}#pq .pq-tv.full .pq-fsinfo{pointer-events:auto;z-index:2}
+#pq .pq-fscnt{font-size:1.25em;color:#fff4b0;letter-spacing:.5px}#pq .pq-pips{display:inline-flex;gap:.35em;vertical-align:middle;margin:0 .5em}#pq .pq-pips i{width:.9em;height:.9em;border:2px solid #ffe060;border-radius:2px;display:inline-block;background:transparent}#pq .pq-pips i.done{background:#ffe060}#pq .pq-pips i.now{background:#ff9a3c;border-color:#fff;animation:pqRot 1.2s ease-in-out infinite}
+#pq .pq-fsshop{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:.6em}#pq .pq-fsshop b{color:#ffd890;font-weight:400;align-self:center}#pq .pq-fsshop button{font-size:inherit;padding:.55em .8em;background:rgba(67,57,0,.92);border:2px solid #b8c76f;color:#fff4b0;cursor:pointer;border-radius:4px}#pq .pq-fsshop button:hover{background:#6f4f25}#pq .pq-fsshop button:disabled{opacity:.45;cursor:default}
 #pq .pq-tv.full .pq-fsinfo{text-shadow:2px 2px 0 #000}
 #pq .pq-tv.full{position:fixed;inset:0;z-index:2147483000;border-radius:0;padding:0;background:#6c5eb5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4vh;box-shadow:none;padding:2.5vh 0 1vh}
 #pq .pq-tv.full canvas#pq-cv{width:min(94vw,calc((100vh - 19vh) * 1.6));height:auto;box-shadow:0 0 0 6px #4a3f9a}
@@ -76,6 +78,7 @@ const css = `
 #pq .pq-tv.full .pq-fsbar button{font-size:7px;padding:6px;width:100%;text-align:left;white-space:normal}
 #pq .pq-tv.full .pq-fsinfo{position:absolute;top:max(8px,env(safe-area-inset-top));left:max(6px,env(safe-area-inset-left));width:calc((100vw - min(100vw - 16px, (100dvh - 8px) * 1.6)) / 2 - 14px);min-width:64px;font-size:7px;line-height:1.7;text-align:left}
 #pq .pq-tv.full .pq-fsx{top:max(8px,env(safe-area-inset-top));right:max(6px,env(safe-area-inset-right));font-size:12px;padding:6px 9px}
+#pq .pq-tv.full .pq-fsshop{flex-direction:column;align-items:stretch;gap:4px}#pq .pq-tv.full .pq-fsshop button{text-align:left;white-space:normal;padding:5px}
 }
 #pq-sheet{display:none}
 @media print{
@@ -105,7 +108,7 @@ const st = document.createElement('style'); st.textContent = css; document.head.
 root.innerHTML = `
 <div id="pq">
   <div class="pq-title"><b>PHANTASEA SESSIONS</b><span>roll a party · press play · battle to the music</span></div>
-  <div class="pq-tv" id="pq-tv"><button class="pq-fscorner" id="pq-fs2" title="Full screen (F)" aria-label="Full screen">⛶</button><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button><button id="pq-cast" title="Show this on your TV">📺 Share to TV</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><div class="pq-rot" aria-hidden="true">↻ TURN YOUR PHONE SIDEWAYS FOR THE BIG SCREEN</div><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
+  <div class="pq-tv" id="pq-tv"><button class="pq-fscorner" id="pq-fs2" title="Full screen (F)" aria-label="Full screen">⛶</button><div class="pq-logo" aria-hidden="true"><b>PHANTASEA</b><span>SESSIONS · LIKETHEFISH.CA</span></div><div class="pq-fsinfo" id="pq-fsinfo"><div id="pq-fscount"></div><div class="pq-fsshop" id="pq-fsshop"></div></div><div class="pq-fsbar"><button id="pq-vzmode" title="Change the visualizer (V)">◐ STANDARD ▸</button><button id="pq-vzmic" title="Use your microphone so the visuals follow the actual music">🎤 Sync visuals to room sound</button><button id="pq-cast" title="Show this on your TV">📺 Share to TV</button></div><button class="pq-fsx" id="pq-fsx" title="Exit full screen">✕</button><div class="pq-rot" aria-hidden="true">↻ TURN YOUR PHONE SIDEWAYS FOR THE BIG SCREEN</div><canvas id="pq-cv" width="320" height="200" aria-label="Phantasea game screen"></canvas></div>
   <div class="pq-hud"><span id="pq-status">READY.</span><span id="pq-songnow">♪ —</span></div>
   <div class="pq-shop" id="pq-shop"></div>
   <div class="pq-tabs" role="tablist">
@@ -1162,8 +1165,18 @@ function renderQuest() {
   const lt = songsLeftText();
   const html = `${MOTTO} — SIX SONGS IS ALL YOU GET. LISTEN WELL, OR PERISH.<br>${lt} · TIME HEARD ${fmt(t)}${S.ended ? ' · QUEST OVER' : ''}${S.proj ? ` · ENDED EARLY: ${S.proj.n} SONG${S.proj.n === 1 ? '' : 'S'} AVERAGING ${fmt(S.proj.avg)} = ${fmt(S.proj.total)} OVER SIX` : ''}<br><i>HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</i>`;
   renderShop();
-  $('#pq-quest').innerHTML = html; $('#pq-fsinfo').innerHTML = `${lt} · TIME HEARD ${fmt(t)}<br><span style="color:#c8c0ff">HINT: THE LIMITS OF REGULAR NOTES IN SIX SONGS.</span><br><span style="color:#ffd890">${commas(S.gold)} GOLD · SHOP KEYS ${shopLine()}</span>`;
+  $('#pq-quest').innerHTML = html; renderFsInfo(t);
 }
+function renderFsInfo(t) {
+  const n = S.songs.length, cur = S.curSong, left = Math.max(0, MAXSONGS - n);
+  const pips = Array.from({ length: MAXSONGS }, (_, i) => `<i class="${i < n - (cur === n - 1 && !S.ended ? 1 : 0) ? 'done' : i === cur && !S.ended ? 'now' : ''}"></i>`).join('');
+  const head = S.ended ? 'QUEST OVER' : !n ? `${MAXSONGS} SONGS TO SURVIVE` : left === 0 ? `SONG ${n} OF ${MAXSONGS} \u00b7 FINAL SONG!` : `SONG ${n} OF ${MAXSONGS} \u00b7 ${left} TO GO`;
+  $('#pq-fscount').innerHTML = `<span class="pq-fscnt">${head}</span><span class="pq-pips">${pips}</span><br>TIME HEARD ${fmt(t)} \u00b7 ${commas(S.gold)} GOLD`;
+  const off = S.ended || S.phase === 'intro' || S.phase === 'roll';
+  const sig = [off, S.gold, S.wpn, S.arm, S.scrolls, ...SHOP.map(shopPrice)].join('|'); const el = $('#pq-fsshop'); if (el._sig === sig) return; el._sig = sig;
+  el.innerHTML = '<b>\ud83d\uded2 BUY:</b>' + SHOP.map((it) => { const have = S[it.k], p = shopPrice(it), maxed = have >= it.max; return `<button data-buy="${it.k}"${off || maxed || S.gold < p ? ' disabled' : ''} title="${esc(it.desc)} (key ${it.key})">${it.icon} ${it.k === 'scrolls' ? 'SCROLL \u00d7' + have : it.k === 'wpn' ? 'WEAPON LV ' + have : 'ARMOUR LV ' + have} \u00b7 ${maxed ? 'MAX' : commas(p) + 'G'}</button>`; }).join('');
+}
+$('#pq-fsshop').addEventListener('click', (e) => { const b = e.target.closest('[data-buy]'); if (b) { e.stopPropagation(); buy(b.dataset.buy); renderFsInfo(totalSecs()); } });
 function renderSongs() { $('#pq-songs').innerHTML = S.songs.length ? 'SONGS THIS QUEST (' + S.songs.length + '):<br>' + S.songs.map((s, i) => `${i + 1}. ${esc(s.title)}`).join('<br>') : ''; }
 function setStatus() {
   const cur = S.songs[S.curSong];
