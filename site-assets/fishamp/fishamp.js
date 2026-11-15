@@ -489,7 +489,7 @@ function Jungle(){
     if(nextFall<0||(A.beat&&A.pulse>.8&&Math.random()<.12&&falling.length<4)){const L=leaf(rand(w*.05,w*.95),-S*1.5);L.land=rand(h*.08,h*.95);L.vy=rand(45,85);L.sw=rand(TAU);L.sz*=1.15;falling.push(L);nextFall=rand(1.5,4);}
     for(let i=falling.length-1;i>=0;i--){const L=falling[i];L.y+=L.vy*dt;L.x+=Math.sin(t*1.4+L.sw)*40*dt;L.rot+=Math.sin(t*1.8+L.sw)*.9*dt;
       if(L.y>=L.land){falling.splice(i,1);leaves.push(L);const max=Math.ceil(w*h/(S*S)*1.6);if(leaves.length>max)leaves.splice(0,leaves.length-max);}
-      else{ctx.save();ctx.globalAlpha=.4;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(L.x+S*.3,L.land+S*.3,S*(1-(L.land-L.y)/h)*.8,S*.3,0,0,TAU);ctx.fill();ctx.restore();drawLeaf(ctx,L,t,A,hueBase,true);}}
+      else{ctx.save();ctx.globalAlpha=.4;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(L.x+S*.3,L.land+S*.3,Math.max(.5,S*(1-(L.land-L.y)/h)*.8),S*.3,0,0,TAU);ctx.fill();ctx.restore();drawLeaf(ctx,L,t,A,hueBase,true);}}
     const vg=ctx.createRadialGradient(w/2,h/2,Math.min(w,h)*.3,w/2,h/2,Math.max(w,h)*.75);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.55)');ctx.fillStyle=vg;ctx.fillRect(0,0,w,h);
     bloom(ctx,.22+A.level*.55+A.pulse*.3);
   }};
@@ -1086,8 +1086,10 @@ let lastT=performance.now()/1000,uiT=0;
 function frame(){
   const t=performance.now()/1000,dt=clamp(t-lastT,0,.05);lastT=t;
   updateAudio(t,dt);
-  if(fsOpen&&viz){fsX.save();viz.draw(fsX,t,dt,A);fsX.restore();if(viz.name==='FLOWER HILLS')$('#fsSub').textContent=viz.sub;}
-  else{aqX.save();aqViz.draw(aqX,t,dt,A);aqX.restore();}
+  /* a visualizer error must never freeze FishAmp: reset the canvas and keep the loop running */
+  const safe=(X,V)=>{try{X.save();V.draw(X,t,dt,A);X.restore();}catch(e){if(!frame.err){frame.err=1;console.error('FishAmp visualizer error',V&&V.name,e);}try{if(X.reset)X.reset();else{X.setTransform(1,0,0,1,0,0);X.globalAlpha=1;X.globalCompositeOperation='source-over';}}catch(e2){}}};
+  if(fsOpen&&viz){safe(fsX,viz);if(viz.name==='FLOWER HILLS')$('#fsSub').textContent=viz.sub;}
+  else safe(aqX,aqViz);
   uiT-=dt;if(uiT<0){uiT=.1;
     let el=0,du=0;if(ac){const tr=tracks[cur];if(tr&&tr.demo&&demo)el=ac.currentTime-demo.start;else if(tr&&tr.gm&&gmEl){el=gmEl.currentTime;du=gmEl.duration||0;}else if(tr&&!tr.demo){el=mediaEl.currentTime;du=mediaEl.duration||0;}}
     $('#time').textContent=fmt(el);if(!seeking)seek.value=du?el/du*1000:0;seek.disabled=!du;
