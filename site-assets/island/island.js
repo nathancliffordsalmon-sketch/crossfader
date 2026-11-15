@@ -321,7 +321,9 @@ function setFull(on) { setTimeout(islWake, 0); const ov = $('.isl-ov'); if (ov) 
 $('#isl-fs').addEventListener('click', () => { const on = !$('#isl').classList.contains('isl-full'); setFull(on); const el = $('#isl'); try { if (on && el.requestFullscreen) el.requestFullscreen().catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {} });
 /* full screen, held sideways: hide the control bar after 4 seconds; any tap, move or key brings it back */
 let islIdleT = 0;
-function islWake() { const el = $('#isl'); el.classList.remove('isl-idle'); clearTimeout(islIdleT); if (el.classList.contains('isl-full') && innerWidth > innerHeight) islIdleT = setTimeout(() => { const ov = el.querySelector('.isl-hud'); if (ov && ov.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return islWake(); el.classList.add('isl-idle'); }, 4000); }
+function islWake() { const el = $('#isl'); el.classList.remove('isl-idle'); clearTimeout(islIdleT); if (el.classList.contains('isl-full') && innerWidth > innerHeight) islIdleT = setTimeout(() => { const ov = el.querySelector('.isl-hud'); const ae = document.activeElement; if (ov && ov.contains(ae) && ae.tagName === 'SELECT' && !islSelHeld) { islSelHeld = true; return islWake(); } if (ae && ov && ov.contains(ae)) ae.blur(); islSelHeld = false; el.classList.add('isl-idle'); }, 4000); }
+let islSelHeld = false;
+document.addEventListener('change', (e) => { const t = e.target; if (t && t.tagName === 'SELECT' && t.closest('#isl .isl-hud')) setTimeout(() => t.blur(), 50); }, true);
 ['pointerdown', 'pointermove', 'touchstart', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { if ($('#isl').classList.contains('isl-full')) islWake(); }, { passive: true }));
 window.addEventListener('resize', islWake); window.addEventListener('orientationchange', islWake);
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('#isl').classList.contains('isl-full')) setFull(false); });
