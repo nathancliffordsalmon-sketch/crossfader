@@ -330,6 +330,7 @@ function person(sl, x, y, s, mid, post) {
     poly([shX + sw * 0.3, shY, shX + sw, shY, hx + hw, hipY + 1 * s, hx + hw * 0.25, hipY + 1 * s], c.topL);
     if (p.top === 'stripe') { g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.6 * s; for (let k = 1; k < 5; k++) { const yy = shY + (hipY - shY) * k / 5; g.beginPath(); g.moveTo(shX - sw + 1, yy); g.lineTo(shX + sw - 1, yy); g.stroke(); } }
     if (p.top === 'plaid') { g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1.2 * s; for (let k = 1; k < 4; k++) { const yy = shY + (hipY - shY) * k / 4; g.beginPath(); g.moveTo(shX - sw + 1, yy); g.lineTo(shX + sw - 1, yy); g.moveTo(shX - sw + k * sw / 2, shY); g.lineTo(hx - hw + k * hw / 2, hipY); g.stroke(); } }
+    if (p.top === 'hawaii') hawaiiPrint(tor, shX, shY, hx, hipY, s, p.topC);
     if ((p.top === 'jacket' || p.top === 'hoodie') && f > 0) poly([shX - 2.5 * s, shY + 1 * s, shX + 2.5 * s, shY + 1 * s, hx + 2 * s, hipY, hx - 2 * s, hipY], mix(c.top, '#ffffff', 0.35));
   } else {
     g.strokeStyle = INK; g.lineWidth = 1; g.beginPath(); for (let k = 0; k < 3; k++) { const yy = shY + (hipY - shY) * (0.3 + k * 0.22); g.moveTo(shX - sw * 0.85 + k * 0.8 * s, yy); g.lineTo(shX - sw * 0.45 + k * 0.8 * s, yy - 4 * s); } g.stroke();
@@ -344,7 +345,7 @@ function person(sl, x, y, s, mid, post) {
   const hands = [];
   [[P.L, -1], [P.R, 1]].forEach(([a, side]) => {
     const sx = shX + side * (sw - 2 * s), sy = shY + 2.5 * s, ex = sx + Math.sin(a[0]) * 18 * s, ey = sy + Math.cos(a[0]) * 18 * s, hX = ex + Math.sin(a[1]) * 17 * s, hY = ey + Math.cos(a[1]) * 17 * s;
-    const up = p.top === 'tank' ? c.skin : c.top, lo = (p.top === 'tee' || p.top === 'tank' || p.top === 'stripe') ? c.skin : c.top;
+    const up = p.top === 'tank' ? c.skin : c.top, lo = (p.top === 'tee' || p.top === 'tank' || p.top === 'stripe' || p.top === 'hawaii') ? c.skin : c.top;
     limb(sx, sy, ex, ey, armW, up); limb(ex, ey, hX, hY, armW * 0.88, lo); ell(hX, hY, 2.6 * s, 2.6 * s, c.skin, { noline: s < 0.75 }); hands.push([hX, hY]);
   });
   J.hands = hands;
@@ -397,6 +398,20 @@ function hat(p, c, x, y, rx, ry, s) {
 }
 
 /* ---------------- band ---------------- */
+const HAWAII = [['#ff4fa3', '#ffe14a', '#2ad1a3'], ['#ffd23f', '#ff3d7f', '#1fb5ff'], ['#1fb5ff', '#ffffff', '#ff8a00'], ['#ff7a1a', '#ffe9b0', '#2a9d4a'], ['#7a3cff', '#ffd23f', '#3ddc84']];
+function hawaiiPrint(tor, shX, shY, hx, hipY, s, base) {
+  const set = HAWAII.find((h) => h[0] === base) || HAWAII[0];
+  g.save(); path(tor, true); g.clip();
+  const pts = [[-6, 4], [5, 9], [-2, 16], [7, 22], [-7, 26], [2, 31], [-4, 36], [8, 34]];
+  pts.forEach(([dx, dy], i) => {
+    const x = hx + dx * s + (shX - hx) * (1 - dy / 40), y = shY + dy * s;
+    if (i % 2) { ell(x + 2 * s, y + 1 * s, 3.2 * s, 1.4 * s, MARK ? PAPER : '#1e8a4a', { noline: true }, 0.6); }
+    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2 + i; ell(x + Math.cos(a) * 1.6 * s, y + Math.sin(a) * 1.6 * s, 1.5 * s, 1.5 * s, MARK ? INK : set[1 + (i % 2)], { noline: true }); }
+    ell(x, y, 0.9 * s, 0.9 * s, MARK ? PAPER : '#fff6c0', { noline: true });
+  });
+  g.restore();
+  ln(shX - 2.5 * s, shY + 1 * s, shX, shY + 6 * s, MARK ? INK : 'rgba(0,0,0,.35)', 1.2 * s); ln(shX + 2.5 * s, shY + 1 * s, shX, shY + 6 * s, MARK ? INK : 'rgba(0,0,0,.35)', 1.2 * s);
+}
 function keytarOn(P) { return Math.floor(P.b / 16) % 2 === 1; }
 function bandPose(P, inst) {
   const E = P.E, b = P.b, pu = P.pu, on = S.playing, osc = on ? Math.sin(b * Math.PI * 4) : 0;
@@ -406,7 +421,26 @@ function bandPose(P, inst) {
     case 'drums': { const k = Math.floor(b * 2) % 2; P.sit = true; P.L = [-0.5, (on && k ? 1.6 : 0.9)]; P.R = [0.5, (on && !k ? -1.6 : -0.9)]; P.hy = pu * 2; break; }
     case 'fiddle': P.R = [0.95, 2.05]; P.L = [-0.35, 1.25 + osc * 0.45]; P.sway = Math.sin(b * Math.PI * 0.5) * 2.5 * E; P.bounce = pu * 1.5; break;
     case 'accordion': P.L = [-0.3, 0.55]; P.R = [0.3, -0.55]; P.sway = Math.sin(b * Math.PI * 0.5) * 3 * E; P.bounce = pu; break;
-    case 'keytar': if (keytarOn(P)) { P.L = [-0.7, -1.95]; P.R = [0.25, -0.75 + osc * 0.22]; P.sway = Math.sin(b * Math.PI * 0.5) * 3 * E; P.bounce = pu * 2; P.hy = pu * 1.5; P.lean = Math.sin(b * Math.PI * 0.25) * 0.05 * E; } else { P.L = [-0.15, 0.3 + (on ? Math.sin(b * Math.PI * 2) * 0.15 : 0)]; P.R = [0.15, -0.3 + (on ? Math.cos(b * Math.PI * 2) * 0.15 : 0)]; P.hy = pu * 2; } break;
+    case 'keytar': {
+      // the life of the party: big leans, jumps, head-banging, a fist in the air, struts across the stage
+      const ph = ((b % 1) + 1) % 1, bar = Math.floor(b / 4), m4 = ((Math.floor(b) % 4) + 4) % 4, k = Math.max(E, on ? 0.6 : 0.25), sw = Math.sin(b * Math.PI);
+      if (keytarOn(P)) {
+        const lift = on && (bar % 2 === 1) && m4 >= 2 ? Math.sin(Math.min(1, (m4 - 2 + ph) / 2) * Math.PI) : 0;
+        P.kt = lift; P.L = [-0.75 - lift * 0.9, -1.95 - lift * 0.9]; P.R = [0.25 - lift * 0.5, -0.75 + osc * 0.35 - lift * 0.6];
+        P.lean = (on ? Math.sin(b * Math.PI * 0.5) * 0.16 - lift * 0.12 : Math.sin(S.t) * 0.04) * (0.6 + k * 0.6);
+        P.bounce = on ? (m4 === 0 ? 11 : 4) * pu * k + 2 : 1; P.hy = on ? 5 * pu * k : 0;
+        P.dx = on ? Math.sin(b * Math.PI * 0.125) * 14 : 0; P.sway = sw * 4 * k;
+        const kick = on && m4 === 3 ? Math.sin(ph * Math.PI) : 0; P.LL = [-0.12 - kick * 0.7, 0.2 + kick * 0.6]; P.RL = [0.12 + Math.max(0, -sw) * 0.25 * k, -0.12];
+      } else {
+        const fist = on && (bar % 2 === 0) && m4 >= 2;
+        P.L = fist ? [-2.8 + pu * 0.35, -3.0 + pu * 0.3] : [-0.2, 0.4 + (on ? Math.sin(b * Math.PI * 4) * 0.25 : 0)];
+        P.R = [0.2, -0.4 + (on ? Math.cos(b * Math.PI * 4) * 0.25 : 0)];
+        P.lean = on ? 0.12 + Math.max(0, Math.sin(b * Math.PI)) * 0.12 * k : 0.03; P.hy = on ? 6 * pu * k : 0;
+        P.bounce = on ? 5 * pu * k + 1 : 0.5; P.sway = sw * 3.5 * k; P.dx = on ? Math.sin(b * Math.PI * 0.5) * 3 : 0;
+        P.LL = [-0.08 - (on ? Math.max(0, sw) * 0.2 : 0), 0.05]; P.RL = [0.08 + (on ? Math.max(0, -sw) * 0.2 : 0), -0.05];
+      }
+      break;
+    }
     case 'keys': P.L = [-0.15, 0.3 + (on ? Math.sin(b * Math.PI * 2) * 0.15 : 0)]; P.R = [0.15, -0.3 + (on ? Math.cos(b * Math.PI * 2) * 0.15 : 0)]; P.hy = pu * 2; P.sway = Math.sin(b * Math.PI) * 1.5 * E; break;
     case 'sax': P.L = [-0.1, 0.45]; P.R = [0.15, -0.25]; P.lean = -Math.max(0, Math.sin(b * Math.PI * 0.25)) * 0.14 * E; P.bounce = pu; break;
     case 'trumpet': P.L = [-0.05, 2.55]; P.R = [0.35, 2.15]; P.lean = -pu * 0.08; P.bounce = pu * 1.2; P.hy = -pu; break;
@@ -440,12 +474,12 @@ function instrument(inst, J, act, phase) {
   if (phase === 'post') switch (inst) {
     case 'fiddle': { const fx = shX + 10 * s, fy = shY + 4 * s; ell(fx, fy, 8 * s, 4.4 * s, '#8a3b14', {}, 0.55); ln(fx + 4 * s, fy + 3 * s, J.hands[1][0], J.hands[1][1], '#2a1a10', 2 * s); const h = J.hands[0]; ln(h[0] - 14 * s, h[1] - 6 * s, h[0] + 16 * s, h[1] + 7 * s, '#e8dcc0', 1.4 * s, { mw: 1.6 }); break; }
     case 'keytar': if (!keytarOn(P)) instrument('keys', J, act, 'post'); else {
-      const a = -0.5, cx = J.hx + 2 * s, cy = J.hipY - 12 * s, L = 34 * s, ca = Math.cos(a), sa = Math.sin(a), pt = (u, v) => [cx + ca * u - sa * v, cy + sa * u + ca * v];
+      const lift = P.kt || 0, a = -0.5 - lift * 0.55, cx = J.hx + 2 * s, cy = J.hipY - 12 * s - lift * 14 * s, L = 34 * s, ca = Math.cos(a), sa = Math.sin(a), pt = (u, v) => [cx + ca * u - sa * v, cy + sa * u + ca * v];
       const body = [...pt(-L * 0.35, -6 * s), ...pt(L * 0.55, -7 * s), ...pt(L * 0.62, 6 * s), ...pt(-L * 0.35, 6 * s)];
       poly(body, act.cols[0], { lw: 1.4 });
       if (!MARK) { const k1 = pt(-L * 0.3, 0), k2 = pt(L * 0.5, 0); ln(k1[0], k1[1], k2[0], k2[1], '#f4f1de', 5 * s, { mw: 2 }); g.strokeStyle = '#111'; g.lineWidth = 0.8; g.beginPath(); for (let i = 0; i < 10; i++) { const q = pt(-L * 0.28 + i * L * 0.078, -2 * s), q2 = pt(-L * 0.28 + i * L * 0.078, 1 * s); g.moveTo(q[0], q[1]); g.lineTo(q2[0], q2[1]); } g.stroke(); }
       const n1 = pt(-L * 0.35, 0), n2 = pt(-L * 0.95, -2 * s); ln(n1[0], n1[1], n2[0], n2[1], '#1b1b1f', 4 * s, { mw: 2 });
-      if (on) glow(cx, cy, 16 * s, act.cols[1], 0.25 + P.pu * 0.4);
+      if (on) { glow(cx, cy, (16 + lift * 14) * s, act.cols[1], 0.3 + P.pu * 0.5 + lift * 0.3); if (lift > 0.5) for (let i = 0; i < 5; i++) { const t2 = S.t * 4 + i * 1.3; glow(cx + Math.cos(t2) * 26 * s, cy - 10 * s + Math.sin(t2) * 14 * s, 4 * s, act.cols[i % 3], 0.8); } }
     } break;
     case 'keys': { const y0 = J.hipY - 6 * s; rect(J.hx - 26 * s, y0, 52 * s, 6 * s, '#1b1b1f'); if (!MARK) { rect(J.hx - 24 * s, y0 + 1 * s, 48 * s, 2.6 * s, '#f4f1de'); g.fillStyle = '#111'; for (let i = 0; i < 12; i++) g.fillRect(J.hx - 23 * s + i * 4 * s, y0 + 1 * s, 1.6 * s, 1.6 * s); } else { g.strokeStyle = INK; g.lineWidth = 1; g.beginPath(); for (let i = 0; i < 12; i++) { g.moveTo(J.hx - 23 * s + i * 4 * s, y0 + 1 * s); g.lineTo(J.hx - 23 * s + i * 4 * s, y0 + 4 * s); } g.stroke(); } break; }
     case 'sax': { const m = [J.head[0] + 1 * s, J.head[1] + 6 * s]; const gold = '#d9a531'; ln(m[0], m[1], m[0] + 3 * s, m[1] + 8 * s, '#222', 2 * s); g.lineCap = 'round'; path([m[0] + 3 * s, m[1] + 8 * s, J.hx + 2 * s, J.hipY - 2 * s, J.hx + 9 * s, J.hipY - 1 * s, J.hx + 12 * s, J.hipY - 10 * s], false); g.strokeStyle = MARK ? INK : gold; g.lineWidth = (MARK ? 2 : 5) * s; g.stroke(); if (MARK) { g.strokeStyle = PAPER; g.lineWidth = 2.6 * s; } ell(J.hx + 12 * s, J.hipY - 11 * s, 4 * s, 2.2 * s, gold); if (on) glow(J.hx + 12 * s, J.hipY - 12 * s, 12 * s, ac[1], 0.3 * P.pu); break; }
@@ -492,7 +526,7 @@ function bandMember(act, inst, i) {
   Object.assign(p, looks); p.h = 1; p.w = 1;
   if (act.k === 'haze') Object.assign(p, ({
     mic: { hair: 'long', hairC: '#b8975e', hat: 'none', top: 'jacket', topC: '#efe8d8', bot: 'jeans', botC: '#3a5f94', acc: 'stubble', h: 1.04 },
-    keytar: { hair: 'curly', hairC: '#3a2a1a', hat: 'none', top: 'tee', topC: '#ff9a3c', bot: 'jeans', botC: '#1f2a44', acc: 'shades' },
+    keytar: { hair: 'curly', hairC: '#3a2a1a', hat: 'none', top: 'hawaii', topC: '#ff4fa3', bot: 'jeans', botC: '#1f2a44', acc: 'shades' },
     bass: { hair: 'short', hairC: '#5a3a22', hat: 'none', top: 'long', topC: '#2a3a4a', bot: 'jeans', botC: '#1a1a22', acc: 'moustache' },
     guitar: { hair: 'long', hairC: '#6a4a2a', hat: 'cowboy', hatC: '#2a1e16', top: 'long', topC: '#e9dfc8', bot: 'jeans', botC: '#2b4a7a', acc: 'none', w: 0.78, h: 1.06 },
     drums: { hat: 'cap', hatC: '#1d4e89', top: 'tank', topC: '#111318', bot: 'jeans' }
@@ -509,7 +543,8 @@ function drawBand(cx, y, width, s, amb, light) {
   if (hasDrums) { const sl = bandMember(act, 'drums', 9); sl.c = sl.cKey === amb.col + light ? sl.c : (sl.cKey = amb.col + light, shadeSet(sl.p, amb, light)); person(sl, cx, y - 10 * s, s * 0.95, null, (J) => { instrument('drums', J, act, 'mid'); instrument('drums', J, act, 'post'); }); }
   front.forEach((inst, i) => {
     const n = front.length, fx = cx + (n === 1 ? 0 : (i / (n - 1) - 0.5) * width), off = hasDrums && Math.abs(fx - cx) < 30 * s ? (i < n / 2 ? -34 : 34) * s : 0;
-    const sl = bandMember(act, inst, i); sl.c = sl.cKey === amb.col + light ? sl.c : (sl.cKey = amb.col + light, shadeSet(sl.p, amb, light));
+    const sl = bandMember(act, inst, i); if (sl.p.top === 'hawaii') { const want = HAWAII[Math.max(0, S.songs.length) % HAWAII.length][0]; if (sl.p.topC !== want) { sl.p.topC = want; sl.cKey = ''; } }
+    sl.c = sl.cKey === amb.col + light ? sl.c : (sl.cKey = amb.col + light, shadeSet(sl.p, amb, light));
     person(sl, fx + off, y, s, (J) => instrument(inst, J, act, 'mid'), (J) => instrument(inst, J, act, 'post'));
   });
 }
