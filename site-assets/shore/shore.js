@@ -1428,14 +1428,14 @@ function drawCam(c) {
   CAM.drawing = true; const shake = pu * 2.2;
   if (c.raft) {
     const Z = 4.2, fx = RAFT.x, fy = RAFT.y - 16;
-    g.translate(ccx + (rnd() - 0.5) * shake, ccy + 8 + (rnd() - 0.5) * shake); g.scale(Z, Z); g.translate(-fx, -fy);
+    g.translate(ccx + (rnd() - 0.5) * shake, by0 + (BH - 30) / 2 + (rnd() - 0.5) * shake); g.scale(Z, Z); g.translate(-fx, -fy);
     g.fillStyle = MARK ? PAPER : '#2a6a9a'; g.fillRect(fx - 60, fy + 14, 120, 40);
     rect(RAFT.x - 30, RAFT.y - 1, 60, 5, '#c9bea6', { lw: 0.6 }); rect(RAFT.x - 29, RAFT.y + 3, 58, 2.5, '#5a4a3a');
     RAFTREF.forEach((r) => person(r.sl, r.x, r.y, r.s));
     if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 0.4; for (let i = 0; i < 6; i++) { const yy = fy + 20 + i * 4; g.beginPath(); g.moveTo(fx - 60, yy + Math.sin(S.t * 2 + i) * 0.8); g.lineTo(fx + 60, yy + Math.sin(S.t * 2 + i + 2) * 0.8); g.stroke(); } }
   } else {
-    const s = ref.s, Z = (BH * 1.05) / (78 * s), fx = ref.x, fy = ref.y - (c.inst === 'drums' ? 46 : 58) * s, kick = c.sl.muppet ? 1.8 : 1;
-    g.translate(ccx + (rnd() - 0.5) * shake * kick, ccy + 10 + (rnd() - 0.5) * shake * kick); g.scale(Z, Z); g.translate(-fx, -fy);
+    const s = ref.s, Z = 150 / (80 * s), fx = ref.x, fy = ref.y - 80 * s, kick = c.sl.muppet ? 1.8 : 1;
+    g.translate(ccx + (rnd() - 0.5) * shake * kick, by0 + (BH - 30) / 2 + 4 + (rnd() - 0.5) * shake * kick); g.scale(Z, Z); g.translate(-fx, -fy);
     person(ref.sl, ref.x, ref.y, ref.s, ref.mid, ref.post);
   }
   CAM.drawing = false;
