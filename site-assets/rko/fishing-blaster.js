@@ -60,13 +60,29 @@
       case 'walk': {
         if (K.boat.on) { K.boat.x += K.boat.vx * dt; if (K.boat.x < -50) K.boat.on = false; }
         if (ending) { K.st = 'leap'; K.t = 0; K.y0 = K.y; K.x0 = K.x; K.x1 = clearColumn(s, K.x, K.y); K.dir = K.x1 >= K.x ? 1 : -1; break; }
-        const nx = K.x + K.dir * SPEED * dt, gy = groundAt(s, Math.round(nx), Math.round(K.y));
-        const blocked = gy == null || s.solid(Math.round(nx), (gy || K.y) - 10) || nx < 4 || nx > 316;
-        if (blocked || (K.t > K.nextTurn && Math.random() < 0.004)) { K.dir *= -1; K.nextTurn = K.t + 3; }
+        const cx = Math.round(K.x), cy = Math.round(K.y);
+        // ground dug out from under him: drop gently to whatever is below (never into the water)
+        if (!s.solid(cx, cy + 1) && groundAt(s, cx, cy) == null) { let yy = cy + 1; while (yy < WATER - 2 && !s.solid(cx, yy + 1)) yy++; if (yy < WATER - 2) { K.y = Math.min(yy, K.y + 40 * dt); break; } }
+        const nx = K.x + K.dir * SPEED * dt, ix = Math.round(nx), gy = groundAt(s, ix, cy);
+        const edge = nx < 4 || nx > 316, wall = gy == null ? s.solid(ix, cy) : s.solid(ix, gy - 10);
+        if (!edge && (wall || (gy != null && gy < cy - 4))) {
+          // a wall or tall step ahead: climb it if there's a top within reach and room to stand up there
+          let top = null; for (let yy = cy; yy > cy - 44 && yy > 2; yy--) { if (!s.solid(ix + K.dir, yy) && s.solid(ix + K.dir, yy + 1)) { let room = true; for (let h = 1; h <= 10; h++) if (s.solid(ix + K.dir, yy - h)) { room = false; break; } if (room) { top = yy; break; } } }
+          if (top != null) { K.st = 'climb'; K.t = 0; K.cx = ix + K.dir; K.ty = top; break; }
+        }
+        // never walk off a ledge: no ground within a small step down means turn around
+        if (edge || gy == null || wall || (K.t > K.nextTurn && Math.random() < 0.004)) { K.dir *= -1; K.nextTurn = K.t + 3; }
         else { K.x = nx; K.y = gy; }
         K.walkF += dt * 6;
-        // the boombox makes nearby fish stop and dance
-        s.fish.forEach((f) => { if (f.dead) return; if ((f.st === 'walk' || f.st === 'dance') && Math.abs(f.x - K.x) < 30 && Math.abs(f.y - K.y) < 16) { f.st = 'dance'; f.dance = Math.max(f.dance || 0, 1.2); } });
+        // the boombox makes nearby fish dance for a moment, then lets them carry on (no dancing again for a while)
+        const now = performance.now() / 1000;
+        s.fish.forEach((f) => { if (f.dead || f.st !== 'walk') return; if (Math.abs(f.x - K.x) < 26 && Math.abs(f.y - K.y) < 14 && now > (f._bbFree || 0)) { f.st = 'dance'; f.dance = Math.max(f.dance || 0, 1.0); f._bbFree = now + 9; } });
+        break;
+      }
+      case 'climb': { // hand over hand up the wall, then step onto the top
+        if (ending) { K.st = 'walk'; break; }
+        K.walkF += dt * 8; K.y -= 14 * dt; K.x = K.cx - K.dir * 2;
+        if (K.y <= K.ty) { K.y = K.ty; K.x = K.cx + K.dir; K.st = 'walk'; K.nextTurn = K.t + 2; }
         break;
       }
       case 'leap': { // jump off, then parachute down to the boat
@@ -113,7 +129,7 @@
       for (let i = -8; i <= 8; i++) R(g, i, -26 + Math.round(Math.abs(i) * Math.abs(i) / 22), 1, 2, ['#ff6fa8', '#ffe27a', '#38b6ff'][(i + 9) % 3]);
       R(g, -6, -22, 1, 10, '#ddd'); R(g, 6, -22, 1, 10, '#ddd');
     }
-    const step = K.st === 'walk' ? Math.floor(K.walkF) % 2 : 0;
+    const step = (K.st === 'walk' || K.st === 'climb') ? Math.floor(K.walkF) % 2 : 0;
     // legs (baggy jeans) and sneakers
     R(g, -2, -3, 2, 3 - step, jeans); R(g, 1, -3, 2, 3 - (1 - step), jeans); R(g, -2, -1, 2, 1, '#ffffff'); R(g, 1, -1, 2, 1, '#ffffff');
     if (K.st === 'skate' || K.st === 'jump') { R(g, -4, 0, 9, 1, '#e8913a'); R(g, -3, 1, 1, 1, '#222'); R(g, 3, 1, 1, 1, '#222'); }
