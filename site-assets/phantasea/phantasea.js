@@ -1153,8 +1153,7 @@ function renderShop() {
   const items = SHOP.map((it) => { const have = S[it.k], p = shopPrice(it), maxed = have >= it.max; return { it, have, p, maxed, off: maxed || S.gold < p || S.ended || S.phase === 'intro' || S.phase === 'roll' }; });
   const sig = items.map((x) => [x.have, x.p, x.off ? 1 : 0].join(',')).join('|') + '|' + S.gold;
   if (sig === shopSig) return; shopSig = sig;
-  el.innerHTML = `<b>🛒 TRAVELLING MERCHANT · ${commas(S.gold)} GOLD</b>` + items.map((x) => `<button data-buy="${x.it.k}"${x.off ? ' disabled' : ''} title="${esc(x.it.desc)} (key ${x.it.key})">${x.it.icon} ${esc(x.it.name)} ${x.it.k === 'scrolls' ? '×' + x.have : 'LV ' + x.have} · ${x.maxed ? 'MAX' : commas(x.p) + 'G'}</button>`).join('') +
-    `<span class="pq-shopnote">Each item costs about two songs of gold, and the price rises each time. Spend to fight faster and survive, or save it all to make your village prosper. A trip to the Temple still costs half the purse.</span>`;
+  el.innerHTML = `<b>🛒 TRAVELLING MERCHANT · ${commas(S.gold)} GOLD</b>` + items.map((x) => `<button data-buy="${x.it.k}"${x.off ? ' disabled' : ''} title="${esc(x.it.desc)} (key ${x.it.key})">${x.it.icon} ${esc(x.it.name)} ${x.it.k === 'scrolls' ? '×' + x.have : 'LV ' + x.have} · ${x.maxed ? 'MAX' : commas(x.p) + 'G'}</button>`).join('');
 }
 $('#pq-shop').addEventListener('click', (e) => { const b = e.target.closest('[data-buy]'); if (b) buy(b.dataset.buy); });
 document.addEventListener('keydown', (e) => { if (/input|select|textarea/i.test(e.target.tagName)) return; const it = SHOP.find((x) => x.key === e.key); if (it) buy(it.k); });
