@@ -53,6 +53,8 @@ const css = `
 @media (max-height:500px){#isl.isl-full .isl-hud{padding:4px 10px;font-size:11px}#isl .isl-ov select,#isl .isl-ov button,#isl.isl-full .isl-fs{font-size:11px;padding:6px 8px}}
 html.isl-noscroll,html.isl-noscroll body{overflow:hidden!important}
 #isl.isl-full .ltf-cast-btn{display:none!important}
+#isl.isl-full .isl-hud,#isl.isl-full .isl-fs{transition:opacity .6s,transform .6s}
+#isl.isl-full.isl-idle .isl-hud{opacity:0;transform:translateY(100%);pointer-events:none}#isl.isl-full.isl-idle .isl-fs{opacity:0;pointer-events:none}#isl.isl-full.isl-idle{cursor:none}
 @media (max-width:600px){#isl .isl-qp .lbl{display:none}#isl .isl-qp{gap:6px;padding:7px}#isl button{padding:9px 12px}#isl .isl-hud{font-size:13px}}
 #isl-print{display:none}
 @media print{body *{visibility:hidden!important}#isl-print,#isl-print *{visibility:visible!important}#isl-print{display:block!important;position:absolute;left:0;top:0;width:100%;color:#000;font-family:Georgia,serif}}
@@ -315,8 +317,13 @@ window.addEventListener('resize', refit); window.addEventListener('orientationch
 if (window.visualViewport) { window.visualViewport.addEventListener('resize', refit); window.visualViewport.addEventListener('scroll', () => setTimeout(fitFull, 30)); }
 // while full screen, swipes must not scroll the page underneath (that's what makes Safari's bars jump in and out)
 $('#isl').addEventListener('touchmove', (e) => { if ($('#isl').classList.contains('isl-full') && !/select|input/i.test(e.target.tagName)) e.preventDefault(); }, { passive: false });
-function setFull(on) { const ov = $('.isl-ov'); if (ov) (on ? $('.isl-hud') : $('.isl-stage')).appendChild(ov); $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; refit(); }
+function setFull(on) { setTimeout(islWake, 0); const ov = $('.isl-ov'); if (ov) (on ? $('.isl-hud') : $('.isl-stage')).appendChild(ov); $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; refit(); }
 $('#isl-fs').addEventListener('click', () => { const on = !$('#isl').classList.contains('isl-full'); setFull(on); const el = $('#isl'); try { if (on && el.requestFullscreen) el.requestFullscreen().catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {} });
+/* full screen, held sideways: hide the control bar after 4 seconds; any tap, move or key brings it back */
+let islIdleT = 0;
+function islWake() { const el = $('#isl'); el.classList.remove('isl-idle'); clearTimeout(islIdleT); if (el.classList.contains('isl-full') && innerWidth > innerHeight) islIdleT = setTimeout(() => { const ov = el.querySelector('.isl-hud'); if (ov && ov.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return islWake(); el.classList.add('isl-idle'); }, 4000); }
+['pointerdown', 'pointermove', 'touchstart', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { if ($('#isl').classList.contains('isl-full')) islWake(); }, { passive: true }));
+window.addEventListener('resize', islWake); window.addEventListener('orientationchange', islWake);
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('#isl').classList.contains('isl-full')) setFull(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFull(false); });
 
