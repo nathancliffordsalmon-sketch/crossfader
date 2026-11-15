@@ -289,6 +289,7 @@ function pose(sl) {
   if (stl === 'sit' || stl === 'cross') { if (stl === 'cross') P.cross = true; else P.sit = true; P.sway = id * 0.8 + sn * 1.5 * E; P.hy = pu * 1.5; if (sl.drink) P.R = [0.3, 2.3]; if (on && sl.off > 0.6) { P.L = [-0.45, 2.1 + pu * 0.4]; P.R = [0.45, -2.1 - pu * 0.4]; } return P; }
   if (stl === 'walk') { const w = S.t * 7 + o * 9, s2 = Math.sin(w); P.LL = [s2 * 0.42, Math.max(0, -s2) * 0.55]; P.RL = [-s2 * 0.42, Math.max(0, s2) * 0.55]; P.L = [-0.12 - s2 * 0.3, 0.25]; P.R = [0.12 + s2 * 0.3, -0.25]; P.bounce = Math.abs(Math.cos(w)) * 1.3; return P; }
   if (!on && !band) { P.sway = id * 1.2; if (sl.drink) P.R = [0.3, 2.2]; return P; }
+  if (stl === 'frenzy') { const w = b * Math.PI * 2 + o * 7, j = Math.abs(Math.sin(b * Math.PI)); P.bounce = 4 + 10 * j * Math.max(0.6, E); P.L = [-2.7 + Math.sin(w) * 0.7, -2.4 + Math.cos(w * 1.5) * 0.9]; P.R = [2.7 + Math.cos(w) * 0.7, 2.4 + Math.sin(w * 1.5) * 0.9]; P.lean = Math.sin(b * Math.PI + o * 5) * 0.32; P.hy = pu * 5; P.sway = Math.sin(b * Math.PI * 0.5 + o * 3) * 6; P.LL = [-0.35 * j, 0.5 * j]; P.RL = [0.35 * (1 - j), -0.4 * (1 - j)]; P.mouth = 0.5 + pu * 0.5; return P; }
   if (!band && !sl.drink && !sl.inst && !sl.still && stl !== 'couple' && stl !== 'line') { const seg = Math.floor(b / 16), hs = Math.abs(Math.sin(seg * 12.9898 + o * 78.233) * 43758.5453) % 1; if (hs < 0.45) { moveX(P, EXTRA[Math.floor(hs / 0.45 * EXTRA.length)], { b, ph, n, pu, sn, E, o }); return P; } }
   switch (stl) {
     case 'stand': P.sway = id * 1.2 + sn * 1.6 * E; P.bounce = pu * 0.9; if (sl.drink) P.R = [0.3, 2.2 + pu * 0.3]; break;
@@ -303,6 +304,7 @@ function pose(sl) {
     case 'couple': if (sl.side < 0) { P.R = [1.15, 1.45]; P.L = [-0.35, 0.6]; } else { P.L = [-1.15, -1.45]; P.R = [0.35, -0.6]; } P.bounce = pu * 2; P.LL = [-0.05 - Math.max(0, Math.sin(b * Math.PI * 2)) * 0.25, 0.05]; P.RL = [0.05 + Math.max(0, -Math.sin(b * Math.PI * 2)) * 0.25, -0.05]; break;
     default: bandPose(P, stl.slice(2));
   }
+  if (sl.muppet) muppetize(P, stl.slice(2));
   return P;
 }
 function person(sl, x, y, s, mid, post) {
@@ -384,6 +386,12 @@ function head(p, c, x, y, s, f, P) {
     if (p.acc === 'stubble' && !MARK) { g.globalAlpha = 0.45; poly([x - rx * 0.85, y + 1 * s, x + rx * 0.85, y + 1 * s, x + rx * 0.45, y + ry * 0.9, x, y + ry * 1.05, x - rx * 0.45, y + ry * 0.9], hc); g.globalAlpha = 1; }
     if (p.acc === 'beard') poly([x - rx * 0.9, y + 1 * s, x + rx * 0.9, y + 1 * s, x + rx * 0.5, y + ry * 0.95, x, y + ry * 1.15, x - rx * 0.5, y + ry * 0.95], hc, hairInk);
   }
+  if (f > 0 && P && P.mouth != null && (P.muppet || CAM.drawing)) {
+    const m = P.mouth;
+    if (P.muppet) { [-1, 1].forEach((d) => { ell(x + d * 3 * s, y - 2.5 * s, 2.6 * s, 3 * s, '#ffffff', { lw: 0.9 }); ell(x + d * 3 * s + 0.6 * s, y - 2 * s - m * 0.8 * s, 1.1 * s, 1.3 * s, '#111111', { noline: true }); }); }
+    ell(x + 0.6 * s, y + ry * 0.48, rx * 0.5, ry * (0.08 + 0.3 * m), '#3a0a14', { lw: 0.9 });
+    if (!MARK && m > 0.4) ell(x + 0.6 * s, y + ry * (0.5 + 0.18 * m), rx * 0.28, ry * 0.1 * m, '#e2556a', { noline: true });
+  }
   hat(p, c, x, y, rx, ry, s);
 }
 function hat(p, c, x, y, rx, ry, s) {
@@ -413,6 +421,16 @@ function hawaiiPrint(tor, shX, shY, hx, hipY, s, base) {
   });
   g.restore();
   ln(shX - 2.5 * s, shY + 1 * s, shX, shY + 6 * s, MARK ? INK : 'rgba(0,0,0,.35)', 1.2 * s); ln(shX + 2.5 * s, shY + 1 * s, shX, shY + 6 * s, MARK ? INK : 'rgba(0,0,0,.35)', 1.2 * s);
+}
+function muppetize(P, inst) {
+  // the keys player rocks out like a Muppet: head thrown back, mouth flapping, arms flying off the keys
+  const b = P.b, pu = P.pu, n = P.n, ph = P.ph, zoomed = CAM.cur && CAM.cur.sl && CAM.cur.sl.muppet, k = zoomed ? 1.25 : 1;
+  P.muppet = true; P.mouth = Math.min(1, 0.25 + pu * 1.1 + Math.abs(Math.sin(b * Math.PI * 2)) * 0.35);
+  P.hy = (-3 + pu * 7) * k; P.lean = Math.sin(b * Math.PI * 0.5) * 0.28 * k; P.sway = Math.sin(b * Math.PI) * 5 * k; P.bounce = pu * 4 * k;
+  if (inst === 'keytar' && keytarOn(P)) return;
+  const slam = 0.5 - pu * 0.7, fly = [-2.7 + Math.sin(b * Math.PI * 3) * 0.5, -2.3 + ph * 0.8];
+  if (((n % 4) + 4) % 4 === 3) { P.L = fly; P.R = [-fly[0], -fly[1]]; } // both arms up!
+  else if (n % 2) { P.L = fly; P.R = [0.2, -slam]; } else { P.R = [-fly[0], -fly[1]]; P.L = [-0.2, slam]; }
 }
 function keytarOn(P) { return Math.floor(P.b / 16) % 2 === 1; }
 function bandPose(P, inst) {
@@ -539,15 +557,16 @@ function drawBand(cx, y, width, s, amb, light) {
   const act = ACTS[S.act], list = act.band, front = list.filter((x) => x !== 'drums'), hasDrums = list.includes('drums');
   if (act.k === 'dj') {
     const sl = bandMember(act, 'dj', 0); sl.c = sl.c && sl.cKey === amb.col + light ? sl.c : (sl.cKey = amb.col + light, shadeSet(sl.p, amb, light));
-    person(sl, cx, y, s * 1.08, (J) => instrument('dj', J, act, 'mid'), (J) => instrument('dj', J, act, 'post'));
+    const mD = (J) => instrument('dj', J, act, 'mid'), pD = (J) => instrument('dj', J, act, 'post'); person(sl, cx, y, s * 1.08, mD, pD); CAMREF.dj = { sl, x: cx, y, s: s * 1.08, mid: mD, post: pD };
     return;
   }
-  if (hasDrums) { const sl = bandMember(act, 'drums', 9); sl.c = sl.cKey === amb.col + light ? sl.c : (sl.cKey = amb.col + light, shadeSet(sl.p, amb, light)); person(sl, cx, y - 10 * s, s * 0.95, null, (J) => { instrument('drums', J, act, 'mid'); instrument('drums', J, act, 'post'); }); }
+  if (hasDrums) { const sl = bandMember(act, 'drums', 9); sl.c = sl.cKey === amb.col + light ? sl.c : (sl.cKey = amb.col + light, shadeSet(sl.p, amb, light)); const pD = (J) => { instrument('drums', J, act, 'mid'); instrument('drums', J, act, 'post'); }; person(sl, cx, y - 10 * s, s * 0.95, null, pD); CAMREF.drums = { sl, x: cx, y: y - 10 * s, s: s * 0.95, mid: null, post: pD }; }
   front.forEach((inst, i) => {
     const n = front.length, fx = cx + (n === 1 ? 0 : (i / (n - 1) - 0.5) * width), off = hasDrums && Math.abs(fx - cx) < 30 * s ? (i < n / 2 ? -34 : 34) * s : 0;
     const sl = bandMember(act, inst, i); if (sl.p.top === 'hawaii') { const want = HAWAII[Math.max(0, S.songs.length) % HAWAII.length][0]; if (sl.p.topC !== want) { sl.p.topC = want; sl.cKey = ''; } }
     sl.c = sl.cKey === amb.col + light ? sl.c : (sl.cKey = amb.col + light, shadeSet(sl.p, amb, light));
-    person(sl, fx + off, y, s, (J) => instrument(inst, J, act, 'mid'), (J) => instrument(inst, J, act, 'post'));
+    const mI = (J) => instrument(inst, J, act, 'mid'), pI = (J) => instrument(inst, J, act, 'post'); sl.muppet = (inst === 'keys' || inst === 'keytar') && S.playing;
+    person(sl, fx + off, y, s, mI, pI); CAMREF[inst] = { sl, x: fx + off, y, s, mid: mI, post: pI };
   });
 }
 
@@ -1159,7 +1178,7 @@ function raftCrew(layer, amb, light) {
     if (t < 0.1) { if (layer !== 'beach') return; const changed = t > 0.05, sl = swimmerSlot(w, amb, light, changed ? 'stand' : 'dry'); person(sl, bx, by, 0.5); if (!changed) { const sp = t * 120; ell(bx + Math.sin(sp) * 7, by - 18, 9, 3, ['#ffd166', '#e9eef5', '#ff8a3d'][w.i], { lw: 0.8 }); } }
     else if (t < 0.15) { if (layer !== 'beach') return; const k = (t - 0.1) / 0.05; person(swimmerSlot(w, amb, light, 'stand'), lerp(bx, bx + 10, k), lerp(by, shoreY, k), 0.5); }
     else if (t < 0.33) { if (layer !== 'water') return; const k = (t - 0.15) / 0.18; swimHead(lerp(bx + 10, rx, k), lerp(shoreY - 4, ry + 8, k) + Math.sin(S.t * 3 + w.i) * 0.8, lerp(0.75, 0.55, k), w.sl.p.skin, S.t * 5 + w.i); }
-    else if (t < 0.62) { if (layer !== 'raft') return; const sl = swimmerSlot(w, amb, light, S.playing ? 'rave' : 'sway'); person(sl, rx, ry, 0.36); }
+    else if (t < 0.62) { if (layer !== 'raft') return; const sl = swimmerSlot(w, amb, light, S.playing ? 'frenzy' : 'sway'); person(sl, rx, ry, 0.36); RAFTREF.push({ sl, x: rx, y: ry, s: 0.36 }); }
     else if (t < 0.67) { if (layer !== 'water') return; const k = (t - 0.62) / 0.05, x = lerp(rx, rx - 18, k), y = ry - Math.sin(k * Math.PI) * 16 + k * 10; if (k < 0.8) ell(x, y - 6, 2.5, 6, w.sl.p.skin, { lw: 0.6 }); else { g.strokeStyle = MARK ? INK : 'rgba(255,255,255,.9)'; g.lineWidth = 1.4; g.beginPath(); g.ellipse(x, ry + 8, 8 + (k - 0.8) * 30, 2.5, 0, 0, 7); g.stroke(); } }
     else if (t < 0.85) { if (layer !== 'water') return; const k = (t - 0.67) / 0.18; swimHead(lerp(rx - 18, bx + 10, k), lerp(ry + 8, shoreY - 4, k) + Math.sin(S.t * 3 + w.i) * 0.8, lerp(0.55, 0.75, k), w.sl.p.skin, S.t * 5 + w.i); }
     else { if (layer !== 'beach') return; const k = Math.min(1, (t - 0.85) / 0.05); person(swimmerSlot(w, amb, light, 'stand'), lerp(bx + 10, bx, k), lerp(shoreY, by, k), 0.5); }
@@ -1369,6 +1388,70 @@ function drawTag() {
 }
 
 /* ---------------- main loop ---------------- */
+/* ---------- close-up cam: old-school zoom windows on the band (and the raft at the beach) ---------- */
+let CAMREF = {}, RAFTREF = [];
+const CAM = { cur: null, next: 5, drawing: false };
+const CAM_TAG = { guitar: 'GUITAR SOLO!', 'mic-guitar': 'SING IT!', mic: 'SING IT!', drums: 'DRUM BREAK!', bass: 'BASS SLAP!', keys: 'KEYS!!!', keytar: 'KEYTAR!!!', fiddle: 'FIDDLE FRENZY!', accordion: 'SQUEEZEBOX!', banjo: "BANJO PICKIN'!", sax: 'SAX SOLO!', trumpet: 'HORN BLAST!', dj: 'DROP IT!' };
+function camPick() {
+  const beach = S.scene === 'beachDay' || S.scene === 'beachNight';
+  if (beach && RAFTREF.length && rnd() < 0.5) return { raft: true, tag: pickR(rnd, ['RAFT PARTY!!', 'THEY LOST IT!', 'RAFT RAVE!!', 'NOBODY IS OKAY!']) };
+  const opts = Object.keys(CAMREF).map((k) => ({ k, w: (k === 'keys' || k === 'keytar') ? 5 : (k === 'drums' || k === 'guitar' || k === 'dj') ? 2 : 1 }));
+  if (!opts.length) return null;
+  let t = opts.reduce((a, o) => a + o.w, 0) * rnd(), k = opts[0].k; for (const o of opts) { t -= o.w; if (t <= 0) { k = o.k; break; } }
+  return { inst: k, sl: CAMREF[k].sl, tag: CAM_TAG[k] || 'SOLO!' };
+}
+function camTick(dt) {
+  const scn = S.scene, ok = S.playing && (scn === 'inside' || scn === 'shore' || scn === 'beachDay' || scn === 'beachNight'), beach = scn === 'beachDay' || scn === 'beachNight';
+  if (!ok) { CAM.cur = null; CAM.next = Math.min(CAM.next, S.t + 4); return; }
+  if (CAM.cur && S.t - CAM.cur.t0 > CAM.cur.dur) { CAM.cur = null; CAM.next = S.t + (beach ? 14 + rnd() * 12 : 5 + rnd() * 6); }
+  if (!CAM.cur && S.t >= CAM.next && S.t - S.title > 3) { const c = camPick(); if (c) { c.t0 = S.t; c.dur = c.inst === 'keys' || c.inst === 'keytar' ? 5.5 : 4.2; CAM.cur = c; } else CAM.next = S.t + 2; }
+  if (CAM.cur) drawCam(CAM.cur);
+}
+function drawCam(c) {
+  const ref = c.raft ? null : CAMREF[c.inst]; if (!c.raft && !ref) return;
+  if (c.raft && !RAFTREF.length) return;
+  const act = ACTS[S.act], age = S.t - c.t0, open = clamp(Math.min(age, c.dur - age) / 0.22, 0, 1);
+  const BW = 300, BH = 186, bx = W - BW - 18, by0 = 18, cy = by0 + BH / 2, bh = BH * open, top = cy - bh / 2;
+  if (bh < 2) return;
+  g.save();
+  // frame: black, double border, corner notches
+  g.fillStyle = '#000'; g.fillRect(bx - 7, top - 7, BW + 14, bh + 14);
+  g.fillStyle = MARK ? INK : '#ffffff'; g.fillRect(bx - 5, top - 5, BW + 10, bh + 10); g.fillStyle = '#000'; g.fillRect(bx - 3, top - 3, BW + 6, bh + 6);
+  g.fillStyle = act.cols[0]; g.fillRect(bx - 2, top - 2, BW + 4, bh + 4);
+  g.beginPath(); g.rect(bx, top, BW, bh); g.clip();
+  // backdrop: spotlight burst and speed lines in the act colours
+  const ccx = bx + BW / 2, ccy = by0 + BH * 0.46, pu = Math.exp(-((S.beat % 1 + 1) % 1) * 5);
+  g.fillStyle = MARK ? PAPER : mix('#0a0a18', act.cols[2] || act.cols[0], 0.18); g.fillRect(bx, top, BW, bh);
+  for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2 + S.t * 0.6; g.fillStyle = MARK ? 'rgba(0,0,0,.08)' : (i % 2 ? act.cols[1] : act.cols[0]); g.globalAlpha = MARK ? 1 : 0.16 + pu * 0.12; g.beginPath(); g.moveTo(ccx, ccy); g.lineTo(ccx + Math.cos(a) * 400, ccy + Math.sin(a) * 400); g.lineTo(ccx + Math.cos(a + 0.17) * 400, ccy + Math.sin(a + 0.17) * 400); g.fill(); }
+  g.globalAlpha = 1;
+  // zoomed redraw of the subject
+  CAM.drawing = true; const shake = pu * 2.2;
+  if (c.raft) {
+    const Z = 4.2, fx = RAFT.x, fy = RAFT.y - 16;
+    g.translate(ccx + (rnd() - 0.5) * shake, ccy + 8 + (rnd() - 0.5) * shake); g.scale(Z, Z); g.translate(-fx, -fy);
+    g.fillStyle = MARK ? PAPER : '#2a6a9a'; g.fillRect(fx - 60, fy + 14, 120, 40);
+    rect(RAFT.x - 30, RAFT.y - 1, 60, 5, '#c9bea6', { lw: 0.6 }); rect(RAFT.x - 29, RAFT.y + 3, 58, 2.5, '#5a4a3a');
+    RAFTREF.forEach((r) => person(r.sl, r.x, r.y, r.s));
+    if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 0.4; for (let i = 0; i < 6; i++) { const yy = fy + 20 + i * 4; g.beginPath(); g.moveTo(fx - 60, yy + Math.sin(S.t * 2 + i) * 0.8); g.lineTo(fx + 60, yy + Math.sin(S.t * 2 + i + 2) * 0.8); g.stroke(); } }
+  } else {
+    const s = ref.s, Z = (BH * 1.05) / (78 * s), fx = ref.x, fy = ref.y - (c.inst === 'drums' ? 46 : 58) * s, kick = c.sl.muppet ? 1.8 : 1;
+    g.translate(ccx + (rnd() - 0.5) * shake * kick, ccy + 10 + (rnd() - 0.5) * shake * kick); g.scale(Z, Z); g.translate(-fx, -fy);
+    person(ref.sl, ref.x, ref.y, ref.s, ref.mid, ref.post);
+  }
+  CAM.drawing = false;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.beginPath(); g.rect(bx, top, BW, bh); g.clip();
+  // scanlines + caption bar
+  if (!MARK) { g.fillStyle = 'rgba(0,0,0,.16)'; for (let y = top; y < top + bh; y += 3) g.fillRect(bx, y, BW, 1); }
+  const capH = 30, capY = top + bh - capH; g.fillStyle = 'rgba(0,0,0,.78)'; g.fillRect(bx, capY, BW, capH);
+  g.fillStyle = act.cols[0]; g.fillRect(bx, capY, BW, 2);
+  const name = c.raft ? '' : (c.sl.p.name || ''), wob = Math.sin(S.t * 14) * (c.sl && c.sl.muppet ? 1.5 : 0.6);
+  g.font = "bold 17px 'Courier New', monospace"; g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.lineWidth = 4; g.strokeStyle = '#000'; g.strokeText(c.tag, bx + 10, capY + capH / 2 + wob); g.fillStyle = act.cols[1] === '#ffffff' ? '#ffe14a' : act.cols[1]; g.fillText(c.tag, bx + 10, capY + capH / 2 + wob);
+  if (name) { g.font = "12px 'Courier New', monospace"; g.textAlign = 'right'; g.fillStyle = '#ffffffcc'; g.fillText(name.split(',')[0], bx + BW - 22, capY + capH / 2); }
+  if (Math.floor(S.t * 3) % 2) { g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(bx + BW - 14, capY + 10); g.lineTo(bx + BW - 7, capY + 15); g.lineTo(bx + BW - 14, capY + 20); g.fill(); }
+  g.restore(); g.textBaseline = 'alphabetic';
+}
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; S.t += dt; beatTick(dt);
@@ -1378,6 +1461,8 @@ function frame(now) {
   try {
     switch (S.scene) { case 'outside': sceneOutside(); break; case 'deck': sceneDeck(); break; case 'inside': sceneInside(); break; case 'shore': sceneShore(); break; case 'beachDay': sceneBeach(false); break; case 'beachNight': sceneBeach(true); break; }
   } catch (e) { if (!frame.err) { frame.err = 1; console.error('Shore Club scene error', e); } }
+  try { camTick(dt); } catch (e) { CAM.drawing = false; g.setTransform(1, 0, 0, 1, 0, 0); if (!frame.camErr) { frame.camErr = 1; console.error('Shore Club cam error', e); } }
+  CAMREF = {}; RAFTREF = [];
   if (S.flash > 0.01) { g.globalCompositeOperation = MARK ? 'multiply' : 'lighter'; g.fillStyle = MARK ? `rgba(255,45,85,${S.flash * 0.25})` : `rgba(255,255,255,${S.flash * 0.35})`; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over'; S.flash *= 0.8; }
   titleCard(); drawTag();
   if (!S.playing && S.cur < 0 && S.t - S.title > 4.5) { g.font = 'italic 16px Georgia,serif'; g.textAlign = 'center'; g.fillStyle = MARK ? INK : 'rgba(255,233,176,.85)'; g.fillText('Press \u25b6 Play and the band takes the stage', W / 2, H - 22); }
@@ -1577,5 +1662,5 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFull(fa
 syncUI(); S.title = 0;
 if (document.fonts && document.fonts.load) { document.fonts.load('30px Pacifico').catch(() => {}); document.fonts.load('20px Monoton').catch(() => {}); }
 requestAnimationFrame(frame);
-window.SHORECLUB = { S, setScene, setAct, songStart, ROSTER };
+window.SHORECLUB = { S, CAM, setScene, setAct, songStart, ROSTER };
 })();
