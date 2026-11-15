@@ -5,9 +5,9 @@
   'use strict';
   var grid = document.querySelector('.ltf-sayings'); if (!grid || grid.dataset.pol) return; grid.dataset.pol = '1';
   if (!document.getElementById('ltf-pol-font')) { var l = document.createElement('link'); l.id = 'ltf-pol-font'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap'; document.head.appendChild(l); }
-  var css = '.ltf-pol{position:relative;background:#fbfaf6;border-radius:3px!important;padding:10px 10px 12px!important;box-shadow:3px 4px 0 #2b1055,0 6px 18px rgba(0,0,0,.18)!important;border:1.5px solid #2b1055;transform:rotate(var(--tilt,-2deg));transition:transform .25s;color:#1b1b1b;text-align:center;display:flex;flex-direction:column}' +
+  var css = '.ltf-pol{position:relative;opacity:1!important;filter:none!important;background:#fbfaf6;border-radius:3px!important;padding:10px 10px 12px!important;box-shadow:3px 4px 0 #2b1055,0 6px 18px rgba(0,0,0,.18)!important;border:1.5px solid #2b1055;transform:rotate(var(--tilt,-2deg));transition:transform .25s;color:#1b1b1b;text-align:center;display:flex;flex-direction:column}' +
     '.ltf-pol:hover{transform:rotate(0deg) scale(1.03)}' +
-    '.ltf-pol .ph{display:block;aspect-ratio:1/1;background:#111 center/cover no-repeat;border:1px solid #ddd;position:relative;overflow:hidden}' +
+    '.ltf-pol .ph{display:block;aspect-ratio:1/1;background:#111 50% 72%/cover no-repeat;border:1px solid #ddd;position:relative;overflow:hidden}' +
     '.ltf-pol .ph:after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.18),transparent 40%,transparent 70%,rgba(255,210,150,.12));pointer-events:none}' +
     '.ltf-pol .tape{position:absolute;top:-9px;left:50%;width:62px;height:18px;margin-left:-31px;background:rgba(255,236,170,.75);transform:rotate(3deg);box-shadow:0 1px 2px rgba(0,0,0,.15)}' +
     '.ltf-pol .cap{font:16px/1.25 "Permanent Marker","Comic Sans MS",cursive;margin:9px 2px 3px;color:#1b1b1b}' +
@@ -24,7 +24,7 @@
     var full = m ? m.source_url : p.link, sz = m && m.media_details && m.media_details.sizes, thumb = sz && (sz.medium_large || sz.large || sz.medium) ? (sz.medium_large || sz.large || sz.medium).source_url : full;
     var ov = (p.content && p.content.rendered || '').match(/data-overall="([\d.]+)"/), overall = ov ? parseFloat(ov[1]) : null;
     var d = new Date(p.date), date = d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
-    var el = document.createElement('div'); el.className = 'ltf-saying ltf-pol'; el.style.setProperty('--tilt', (k % 2 ? 2.5 : -2.5) + 'deg');
+    var el = document.createElement('div'); el.className = 'ltf-pol'; el.style.setProperty('--tilt', (k % 2 ? 2.5 : -2.5) + 'deg');
     el.innerHTML = '<span class="tape" aria-hidden="true"></span><a class="ph" href="' + esc(full) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(thumb) + '\')" aria-label="Full photo: ' + esc(strip(p.title.rendered)) + '"></a>' +
       '<div class="cap">' + esc(strip(p.excerpt.rendered)) + '</div>' +
       '<div class="meta"><span>' + esc(date) + (overall ? ' <span class="st" title="Overall ' + overall + ' out of 5">\u2605 ' + overall + '/5</span>' : '') + '</span><a href="' + esc(p.link) + '">Review \u2192</a></div>';
