@@ -1159,7 +1159,7 @@ function dinghy(x, y, s) { const b = Math.sin(S.t * 1.3 + 2) * s; poly([x - 14 *
 const RAFT = { x: 500, y: 314, s: 1.35 };
 const SWIMMERS = [0, 1, 2].map((i) => ({ i, k: 37 + i * 61, off: i / 3 }));
 function swimmerSlot(w, amb, light, style) {
-  if (!w.sl) { const base = ROSTER[w.k % ROSTER.length]; w.sl = { p: Object.assign({}, base, { top: 'tank', topC: ['#ff3b6b', '#1d6fe0', '#ffd166'][w.i], bot: 'shorts', botC: ['#1d4e89', '#ff8a3d', '#2a9d8f'][w.i], hat: 'none', acc: 'none' }), off: 0.2 + w.i * 0.3, face: 1, style: 'stand' }; w.dry = { p: base, off: w.sl.off, face: 1, style: 'stand' }; }
+  if (!w.sl) { const base = ROSTER[w.k % ROSTER.length]; w.sl = { p: Object.assign({}, base, { top: 'tank', topC: ['#ff3b6b', '#1d6fe0', '#ffd166', '#3ddc84', '#b44bff'][w.i], bot: 'shorts', botC: ['#1d4e89', '#ff8a3d', '#2a9d8f', '#111318', '#ffd166'][w.i], hat: 'none', acc: 'none' }), off: 0.2 + w.i * 0.3, face: 1, style: 'stand' }; w.dry = { p: base, off: w.sl.off, face: 1, style: 'stand' }; }
   const sl = style === 'dry' ? w.dry : w.sl; sl.style = style === 'dry' ? 'stand' : style; const ck = amb.col + light; if (sl.cKey !== ck) { sl.cKey = ck; sl.c = shadeSet(sl.p, amb, light); } return sl;
 }
 function swimHead(x, y, s, sk, stroke) {
@@ -1169,8 +1169,10 @@ function swimHead(x, y, s, sk, stroke) {
   ln(x + 3 * s, y + 2 * s, x + 8 * s + a * 4 * s, y - 2 * s - Math.max(0, -a) * 6 * s, sk, 2.2 * s, { mw: 1 });
   if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x, y + 4 * s, 10 * s, 2.2 * s, 0, 0, 7); g.stroke(); }
 }
+const RAFTERS = [3, 4].map((i) => ({ i, k: 37 + i * 61, off: 0 }));
 function raftCrew(layer, amb, light) {
   const P = 48, shoreY = 376;
+  if (layer === 'raft' && S.playing) RAFTERS.forEach((w, j) => { const sl = swimmerSlot(w, amb, light, 'frenzy'), x = RAFT.x + (j ? 40 : -44), y = RAFT.y - 2; person(sl, x, y, 0.36); RAFTREF.push({ sl, x, y, s: 0.36 }); });
   SWIMMERS.forEach((w) => {
     if (!w.sl) swimmerSlot(w, amb, light, 'stand');
     const t = ((S.t / P) + w.off) % 1, bx = 452 + w.i * 34, by = 398 + (w.i % 2) * 6, rx = RAFT.x - 22 + w.i * 22, ry = RAFT.y - 2;
@@ -1427,12 +1429,12 @@ function drawCam(c) {
   // zoomed redraw of the subject
   CAM.drawing = true; const shake = pu * 2.2;
   if (c.raft) {
-    const Z = 4.2, fx = RAFT.x, fy = RAFT.y - 16;
+    const Z = 2.7, fx = RAFT.x, fy = RAFT.y - 20;
     g.translate(ccx + (rnd() - 0.5) * shake, by0 + (BH - 30) / 2 + (rnd() - 0.5) * shake); g.scale(Z, Z); g.translate(-fx, -fy);
-    g.fillStyle = MARK ? PAPER : '#2a6a9a'; g.fillRect(fx - 60, fy + 14, 120, 40);
-    rect(RAFT.x - 30, RAFT.y - 1, 60, 5, '#c9bea6', { lw: 0.6 }); rect(RAFT.x - 29, RAFT.y + 3, 58, 2.5, '#5a4a3a');
+    g.fillStyle = MARK ? PAPER : '#2a6a9a'; g.fillRect(fx - 80, fy + 20, 160, 60);
+    rect(RAFT.x - 56, RAFT.y - 1, 112, 7, '#c9bea6', { lw: 0.6 }); rect(RAFT.x - 54, RAFT.y + 6, 108, 3.5, '#5a4a3a');
     RAFTREF.forEach((r) => person(r.sl, r.x, r.y, r.s));
-    if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 0.4; for (let i = 0; i < 6; i++) { const yy = fy + 20 + i * 4; g.beginPath(); g.moveTo(fx - 60, yy + Math.sin(S.t * 2 + i) * 0.8); g.lineTo(fx + 60, yy + Math.sin(S.t * 2 + i + 2) * 0.8); g.stroke(); } }
+    if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 0.4; for (let i = 0; i < 6; i++) { const yy = fy + 30 + i * 5; g.beginPath(); g.moveTo(fx - 80, yy + Math.sin(S.t * 2 + i) * 0.8); g.lineTo(fx + 80, yy + Math.sin(S.t * 2 + i + 2) * 0.8); g.stroke(); } }
   } else {
     const s = ref.s, Z = 150 / (80 * s), fx = ref.x, fy = ref.y - 80 * s, kick = c.sl.muppet ? 1.8 : 1;
     g.translate(ccx + (rnd() - 0.5) * shake * kick, by0 + (BH - 30) / 2 + 4 + (rnd() - 0.5) * shake * kick); g.scale(Z, Z); g.translate(-fx, -fy);
