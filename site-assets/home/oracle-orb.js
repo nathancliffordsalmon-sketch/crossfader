@@ -72,6 +72,12 @@
     if (orb.dataset.pix) return; orb.dataset.pix = '1';
     const cv = document.createElement('canvas'); cv.width = PW; cv.height = PH; cv.setAttribute('aria-label', 'A glowing crystal ball on a red-clothed table, a fortune teller in a purple shawl behind it and her arched-roof wagon under the night sky');
     orb.innerHTML = ''; orb.appendChild(cv);
+    // her words, in the voice of an old-timey fortune teller, typed out like an old game's text box
+    const sm = orb.closest('.ltf-oracle-banner') && orb.closest('.ltf-oracle-banner').querySelector('small');
+    if (sm && !sm.dataset.said) { sm.dataset.said = '1'; const say = 'Come closer, traveller. Fill her tank, and she shall divine thy songs.';
+      sm.setAttribute('aria-label', say); sm.innerHTML = ''; const on = document.createElement('span'), off = document.createElement('span'); off.style.opacity = '0'; off.textContent = say; sm.append(on, off);
+      let i = 0; const tick = () => { i++; on.textContent = say.slice(0, i); off.textContent = say.slice(i); if (i < say.length) setTimeout(tick, say[i - 1] === ',' || say[i - 1] === '.' ? 260 : 38); };
+      const start = () => setTimeout(tick, 500); if ('IntersectionObserver' in window) { const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); start(); } }); io.observe(sm); } else start(); }
     const x = cv.getContext('2d'); x.imageSmoothingEnabled = false;
     let last = 0; (function loop(ms) { if (ms - last > 90) { last = ms; scene(x, ms / 1000); } requestAnimationFrame(loop); })(0);
   }
