@@ -48,7 +48,7 @@ const css = `
 #pq .pq-fscorner{position:absolute;top:4px;right:4px;z-index:3;font-size:13px!important;line-height:1!important;padding:5px 7px!important;background:rgba(20,16,50,.8)!important}
 #pq .pq-tv.full .pq-fscorner{display:none}
 #pq .pq-logo,#pq .pq-fsinfo,#pq .pq-fsx,#pq .pq-fsbar,#pq #pq-viz{display:none}
-#pq .pq-tv.full #pq-viz{display:block;position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;z-index:0;cursor:pointer}
+#pq .pq-tv.full #pq-viz{display:block;position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;z-index:0;cursor:default}
 #pq .pq-tv.full .pq-logo,#pq .pq-tv.full .pq-fsinfo,#pq .pq-tv.full canvas#pq-cv{position:relative;z-index:1}
 #pq .pq-tv.full .pq-fsx{position:absolute;z-index:2}
 #pq .pq-tv.full .pq-fsbar{display:flex;flex-direction:column;align-items:flex-start;gap:6px;position:absolute;top:12px;left:12px;z-index:2}
@@ -67,7 +67,7 @@ const css = `
 #pq .pq-tv.full{height:100vh;height:100dvh}
 #pq .pq-rot{display:none}
 #pq .pq-tv.full .pq-fsbar,#pq .pq-tv.full .pq-fsinfo,#pq .pq-tv.full .pq-fsx{transition:opacity .5s}
-#pq .pq-tv.full.idle .pq-fsbar,#pq .pq-tv.full.idle .pq-fsinfo,#pq .pq-tv.full.idle .pq-fsx{opacity:.18}
+#pq .pq-tv.full.idle .pq-fsbar,#pq .pq-tv.full.idle .pq-fsinfo,#pq .pq-tv.full.idle .pq-fsx{opacity:.5}#pq .pq-tv.full .pq-fsbar:hover,#pq .pq-tv.full .pq-fsinfo:hover,#pq .pq-tv.full .pq-fsx:hover{opacity:1}#pq .pq-tv.full button{cursor:pointer}#pq .pq-tv.full button:disabled{cursor:not-allowed}
 @media (orientation:portrait) and (max-width:700px){#pq .pq-tv.full canvas#pq-cv{width:calc(100vw - 12px);box-shadow:0 0 0 3px #4a3f9a}#pq .pq-tv.full .pq-fsbar{top:auto;bottom:max(12px,env(safe-area-inset-bottom));left:12px;right:12px;flex-direction:row;flex-wrap:wrap;justify-content:center}#pq .pq-tv.full .pq-rot{display:block;font-size:8px;line-height:1.8;color:#fff4b0;text-align:center;padding:0 16px;text-shadow:2px 2px 0 #1c1040;animation:pqRot 2.4s ease-in-out infinite}}
 @keyframes pqRot{50%{opacity:.45}}
 @media (orientation:landscape) and (max-height:560px){
@@ -1478,9 +1478,11 @@ function drawGraveyard(dt) {
   if (dirge.blocked() && Math.floor(GY.t / 600) % 2) txt('CLICK FOR THE FUNERAL MARCH', W / 2, 190, 7, 'center', 6);
   else if (GY.t > 8000) txt('CLICK TO GO HOME TO THE VILLAGE', W / 2, 190, 15, 'center', 6);
 }
-cv.addEventListener('click', () => {
+let cvClickT = 0;
+cv.addEventListener('click', (e) => { if (e.detail > 1) { clearTimeout(cvClickT); return; } clearTimeout(cvClickT); cvClickT = setTimeout(cvClick, 260); });
+function cvClick() {
   if (S.phase === 'intro') { S.phase = 'roll'; return; }
-  if (S.phase === 'graveyard') { if (dirge.blocked()) { dirge.resume(); return; } if (GY.t > 8000) startVillage(); return; } if (S.phase === 'village') { if (VL.t > 5000) { dirge.stop(); S.party.forEach((h) => { h.alive = true; h.fell = false; h.hp = h.max; }); S.phase = 'walk'; } return; } if (S.phase === 'roll') { rollParty(); } else if (S.phase === 'fireworks' && FW.t > 6000) { startVillage(); } });
+  if (S.phase === 'graveyard') { if (dirge.blocked()) { dirge.resume(); return; } if (GY.t > 8000) startVillage(); return; } if (S.phase === 'village') { if (VL.t > 5000) { dirge.stop(); S.party.forEach((h) => { h.alive = true; h.fell = false; h.hp = h.max; }); S.phase = 'walk'; } return; } if (S.phase === 'roll') { rollParty(); } else if (S.phase === 'fireworks' && FW.t > 6000) { startVillage(); } }
 document.addEventListener('keydown', (e) => { if (S.phase === 'roll' && e.key === 'Enter' && !/input|select|textarea/i.test(e.target.tagName)) { e.preventDefault(); begin(); } });
 root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => {
   root.querySelectorAll('[data-tab]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
@@ -2051,7 +2053,7 @@ tv.insertBefore(vcv, tv.firstChild);
 $('#pq-vzmode').addEventListener('click', (e) => { e.stopPropagation(); vizNext(); });
 $('#pq-vzmic').addEventListener('click', (e) => { e.stopPropagation(); vizMicToggle(); });
 $('#pq-cast').addEventListener('click', (e) => { e.stopPropagation(); if (window.LTFCast) window.LTFCast.open(); else { const s = document.createElement('script'); s.src = (document.querySelector('script[src*="site-assets/phantasea/phantasea.js"]') || {}).src.replace(/phantasea\/phantasea\.js.*$/, 'home/ltf-cast.js'); s.onload = () => window.LTFCast && window.LTFCast.open(); document.head.appendChild(s); } });
-vcv.addEventListener('click', () => vizNext());
+
 
 function isFull() { return tv.classList.contains('full'); }
 const coarse = () => window.matchMedia && matchMedia('(pointer:coarse)').matches;
@@ -2066,7 +2068,7 @@ function setFull(on) {
 }
 $('#pq-fs').addEventListener('click', () => setFull(true)); $('#pq-fs2').addEventListener('click', (e) => { e.stopPropagation(); setFull(true); });
 $('#pq-fsx').addEventListener('click', () => setFull(false));
-cv.addEventListener('dblclick', () => setFull(!isFull()));
+cv.addEventListener('dblclick', (e) => { clearTimeout(cvClickT); e.preventDefault(); setFull(!isFull()); });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && isFull()) { tv.classList.remove('full'); document.documentElement.style.overflow = ''; } });
 document.addEventListener('webkitfullscreenchange', () => { if (!document.webkitFullscreenElement && isFull() && tv.webkitRequestFullscreen && !tv.requestFullscreen) { tv.classList.remove('full'); document.documentElement.style.overflow = ''; } });
 document.addEventListener('keydown', (e) => { if (/input|select|textarea/i.test(e.target.tagName)) return; if (e.key === 'f' || e.key === 'F') setFull(!isFull()); if ((e.key === 'v' || e.key === 'V') && isFull()) vizNext(); if (e.key === 'Escape' && isFull()) setFull(false); });
