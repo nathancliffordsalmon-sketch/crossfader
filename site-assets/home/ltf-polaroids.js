@@ -19,7 +19,6 @@
   var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   function esc(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function strip(h) { var d = document.createElement('div'); d.innerHTML = h || ''; return (d.textContent || '').trim(); }
-  function stars(n) { var s = ''; for (var i = 1; i <= 5; i++) s += n >= i ? '★' : n >= i - 0.5 ? '⯨' : '☆'; return s; }
   function card(p, k) {
     var m = p._embedded && p._embedded['wp:featuredmedia'] && p._embedded['wp:featuredmedia'][0];
     var full = m ? m.source_url : p.link, sz = m && m.media_details && m.media_details.sizes, thumb = sz && (sz.medium_large || sz.large || sz.medium) ? (sz.medium_large || sz.large || sz.medium).source_url : full;
@@ -28,7 +27,7 @@
     var el = document.createElement('div'); el.className = 'ltf-saying ltf-pol'; el.style.setProperty('--tilt', (k % 2 ? 2.5 : -2.5) + 'deg');
     el.innerHTML = '<span class="tape" aria-hidden="true"></span><a class="ph" href="' + esc(full) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(thumb) + '\')" aria-label="Full photo: ' + esc(strip(p.title.rendered)) + '"></a>' +
       '<div class="cap">' + esc(strip(p.excerpt.rendered)) + '</div>' +
-      '<div class="meta"><span>' + esc(date) + (overall ? ' <span class="st" title="Overall ' + overall + '/5">' + stars(overall) + '</span>' : '') + '</span><a href="' + esc(p.link) + '">Review →</a></div>';
+      '<div class="meta"><span>' + esc(date) + (overall ? ' <span class="st" title="Overall ' + overall + ' out of 5">\u2605 ' + overall + '/5</span>' : '') + '</span><a href="' + esc(p.link) + '">Review \u2192</a></div>';
     return el;
   }
   fetch('/wp-json/wp/v2/tags?slug=concert-reviews&_fields=id').then(function (r) { return r.json(); }).then(function (t) {
