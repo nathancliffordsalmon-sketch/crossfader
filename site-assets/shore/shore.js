@@ -949,14 +949,6 @@ function sceneDeck() {
 function insideWall() {
   // the back wall either side of the stage: blue boards
   g.strokeStyle = MARK ? INK : 'rgba(255,255,255,.06)'; g.lineWidth = 1; g.beginPath(); for (let y = 132; y < 340; y += 9) { g.moveTo(150, y); g.lineTo(300, y); g.moveTo(660, y); g.lineTo(810, y); } g.stroke();
-  // window + passage on the right of the stage into the other room
-  const warm = '#ffcf8a';
-  rect(676, 214, 30, 34, '#6a4a2e', { lw: 1.2 }); rect(679, 217, 24, 28, MARK ? PAPER : '#3a2a20'); if (!MARK) { glow(691, 231, 22, warm, 0.5); } ln(691, 217, 691, 245, '#6a4a2e', 1.4); ln(679, 231, 703, 231, '#6a4a2e', 1.4);
-  poly([720, 342, 720, 222, 732, 210, 788, 210, 800, 222, 800, 342], '#6a4a2e', { lw: 1.4 });
-  poly([726, 342, 726, 226, 736, 216, 784, 216, 794, 226, 794, 342], MARK ? PAPER : '#4a3020', { lw: 1 });
-  if (!MARK) { const gr = g.createLinearGradient(0, 216, 0, 342); gr.addColorStop(0, 'rgba(255,200,130,.55)'); gr.addColorStop(1, 'rgba(255,170,90,.25)'); g.fillStyle = gr; path([726, 342, 726, 226, 736, 216, 784, 216, 794, 226, 794, 342], true); g.fill(); glow(760, 270, 50, warm, 0.35); }
-  for (let i = 0; i < 3; i++) { const x = 742 + i * 18, b = Math.sin(S.t * 1.4 + i) * 1.5; ell(x, 296 + b, 5, 6, '#2a1a12', { noline: true }); rect(x - 6, 302 + b, 12, 30, '#2a1a12', { noline: true }); }
-  rect(716, 202, 88, 9, '#2a180c', { lw: 1 }); txt('LOUNGE', 760, 206.5, 7, MARK ? INK : '#ffe9b0', { bold: true });
 }
 function sideWindows() {
   // windows in the right wall looking out at the parking lot, with a slice of the bay
@@ -979,6 +971,30 @@ function sideWindows() {
     if (!MARK) { g.fillStyle = 'rgba(255,255,255,.07)'; path(q, true); g.fill(); }
   });
 }
+function leftWallOpenings(on, pu) {
+  // perspective on the left wall: top edge (0,250)->(150,120), floor edge (0,540)->(150,340)
+  const top = (x) => 250 - x * 130 / 150, bot = (x) => 540 - x * 200 / 150, at = (x, f) => top(x) + (bot(x) - top(x)) * f;
+  const warm = '#ffcf8a', room = (q) => { if (MARK) { path(q, true); g.fillStyle = PAPER; g.fill(); return; } path(q, true); const gr = g.createLinearGradient(0, 150, 0, 520); gr.addColorStop(0, '#7a4a2a'); gr.addColorStop(1, '#3a2418'); g.fillStyle = gr; g.fill(); };
+  // inside window into the lounge
+  const wa = 16, wb = 72, w = [wa, at(wa, 0.2), wb, at(wb, 0.2), wb, at(wb, 0.56), wa, at(wa, 0.56)];
+  poly([wa - 5, at(wa, 0.2) - 6, wb + 4, at(wb, 0.2) - 5, wb + 4, at(wb, 0.56) + 5, wa - 5, at(wa, 0.56) + 6], '#6a4a2e', { lw: 1.4 });
+  room(w);
+  g.save(); path(w, true); g.clip();
+  if (!MARK) { glow(44, at(44, 0.32), 50, warm, 0.6); for (let i = 0; i < 3; i++) bulb(26 + i * 18, at(26 + i * 18, 0.25), 1.8, '#fff2c0', 0.9); }
+  for (let i = 0; i < 3; i++) { const x = 28 + i * 16, y = at(x, 0.5), b = Math.sin(S.t * 1.3 + i) * 1.2; ell(x, y - 18 + b, 4, 5, '#2a1a12', { noline: true }); rect(x - 5, y - 13 + b, 10, 16, '#2a1a12', { noline: true }); }
+  path([wa, at(wa, 0.47), wb, at(wb, 0.47), wb, at(wb, 0.47) + 6, wa, at(wa, 0.47) + 6], true); g.fillStyle = MARK ? INK : '#5a3a22'; g.fill();
+  g.restore();
+  ln((wa + wb) / 2, at((wa + wb) / 2, 0.2), (wa + wb) / 2, at((wa + wb) / 2, 0.56), '#6a4a2e', 2.4, { mw: 1.2 });
+  if (!MARK) { path(w, true); g.fillStyle = 'rgba(255,255,255,.06)'; g.fill(); }
+  // the door beside it, open into the lounge
+  const da = 96, db = 134, d = [da, at(da, 0.42), db, at(db, 0.42), db, bot(db), da, bot(da)];
+  poly([da - 5, at(da, 0.42) - 7, db + 5, at(db, 0.42) - 6, db + 5, bot(db), da - 5, bot(da)], '#6a4a2e', { lw: 1.4 });
+  room(d);
+  if (!MARK) { g.save(); path(d, true); g.clip(); glow(115, at(115, 0.62), 44, warm, 0.55 + (on ? pu * 0.1 : 0)); const x = 116, y = at(116, 0.9), b = Math.sin(S.t * 1.1) * 1.2; ell(x, y - 30 + b, 5, 6, '#2a1a12', { noline: true }); rect(x - 7, y - 24 + b, 14, 26, '#2a1a12', { noline: true }); g.restore(); }
+  poly([da, at(da, 0.42), da - 10, at(da, 0.42) + 4, da - 10, bot(da) + 8, da, bot(da)], SC.blue, { lw: 1.2 });
+  ell(da - 5, at(da, 0.62), 2.6, 5, '#d9dde2', { lw: 0.8 });
+  rect(da - 2, at(da, 0.42) - 18, db - da + 6, 9, '#2a180c', { lw: 1 }); txt('LOUNGE', (da + db) / 2 + 2, at((da + db) / 2, 0.42) - 13, 7, MARK ? INK : '#ffe9b0', { bold: true });
+}
 function sceneInside() {
   const act = ACTS[S.act], on = S.playing, pu = on ? Math.exp(-((S.beat % 1) * 5)) : 0, amb = { col: '#151a2c', k: 0.3 }, light = act.cols[0];
   const wash = mix('#3a6ad8', act.cols[0], 0.35);
@@ -994,8 +1010,8 @@ function sceneInside() {
   g.restore();
   // walls
   poly([0, 250, 150, 120, 150, 340, 0, 540], '#2a2018', { h: 9, ha: 1.1 }); poly([W, 250, 810, 120, 810, 340, W, 540], '#2a2018', { h: 9, ha: 2 }); sideWindows();
-  // bar wall at left: red with a giant painted R flag, EXIT sign
-  poly([10, 280, 120, 200, 120, 330, 10, 420], '#a3262c', { lw: 1.4 }); poly([46, 254, 74, 234, 74, 352, 46, 372], '#f2c14e', MARK ? { lw: 1 } : null); poly([10, 316, 120, 252, 120, 270, 10, 336], '#f2c14e', MARK ? { lw: 1 } : null);
+  // left wall: an inside window and a door through to the lounge, EXIT sign
+  leftWallOpenings(on, pu);
   rect(124, 166, 18, 9, '#3a0808', { lw: 1 }); neonText('EXIT', 133, 170.5, 6, '#ff3b3b', 0.9, 'Arial,sans-serif');
   // back wall / stage: blue walls, red posts, rustic SHORE CLUB letters
   rect(150, 120, 660, 222, '#1c2238', { h: 10 }); insideWall(); rect(318, 132, 324, 168, MARK ? PAPER : mix('#3d5fae', wash, 0.5), { lw: 1.6 }); if (!MARK) glow(480, 220, 220, wash, 0.25 + pu * 0.1);
