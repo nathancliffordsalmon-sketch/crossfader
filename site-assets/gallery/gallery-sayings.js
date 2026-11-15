@@ -96,6 +96,7 @@
       if (room > stick.offsetHeight) box.style.height = room + 'px';
     }
     fit(); addEventListener('resize', fit); addEventListener('load', fit); setTimeout(fit, 2500);
+    if (window.ResizeObserver) { var rt; new ResizeObserver(function () { clearTimeout(rt); rt = setTimeout(fit, 150); }).observe(main); }
     var k = 0;
     setInterval(function () {
       if (!wide || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
