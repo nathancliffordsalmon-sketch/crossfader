@@ -74,6 +74,9 @@ const css = `
 #shr.shr-full .shr-hud{position:absolute;left:0;right:0;bottom:0;border-radius:0;background:#000000a0;padding:6px 12px;font-size:12px;z-index:2}
 #shr .shr-ov{display:none;position:absolute;left:10px;top:10px;right:120px;gap:6px;align-items:center;flex-wrap:wrap;line-height:1;z-index:2}
 #shr.shr-full .shr-ov{display:flex}
+#shr.shr-full .shr-hud .shr-ov{position:static;flex:0 0 auto;flex-wrap:nowrap;right:auto;left:auto;top:auto}
+#shr.shr-full .shr-hud .shr-ov select{max-width:24vw}
+#shr.shr-full .shr-hud .shr-act{display:none}
 #shr .shr-ov select,#shr .shr-ov button{font:600 13px Georgia,serif;padding:7px 10px;background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:999px;max-width:46vw}
 @media (max-height:500px){#shr.shr-full .shr-hud{padding:4px 10px;font-size:11px}#shr .shr-ov select,#shr .shr-ov button,#shr.shr-full .shr-fs{font-size:11px;padding:6px 8px}}
 html.shr-noscroll,html.shr-noscroll body{overflow:hidden!important}
@@ -1298,20 +1301,36 @@ root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', (
 function tab(name) { const b = root.querySelector(`[data-tab="${name}"]`); if (b && MODE !== name) b.click(); }
 
 /* Spotify embed */
-let api = null, apiWaiting = null, apiLoading = false, ctrl = null; const SP = { uri: null, dur: 0, pos: 0, hasUri: false, pendingPlay: false };
+let api = null, apiWaiting = null, apiLoading = false, ctrl = null; const SP = { uri: null, dur: 0, pos: 0, hasUri: false, pendingPlay: false, at: 0, untitled: false };
 function toUri(t) { t = (t || '').trim(); if (/^spotify:/.test(t)) return t; const m = t.match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/); return m ? `spotify:${m[1]}:${m[2]}` : null; }
 function fetchTitle(uri, cb) { const m = uri && uri.match(/spotify:track:(\w+)/); if (!m) return cb(null); fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent('https://open.spotify.com/track/' + m[1])).then((r) => r.json()).then((j) => cb(j && j.title)).catch(() => cb(null)); }
+function songTitle(t) { if (!t || S.cur < 0) return; S.songs[S.cur].title = t; $('#shr-now').textContent = '♫ ' + t; renderSongs(); }
+function spTrack(u) {
+  if (u === SP.uri) return; SP.uri = u; SP.hasUri = true; if (MODE !== 'sp') tab('sp');
+  const recent = Date.now() - SP.at < 3000 && SP.untitled; SP.at = Date.now(); SP.untitled = false;
+  if (!recent) songStart(null);
+  $('#shr-now').textContent = '♫ Loading the song title…';
+  fetchTitle(u, (t) => { if (SP.uri === u) songTitle(t || 'A song from Spotify'); });
+}
+function spUnknown() {
+  SP.at = Date.now(); SP.untitled = true; songStart(null);
+  const pl = PLAYLISTS.find((x) => x[1] === sel.value), from = pl ? 'a song from ' + pl[0] : 'a song from Spotify';
+  songTitle(from.charAt(0).toUpperCase() + from.slice(1));
+  if (window.LTFSP && window.LTFSP.connected()) window.LTFSP.now().then((n) => { if (n && n.state === 'ok' && SP.untitled) songTitle(n.title); }).catch(() => {});
+}
 function loadEmbed(uri, autoplay) {
+  SP.uri = null; SP.dur = 0; SP.pos = 0; SP.at = 0; SP.untitled = false;
   SP.pendingPlay = !!autoplay;
   const make = () => {
     const host = $('#shr-embed'); host.innerHTML = ''; const el = document.createElement('div'); host.appendChild(el);
     api.createController(el, { uri, width: '100%', height: uri.includes(':track:') ? 152 : 352 }, (c) => {
       ctrl = c;
       c.addListener('ready', () => { if (SP.pendingPlay) { SP.pendingPlay = false; try { c.play(); } catch (e) {} } });
-      c.addListener('playback_started', (e) => { const u = e && e.data && e.data.playingURI; if (u && u !== SP.uri) { SP.uri = u; SP.hasUri = true; if (MODE !== 'sp') tab('sp'); fetchTitle(u, (t) => songStart(t)); } setPlaying(true); });
+      c.addListener('playback_started', (e) => { const u = e && e.data && e.data.playingURI; if (u) spTrack(u); setPlaying(true); });
       c.addListener('playback_update', (e) => {
         const t = (e && e.data) || {}; const on = !t.isPaused && !t.isBuffering;
-        if (!SP.hasUri && on) { const changed = (t.duration && Math.abs(t.duration - SP.dur) > 1500) || (SP.pos > 4000 && t.position < 1500); if (S.cur < 0 || changed) songStart(null); }
+        if (t.playingURI) spTrack(t.playingURI);
+        else if (on) { const changed = (t.duration && SP.dur && Math.abs(t.duration - SP.dur) > 1500) || (SP.pos > 4000 && t.position < 1500); if ((S.cur < 0 || changed) && Date.now() - SP.at > 3000) spUnknown(); }
         if (t.duration) SP.dur = t.duration; if (t.position != null) SP.pos = t.position;
         if (MODE === 'sp' || on) setPlaying(on);
       });
@@ -1410,7 +1429,7 @@ const refit = () => { [30, 250, 700].forEach((t) => setTimeout(fitFull, t)); };
 window.addEventListener('resize', refit); window.addEventListener('orientationchange', refit);
 if (window.visualViewport) { window.visualViewport.addEventListener('resize', refit); window.visualViewport.addEventListener('scroll', () => setTimeout(fitFull, 30)); }
 $('#shr').addEventListener('touchmove', (e) => { if ($('#shr').classList.contains('shr-full') && !/select|input/i.test(e.target.tagName)) e.preventDefault(); }, { passive: false });
-function setFull(on) { $('#shr').classList.toggle('shr-full', on); document.documentElement.classList.toggle('shr-noscroll', on); $('#shr-fs').textContent = on ? '\u2715 Exit' : '\u26f6 Full screen'; refit(); }
+function setFull(on) { const ov = $('.shr-ov'); if (ov) (on ? $('.shr-hud') : $('.shr-stage')).appendChild(ov); $('#shr').classList.toggle('shr-full', on); document.documentElement.classList.toggle('shr-noscroll', on); $('#shr-fs').textContent = on ? '\u2715 Exit' : '\u26f6 Full screen'; refit(); }
 $('#shr-fs').addEventListener('click', () => { const on = !$('#shr').classList.contains('shr-full'); setFull(on); const el = $('#shr'); try { if (on && el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {} });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('#shr').classList.contains('shr-full')) setFull(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFull(false); });
