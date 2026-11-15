@@ -795,14 +795,15 @@ function canopy(cx, base, rx, act, on, pu) {
   const yAt = (b, x) => { const c = clamp((cx - x) / rx, -1, 1); return b - amp * Math.sqrt(1 - c * c); };
   // underside, seen from below, with two pot lights
   const und = curve(base + 26); poly(und, '#d9dee4', { lw: 1.6 }); if (!MARK) { g.fillStyle = 'rgba(30,40,60,.25)'; path(und, true); g.fill(); }
-  glow(cx - 34, base + 12, 26, '#fff2c8', 0.55); glow(cx + 34, base + 12, 26, '#fff2c8', 0.55); ell(cx, base + 18, 3, 2, '#7a1d1d', { lw: 0.8 });
+  glow(cx - 34, base + 12, 30, '#fff7b0', 0.75); glow(cx + 34, base + 12, 30, '#fff7b0', 0.75); ell(cx, base + 18, 3, 2, '#7a1d1d', { lw: 0.8 });
   // fascia: blue rims, white band, red and green neon
   const top = curve(base), bot = curve(base + 26), band = []; for (let i = 0; i < top.length; i += 2) band.push(top[i], top[i + 1]); for (let i = bot.length - 2; i >= 0; i -= 2) band.push(bot[i], bot[i + 1]);
   poly(band, SC.blue, { lw: 1.8 });
   const wb = [], c1 = curve(base + 11), c2 = curve(base + 15); for (let i = 0; i < c1.length; i += 2) wb.push(c1[i], c1[i + 1]); for (let i = c2.length - 2; i >= 0; i -= 2) wb.push(c2[i], c2[i + 1]);
-  poly(wb, '#eef0f1', { lw: 1 });
+  poly(wb, MARK ? '#ffe14a' : '#fff06a', { lw: 1 }); if (!MARK) { neonPath(curve(base + 13), '#ffe14a', 0.9, 2.2); }
   const fl = on ? 0.8 + pu * 0.4 : 0.75 + 0.06 * Math.sin(S.t * 9);
-  neonPath(curve(base + 7), '#ff3b3b', fl, 2.6); neonPath(curve(base + 19.5), '#3dff7a', fl, 2.6);
+  neonPath(curve(base + 7), '#ff3b3b', fl, 2.6); neonPath(curve(base + 19.5), '#3dff7a', Math.min(1, fl * 1.25), 4.2); neonPath(curve(base + 23), '#7dffa8', fl * 0.8, 2);
+  if (!MARK) { glow(cx, base + 24, rx * 1.05, '#3dff7a', 0.22 + (on ? pu * 0.15 : 0)); glow(cx, base + 13, rx * 0.8, '#ffe14a', 0.16); }
   // SHORE CLUB: red block letters standing on the canopy along its curve, on a thin rail
   const L = 'SHORE CLUB'.split(''), x0 = cx - rx * 0.86, x1 = cx + rx * 0.86;
   g.strokeStyle = MARK ? INK : '#5a1a1a'; g.lineWidth = 1.2; g.beginPath(); for (let i = 0; i <= 20; i++) { const x = x0 + (x1 - x0) * i / 20, y = yAt(base, x) - 38; i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
@@ -893,12 +894,11 @@ function sceneOutside() {
   if (!MARK) { g.fillStyle = '#1e2b1c'; g.fillRect(0, 448, W, 14); const r = RNG(3); g.fillStyle = 'rgba(255,255,255,.04)'; for (let i = 0; i < 260; i++) g.fillRect(r() * W, 462 + r() * 78, 2, 1); }
   const wall = MARK ? PAPER : '#aab6c8', wallLit = '#b9c4d4';
   // left wing
-  clapboard(0, 110, 262, 452, wall, 9); rect(256, 110, 6, 342, SC.blue); rect(-6, 102, 274, 10, SC.blueD, { lw: 1.4 });
-  // the taller two-storey block now on the left, with its upper windows
-  windowGrid(30, 138, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.65, curtain: '#3a6aa8' }); windowGrid(140, 138, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.65, curtain: '#3a6aa8' });
-  windowGrid(30, 184, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.6, curtain: '#3a6aa8' }); windowGrid(140, 184, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.6, curtain: '#3a6aa8' });
-  windowGrid(30, 240, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.55, curtain: '#3a6aa8' }); windowGrid(140, 240, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.55, curtain: '#3a6aa8' });
-  windowGrid(36, 338, 128, 62, 4, 2, { glow: '#ffcf8a', lit: 0.75, curtain: '#3a6aa8' }); lattice(0, 446, 262, 458); 'WELCOME'.split('').forEach((ch, i) => flagICS(16 + i * 33, 302, 30, 30, ch, 0));
+  clapboard(0, 176, 262, 452, wall, 9); rect(256, 176, 6, 276, SC.blue); rect(-6, 168, 274, 10, SC.blueD, { lw: 1.4 });
+  // nautical signal flags across the top, then two sets of windows
+  'WELCOME'.split('').forEach((ch, i) => flagICS(14 + i * 34, 184, 30, 30, ch, 0));
+  windowGrid(30, 228, 96, 44, 3, 1, { glow: '#ffd9a0', lit: 0.65, curtain: '#3a6aa8' }); windowGrid(140, 228, 96, 44, 3, 1, { glow: '#ffd9a0', lit: 0.65, curtain: '#3a6aa8' });
+  windowGrid(36, 338, 128, 62, 4, 2, { glow: '#ffcf8a', lit: 0.75, curtain: '#3a6aa8' }); lattice(0, 446, 262, 458);
   // long hall: metal roof, cupola, ribbon windows
   metalRoof(498, 304, 914, 316, 862, 236, 544, 222, SC.roofN, 30); cupola(640, 228, 1.1, true);
   clapboard(498, 304, 906, 452, wall, 9); rect(498, 300, 408, 6, SC.blue);
@@ -910,7 +910,7 @@ function sceneOutside() {
   edison(898, 332, 960, 330, 6, 6); edison(860, 300, 960, 318, 14, 8);
   // entrance block under the canopy and SHORE CLUB letters
   clapboard(262, 226, 500, 452, wall, 9); rect(494, 226, 6, 226, SC.blue); rect(262, 220, 244, 8, SC.blueD, { lw: 1.4 });
-  if (!MARK) glow(381, 330, 140, '#3dff7a', 0.12 + pu * 0.06);
+  if (!MARK) { glow(381, 300, 170, '#3dff7a', 0.3 + pu * 0.1); glow(381, 270, 90, '#b8ff9a', 0.18); }
   // door with porthole windows, red frame; lanterns; boards; 250
   rect(346, 306, 70, 128, SC.red, { lw: 1.6 }); rect(350, 310, 31, 124, '#2f5f92', { lw: 1.4 }); rect(383, 310, 31, 124, '#2f5f92', { lw: 1.4 });
   [[365.5, 0], [398.5, 1]].forEach(([x, d]) => { ell(x, 348, 9.5, 9.5, SC.red, { lw: 1.4 }); ell(x, 348, 7.2, 7.2, on ? mix('#ffb35a', act.cols[d], 0.4) : '#c9803a', { lw: 1 }); glow(x, 348, 22, act.cols[d], on ? 0.35 + pu * 0.4 : 0.2); });
