@@ -1508,7 +1508,8 @@ function loadEmbed(uri) {
       c.addListener('playback_started', (e) => { const u = e && e.data && e.data.playingURI; if (u) { SP.hasUri = true; if (u !== SP.uri) { SP.uri = u; const i = S.songs.length; musicStarted(null); S.songs[i].uri = u; fetchTitle(i, u); } } setPlaying(true); });
       c.addListener('playback_update', (e) => {
         const t = (e && e.data) || {}; const on = !t.isPaused && !t.isBuffering;
-        if (!SP.hasUri && on) { const changed = (t.duration && Math.abs(t.duration - SP.dur) > 1500) || (SP.pos > 4000 && t.position < 1500); if (S.curSong < 0 || changed) musicStarted(null); }
+        if (t.playingURI && t.playingURI !== SP.uri) { SP.hasUri = true; SP.uri = t.playingURI; const i = S.songs.length; musicStarted(null); S.songs[i].uri = SP.uri; fetchTitle(i, SP.uri); }
+        else if (!t.playingURI && on) { const changed = (t.duration && SP.dur && Math.abs(t.duration - SP.dur) > 1500) || (SP.pos > 4000 && t.position < 1500); if (S.curSong < 0 || changed) { const i = S.songs.length; musicStarted(null); if (window.LTFSP && window.LTFSP.connected()) window.LTFSP.now().then((n) => { if (n && n.state === 'ok' && S.songs[i]) { S.songs[i].title = n.title; if (typeof songStart === 'function' && S.curSong === i) { const el = document.getElementById('pq-now'); if (el) el.textContent = '\u266b ' + n.title; } } }).catch(() => {}); } }
         if (t.duration) SP.dur = t.duration; if (t.position != null) SP.pos = t.position;
         if (on && S.curSong < 0 && SP.uri) { const i = S.songs.length; musicStarted(null); S.songs[i].uri = SP.uri; fetchTitle(i, SP.uri); }
         if (S.songs.length >= MAXSONGS && !S.ended && t.duration > 20000 && t.position >= t.duration - 1200) endSession(true);

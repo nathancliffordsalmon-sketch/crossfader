@@ -182,20 +182,36 @@ root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', (
 function tab(name) { const b = root.querySelector(`[data-tab="${name}"]`); if (b && MODE !== name) b.click(); }
 
 /* Spotify embed */
-let api = null, apiWaiting = null, apiLoading = false, ctrl = null; const SP = { uri: null, dur: 0, pos: 0, hasUri: false, pendingPlay: false };
+let api = null, apiWaiting = null, apiLoading = false, ctrl = null; const SP = { uri: null, dur: 0, pos: 0, hasUri: false, pendingPlay: false, at: 0, untitled: false };
 function toUri(t) { t = (t || '').trim(); if (/^spotify:/.test(t)) return t; const m = t.match(/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/); return m ? `spotify:${m[1]}:${m[2]}` : null; }
 function fetchTitle(uri, cb) { const m = uri && uri.match(/spotify:track:(\w+)/); if (!m) return cb(null); fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent('https://open.spotify.com/track/' + m[1])).then((r) => r.json()).then((j) => cb(j && j.title)).catch(() => cb(null)); }
+function songTitle(t) { if (!t || S.cur < 0) return; S.songs[S.cur].title = t; $('#isl-now').textContent = '♫ ' + t; if (typeof renderSongs === 'function') renderSongs(); }
+function spTrack(u) {
+  if (u === SP.uri) return; SP.uri = u; SP.hasUri = true; if (MODE !== 'sp') tab('sp');
+  const recent = Date.now() - SP.at < 3000 && SP.untitled; SP.at = Date.now(); SP.untitled = false;
+  if (!recent) songStart(null);
+  $('#isl-now').textContent = '♫ Loading the song title…';
+  fetchTitle(u, (t) => { if (SP.uri === u) songTitle(t || 'A song from Spotify'); });
+}
+function spUnknown() {
+  SP.at = Date.now(); SP.untitled = true; songStart(null);
+  const pl = PLAYLISTS.find((x) => x[1] === sel.value), from = pl ? 'a song from ' + pl[0] : 'a song from Spotify';
+  songTitle(from.charAt(0).toUpperCase() + from.slice(1));
+  if (window.LTFSP && window.LTFSP.connected()) window.LTFSP.now().then((n) => { if (n && n.state === 'ok' && SP.untitled) songTitle(n.title); }).catch(() => {});
+}
 function loadEmbed(uri, autoplay) {
+  SP.uri = null; SP.dur = 0; SP.pos = 0; SP.at = 0; SP.untitled = false;
   SP.pendingPlay = !!autoplay;
   const make = () => {
     const host = $('#isl-embed'); host.innerHTML = ''; const el = document.createElement('div'); host.appendChild(el);
     api.createController(el, { uri, width: '100%', height: uri.includes(':track:') ? 152 : 352 }, (c) => {
       ctrl = c;
       c.addListener('ready', () => { if (SP.pendingPlay) { SP.pendingPlay = false; try { c.play(); } catch (e) {} } });
-      c.addListener('playback_started', (e) => { const u = e && e.data && e.data.playingURI; if (u && u !== SP.uri) { SP.uri = u; SP.hasUri = true; if (MODE !== 'sp') tab('sp'); fetchTitle(u, (t) => songStart(t)); } setPlaying(true); });
+      c.addListener('playback_started', (e) => { const u = e && e.data && e.data.playingURI; if (u) spTrack(u); setPlaying(true); });
       c.addListener('playback_update', (e) => {
         const t = (e && e.data) || {}; const on = !t.isPaused && !t.isBuffering;
-        if (!SP.hasUri && on) { const changed = (t.duration && Math.abs(t.duration - SP.dur) > 1500) || (SP.pos > 4000 && t.position < 1500); if (S.cur < 0 || changed) songStart(null); }
+        if (t.playingURI) spTrack(t.playingURI);
+        else if (on) { const changed = (t.duration && SP.dur && Math.abs(t.duration - SP.dur) > 1500) || (SP.pos > 4000 && t.position < 1500); if ((S.cur < 0 || changed) && Date.now() - SP.at > 3000) spUnknown(); }
         if (t.duration) SP.dur = t.duration; if (t.position != null) SP.pos = t.position;
         if (MODE === 'sp' || on) setPlaying(on);
       });
@@ -539,7 +555,7 @@ function heroSprite(x, y, f, d) {
   const sit = st === 'sit' || st === 'eat' || st === 'pipe' || st === 'drink';
   const legY = sit ? -6 : 0;
   // legs
-  if (sit) { R(-4, -8, 9, 3, pants); R(4, -8, 3, 7, pants); R(4, -1, 3, 1, feet); R(-2, -8, 3, 7, pants); R(-2, -1, 3, 1, feet); }
+  if (sit) { R(-4, -9, 10, 3, pants); R(3, -8, 4, 7, pants); R(3, -1, 5, 1, feet); }
   else {
     const step = (st === 'walk' || st === 'strut' || st === 'toSeat' || st === 'toHut' || st === 'toFeed' || st === 'toWater' || st === 'wadeIn' || st === 'wadeOut') ? hero.frame % 4 : 0, kick = st === 'strut' ? 2 : 1;
     const lA = [0, kick, 0, -kick][step], lB = [0, -kick, 0, kick][step];
@@ -547,7 +563,7 @@ function heroSprite(x, y, f, d) {
     R(-3 + lA + dl, -9 + bob, 3, 9 - bob, pants); R(1 + lB + dr, -9 + bob, 3, 9 - bob, pants);
     R(-3 + lA + dl, -2, 3, 2, feet); R(1 + lB + dr, -2, 3, 2, feet);
   }
-  const by = (sit ? -6 : 0) + bob;
+  const by = (sit ? 1 : 0) + bob;
   // body / striped shirt
   for (let i = 0; i < 9; i++) R(-4, -18 + by + i, 9, 1, o.pat === 'stripe' && i % 2 ? shirtB : shirtA);
   const B = (px, py) => R(px, -18 + by + py, 1, 1, shirtB);
