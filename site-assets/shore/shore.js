@@ -1394,39 +1394,26 @@ function drawTag() {
 let CAMREF = {}, RAFTREF = [];
 const CAM = { cur: null, next: 5, drawing: false };
 const CAM_TAG = { guitar: 'GUITAR SOLO!', 'mic-guitar': 'SING IT!', mic: 'SING IT!', drums: 'DRUM BREAK!', bass: 'BASS SLAP!', keys: 'KEYS!!!', keytar: 'KEYTAR!!!', fiddle: 'FIDDLE FRENZY!', accordion: 'SQUEEZEBOX!', banjo: "BANJO PICKIN'!", sax: 'SAX SOLO!', trumpet: 'HORN BLAST!', dj: 'DROP IT!' };
-const CAM_SAY = {
-  keys: ['Lo! The keeper of the ivory keys hath been seized by a terrible joy!', 'Thou beholdest a man possessed. His keys cry out for mercy.', 'Hark! He doth pound the keys as though they owed him gold.', 'Verily, no keyboard in all the realm hath suffered thus.'],
-  keytar: ['Behold the keytar, a lute from the future! He wieldeth it most boldly.', 'The keytar shrieketh! Thine elders would not approve.'],
-  guitar: ["The minstrel's lute doth wail! Stand back, good traveller.", 'A solo most fearsome! Thine ears shall never be the same.'],
-  'mic-guitar': ['The bard lifteth up a voice and the very rafters tremble.', 'Sing, bard, sing! The whole tavern hangeth on thy words.'],
-  mic: ['The bard lifteth up a voice and the very rafters tremble.', 'Sing, bard, sing! The whole tavern hangeth on thy words.'],
-  drums: ['Thunder from the war drums! The ground itself doth shake.', 'The drummer hath summoned a tempest. Take cover, traveller.'],
-  bass: ['The low strings rumble like the sea beneath the wharf.', 'A deep and mighty rumbling. Thy bones do hum along.'],
-  fiddle: ["The fiddler's bow doth fly! Mind thy feet, lest they dance unbidden."], accordion: ['The squeezebox wheezeth a merry tune of the old country.'],
-  banjo: ['Pluck! Pluck! The banjo calleth all good folk to the barn.'], sax: ['A brazen horn soundeth! The crowd is sore amazed.'], trumpet: ['A brazen horn soundeth! The crowd is sore amazed.'],
-  dj: ['The sorcerer at the turntables conjureth a mighty drop.', 'Beware the wizard of the decks, for he knoweth not mercy.'],
-  raft: ['Upon yon raft, three souls have lost their wits entirely.', 'The raft folk dance as though the tide itself were cursed.', 'Fear not, traveller. They know not what they do.']
-};
 function camPick() {
   const beach = S.scene === 'beachDay' || S.scene === 'beachNight';
-  if (beach && RAFTREF.length && rnd() < 0.5) return { raft: true, who: 'Thou seest the raft folk.', say: pickR(rnd, CAM_SAY.raft) };
+  if (beach && RAFTREF.length && rnd() < 0.5) return { raft: true, tag: pickR(rnd, ['RAFT PARTY!!', 'THEY LOST IT!', 'RAFT RAVE!!', 'NOBODY IS OKAY!']) };
   const opts = Object.keys(CAMREF).map((k) => ({ k, w: (k === 'keys' || k === 'keytar') ? 5 : (k === 'drums' || k === 'guitar' || k === 'dj') ? 2 : 1 }));
   if (!opts.length) return null;
   let t = opts.reduce((a, o) => a + o.w, 0) * rnd(), k = opts[0].k; for (const o of opts) { t -= o.w; if (t <= 0) { k = o.k; break; } }
-  const nm = (CAMREF[k].sl.p.name || 'a minstrel').split(',')[0].replace(' from ', ' of '); return { inst: k, sl: CAMREF[k].sl, who: 'Thou seest ' + nm + '.', say: pickR(rnd, CAM_SAY[k] || CAM_SAY.guitar) };
+  return { inst: k, sl: CAMREF[k].sl, tag: CAM_TAG[k] || 'SOLO!' };
 }
 function camTick(dt) {
   const scn = S.scene, ok = S.playing && (scn === 'inside' || scn === 'shore' || scn === 'beachDay' || scn === 'beachNight'), beach = scn === 'beachDay' || scn === 'beachNight';
   if (!ok) { CAM.cur = null; CAM.next = Math.min(CAM.next, S.t + 4); return; }
   if (CAM.cur && S.t - CAM.cur.t0 > CAM.cur.dur) { CAM.cur = null; CAM.next = S.t + (beach ? 14 + rnd() * 12 : 5 + rnd() * 6); }
-  if (!CAM.cur && S.t >= CAM.next && S.t - S.title > 3) { const c = camPick(); if (c) { c.t0 = S.t; c.dur = (c.inst === 'keys' || c.inst === 'keytar' ? 6.5 : 5.5); CAM.cur = c; } else CAM.next = S.t + 2; }
+  if (!CAM.cur && S.t >= CAM.next && S.t - S.title > 3) { const c = camPick(); if (c) { c.t0 = S.t; c.dur = c.inst === 'keys' || c.inst === 'keytar' ? 5.5 : 4.2; CAM.cur = c; } else CAM.next = S.t + 2; }
   if (CAM.cur) drawCam(CAM.cur);
 }
 function drawCam(c) {
   const ref = c.raft ? null : CAMREF[c.inst]; if (!c.raft && !ref) return;
   if (c.raft && !RAFTREF.length) return;
   const act = ACTS[S.act], age = S.t - c.t0, open = clamp(Math.min(age, c.dur - age) / 0.22, 0, 1);
-  const BW = 300, BH = 214, bx = W - BW - 18, by0 = 18, cy = by0 + BH / 2, bh = BH * open, top = cy - bh / 2;
+  const BW = 300, BH = 186, bx = W - BW - 18, by0 = 18, cy = by0 + BH / 2, bh = BH * open, top = cy - bh / 2;
   if (bh < 2) return;
   g.save();
   // frame: black, double border, corner notches
@@ -1443,14 +1430,14 @@ function drawCam(c) {
   CAM.drawing = true; const shake = pu * 2.2;
   if (c.raft) {
     const Z = 2.7, fx = RAFT.x, fy = RAFT.y - 20;
-    g.translate(ccx + (rnd() - 0.5) * shake, by0 + (BH - 62) / 2 + (rnd() - 0.5) * shake); g.scale(Z, Z); g.translate(-fx, -fy);
+    g.translate(ccx + (rnd() - 0.5) * shake, by0 + (BH - 30) / 2 + (rnd() - 0.5) * shake); g.scale(Z, Z); g.translate(-fx, -fy);
     g.fillStyle = MARK ? PAPER : '#2a6a9a'; g.fillRect(fx - 80, fy + 20, 160, 60);
     rect(RAFT.x - 56, RAFT.y - 1, 112, 7, '#c9bea6', { lw: 0.6 }); rect(RAFT.x - 54, RAFT.y + 6, 108, 3.5, '#5a4a3a');
     RAFTREF.forEach((r) => person(r.sl, r.x, r.y, r.s));
     if (!MARK) { g.strokeStyle = 'rgba(255,255,255,.8)'; g.lineWidth = 0.4; for (let i = 0; i < 6; i++) { const yy = fy + 30 + i * 5; g.beginPath(); g.moveTo(fx - 80, yy + Math.sin(S.t * 2 + i) * 0.8); g.lineTo(fx + 80, yy + Math.sin(S.t * 2 + i + 2) * 0.8); g.stroke(); } }
   } else {
-    const s = ref.s, Z = 140 / (80 * s), fx = ref.x, fy = ref.y - 80 * s, kick = c.sl.muppet ? 1.8 : 1;
-    g.translate(ccx + (rnd() - 0.5) * shake * kick, by0 + (BH - 62) / 2 + 4 + (rnd() - 0.5) * shake * kick); g.scale(Z, Z); g.translate(-fx, -fy);
+    const s = ref.s, Z = 150 / (80 * s), fx = ref.x, fy = ref.y - 80 * s, kick = c.sl.muppet ? 1.8 : 1;
+    g.translate(ccx + (rnd() - 0.5) * shake * kick, by0 + (BH - 30) / 2 + 4 + (rnd() - 0.5) * shake * kick); g.scale(Z, Z); g.translate(-fx, -fy);
     person(ref.sl, ref.x, ref.y, ref.s, ref.mid, ref.post);
   }
   CAM.drawing = false;
@@ -1458,16 +1445,13 @@ function drawCam(c) {
   g.beginPath(); g.rect(bx, top, BW, bh); g.clip();
   // scanlines + caption bar
   if (!MARK) { g.fillStyle = 'rgba(0,0,0,.16)'; for (let y = top; y < top + bh; y += 3) g.fillRect(bx, y, BW, 1); }
-  const capH = 62, capY = top + bh - capH;
-  g.fillStyle = MARK ? PAPER : '#0b0b1e'; g.fillRect(bx, capY, BW, capH);
-  g.fillStyle = MARK ? INK : '#c9b27a'; g.fillRect(bx, capY, BW, 2); g.fillRect(bx, capY + 3, BW, 1);
-  g.textAlign = 'left'; g.textBaseline = 'top';
-  g.font = "italic 12px Georgia, 'Times New Roman', serif"; g.fillStyle = MARK ? INK : '#9fd3ff'; g.fillText(c.who, bx + 9, capY + 7);
-  const shown = Math.max(0, Math.floor((age - 0.3) * 34)), full = c.say, txt = full.slice(0, shown);
-  g.font = "bold 13px 'Courier New', monospace"; g.fillStyle = MARK ? INK : '#f2e6c4';
-  const lines = wrapText(full, BW - 24); let left = txt.length, ly = capY + 24;
-  for (const l of lines) { if (left <= 0) break; g.fillText(l.slice(0, left), bx + 9, ly); left -= l.length + 1; ly += 16; }
-  if (shown >= full.length && Math.floor(S.t * 3) % 2) { g.fillStyle = MARK ? INK : '#f2e6c4'; g.beginPath(); g.moveTo(bx + BW - 14, capY + capH - 16); g.lineTo(bx + BW - 7, capY + capH - 11); g.lineTo(bx + BW - 14, capY + capH - 6); g.fill(); }
+  const capH = 30, capY = top + bh - capH; g.fillStyle = 'rgba(0,0,0,.78)'; g.fillRect(bx, capY, BW, capH);
+  g.fillStyle = act.cols[0]; g.fillRect(bx, capY, BW, 2);
+  const name = c.raft ? '' : (c.sl.p.name || ''), wob = Math.sin(S.t * 14) * (c.sl && c.sl.muppet ? 1.5 : 0.6);
+  g.font = "bold 17px 'Courier New', monospace"; g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.lineWidth = 4; g.strokeStyle = '#000'; g.strokeText(c.tag, bx + 10, capY + capH / 2 + wob); g.fillStyle = act.cols[1] === '#ffffff' ? '#ffe14a' : act.cols[1]; g.fillText(c.tag, bx + 10, capY + capH / 2 + wob);
+  if (name) { g.font = "12px 'Courier New', monospace"; g.textAlign = 'right'; g.fillStyle = '#ffffffcc'; g.fillText(name.split(',')[0], bx + BW - 22, capY + capH / 2); }
+  if (Math.floor(S.t * 3) % 2) { g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(bx + BW - 14, capY + 10); g.lineTo(bx + BW - 7, capY + 15); g.lineTo(bx + BW - 14, capY + 20); g.fill(); }
   g.restore(); g.textBaseline = 'alphabetic';
 }
 let last = performance.now();
