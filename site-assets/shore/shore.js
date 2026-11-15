@@ -831,7 +831,7 @@ function sceneOutside() {
   if (!MARK) { g.fillStyle = '#1e2b1c'; g.fillRect(0, 448, W, 14); const r = RNG(3); g.fillStyle = 'rgba(255,255,255,.04)'; for (let i = 0; i < 260; i++) g.fillRect(r() * W, 462 + r() * 78, 2, 1); }
   const wall = MARK ? PAPER : '#aab6c8', wallLit = '#b9c4d4';
   // left wing
-  clapboard(0, 300, 262, 452, wall, 9); poly([0, 300, 262, 300, 262, 290, 0, 282], SC.roofN, { lw: 1.6 }); windowGrid(36, 338, 128, 62, 4, 2, { glow: '#ffcf8a', lit: 0.75, curtain: '#3a6aa8' }); lattice(0, 446, 262, 458);
+  clapboard(0, 300, 262, 452, wall, 9); poly([0, 300, 262, 300, 262, 290, 0, 282], SC.roofN, { lw: 1.6 }); windowGrid(36, 338, 128, 62, 4, 2, { glow: '#ffcf8a', lit: 0.75, curtain: '#3a6aa8' }); lattice(0, 446, 262, 458); 'WELCOME'.split('').forEach((ch, i) => flagICS(16 + i * 33, 302, 30, 30, ch, 0));
   // long hall: metal roof, cupola, ribbon windows
   metalRoof(498, 304, 914, 316, 862, 236, 544, 222, SC.roofN, 30); cupola(640, 228, 1.1, true);
   clapboard(498, 304, 906, 452, wall, 9); rect(498, 300, 408, 6, SC.blue);
@@ -843,7 +843,6 @@ function sceneOutside() {
   edison(898, 332, 960, 330, 6, 6); edison(860, 300, 960, 318, 14, 8);
   // two-storey entrance block with painted signal flags
   clapboard(262, 66, 500, 452, wall, 9); rect(262, 66, 6, 386, SC.blue); rect(494, 66, 6, 386, SC.blue); rect(256, 58, 250, 10, SC.blueD, { lw: 1.4 });
-  'WELCOME'.split('').forEach((ch, i) => flagICS(270 + i * 32.6, 74, 30, 34, ch, 0));
   windowGrid(278, 124, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.65, curtain: '#3a6aa8' }); windowGrid(388, 124, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.65, curtain: '#3a6aa8' });
   windowGrid(278, 170, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.6, curtain: '#3a6aa8' }); windowGrid(388, 170, 96, 38, 3, 1, { glow: '#ffd9a0', lit: 0.6, curtain: '#3a6aa8' });
   if (!MARK) glow(381, 330, 140, '#3dff7a', 0.12 + pu * 0.06);
