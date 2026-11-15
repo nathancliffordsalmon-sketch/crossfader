@@ -45,6 +45,10 @@ const css = `
 #isl.isl-full .isl-hud{position:absolute;left:0;right:0;bottom:0;border-radius:0;background:#000000a0;padding:6px 12px;font-size:12px;z-index:2}
 #isl .isl-ov{display:none;position:absolute;left:10px;top:10px;gap:6px;align-items:center;line-height:1;z-index:2}
 #isl.isl-full .isl-ov{display:flex}
+#isl.isl-full .isl-hud .isl-ov{position:static;flex:0 0 auto;flex-wrap:nowrap}
+#isl.isl-full .isl-hud .isl-now{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#isl.isl-full .isl-hud .isl-clock{display:none}
+#isl.isl-full .isl-hud .isl-ov select{max-width:30vw}
 #isl .isl-ov select,#isl .isl-ov button{font:600 13px Georgia,serif;padding:7px 10px;background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:999px}
 @media (max-height:500px){#isl.isl-full .isl-hud{padding:4px 10px;font-size:11px}#isl .isl-ov select,#isl .isl-ov button,#isl.isl-full .isl-fs{font-size:11px;padding:6px 8px}}
 html.isl-noscroll,html.isl-noscroll body{overflow:hidden!important}
@@ -311,7 +315,7 @@ window.addEventListener('resize', refit); window.addEventListener('orientationch
 if (window.visualViewport) { window.visualViewport.addEventListener('resize', refit); window.visualViewport.addEventListener('scroll', () => setTimeout(fitFull, 30)); }
 // while full screen, swipes must not scroll the page underneath (that's what makes Safari's bars jump in and out)
 $('#isl').addEventListener('touchmove', (e) => { if ($('#isl').classList.contains('isl-full') && !/select|input/i.test(e.target.tagName)) e.preventDefault(); }, { passive: false });
-function setFull(on) { $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; refit(); }
+function setFull(on) { const ov = $('.isl-ov'); if (ov) (on ? $('.isl-hud') : $('.isl-stage')).appendChild(ov); $('#isl').classList.toggle('isl-full', on); document.documentElement.classList.toggle('isl-noscroll', on); $('#isl-fs').textContent = on ? '✕ Exit' : '⤢ Full screen'; refit(); }
 $('#isl-fs').addEventListener('click', () => { const on = !$('#isl').classList.contains('isl-full'); setFull(on); const el = $('#isl'); try { if (on && el.requestFullscreen) el.requestFullscreen().catch(() => {}); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {} });
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && $('#isl').classList.contains('isl-full')) setFull(false); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setFull(false); });
