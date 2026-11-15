@@ -5,9 +5,9 @@
   'use strict';
   const PW = 76, PH = 56, SCALE = 2;
   const C = { k: '#000000', b: '#0000AA', g: '#00AA00', c: '#00AAAA', r: '#AA0000', m: '#AA00AA', n: '#AA5500', l: '#AAAAAA', d: '#555555', B: '#5555FF', G: '#55FF55', C: '#55FFFF', R: '#FF5555', M: '#FF55FF', y: '#FFFF55', w: '#FFFFFF' };
-  const css = `.ltf-oracle-banner .ltf-orb{font-size:0!important;line-height:0;flex:0 0 auto}
-.ltf-oracle-banner .ltf-orb canvas{width:${PW * SCALE}px;max-width:44vw;height:auto;image-rendering:pixelated;image-rendering:crisp-edges;border:3px solid #1b0f2e;border-radius:6px;box-shadow:0 0 0 2px #AA5500,0 4px 10px rgba(0,0,0,.5);display:block}
-@media (max-width:420px){.ltf-oracle-banner .ltf-orb canvas{width:${Math.round(PW * 1.6)}px}}`;
+  const css = `.ltf-oracle-banner{gap:10px}
+.ltf-oracle-banner .ltf-orb{font-size:0!important;line-height:0;flex:0 1 auto;width:clamp(104px,40%,152px);min-width:0}
+.ltf-oracle-banner .ltf-orb canvas{width:100%;height:auto;box-sizing:border-box;image-rendering:pixelated;image-rendering:crisp-edges;border:3px solid #1b0f2e;border-radius:6px;box-shadow:0 0 0 2px #AA5500,0 4px 10px rgba(0,0,0,.5);display:block}`;
   function scene(x, t) {
     const px = (X, Y, c) => { x.fillStyle = C[c] || c; x.fillRect(X, Y, 1, 1); };
     const rect = (X, Y, w, h, c) => { x.fillStyle = C[c] || c; x.fillRect(X, Y, w, h); };
