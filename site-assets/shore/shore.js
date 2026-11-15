@@ -7,6 +7,7 @@
 const root = document.getElementById('shr-root'); if (!root || root.dataset.ready) return; root.dataset.ready = '1';
 const SRC = (document.currentScript && document.currentScript.src) || '';
 const GM_SRC = SRC.replace(/shore\/shore\.js.*$/, 'rko/gm.js');
+if (SRC && !window.SHR_CHAT) { const cs = document.createElement('script'); cs.src = SRC.replace(/shore\.js.*$/, 'chatter.js'); document.head.appendChild(cs); }
 if (/gm\.js/.test(GM_SRC) && !window.LTFGM) { const gs = document.createElement('script'); gs.src = GM_SRC; document.head.appendChild(gs); }
 if (/gm\.js/.test(GM_SRC) && !window.LTFSP) { const ss = document.createElement('script'); ss.src = GM_SRC.replace('gm.js', 'ltf-spotify.js'); document.head.appendChild(ss); }
 if (!document.getElementById('shr-fonts')) { const l = document.createElement('link'); l.id = 'shr-fonts'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=Monoton&family=Pacifico&display=swap'; document.head.appendChild(l); }
@@ -286,6 +287,7 @@ function pose(sl) {
   const b = S.beat + (band ? 0 : o * 0.12), ph = ((b % 1) + 1) % 1, n = Math.floor(b), pu = Math.exp(-ph * 6) * E, sn = Math.sin(b * Math.PI), id = Math.sin(S.t * 1.3 + o * 9);
   const P = { dx: 0, sway: 0, bounce: 0, lean: 0, L: [-0.18, -0.08], R: [0.18, 0.08], LL: [-0.05, 0.02], RL: [0.05, -0.02], hy: 0, face: sl.face, sit: false, cross: false, E, pu, b, ph, n };
   if (stl === 'sit' || stl === 'cross') { if (stl === 'cross') P.cross = true; else P.sit = true; P.sway = id * 0.8 + sn * 1.5 * E; P.hy = pu * 1.5; if (sl.drink) P.R = [0.3, 2.3]; if (on && sl.off > 0.6) { P.L = [-0.45, 2.1 + pu * 0.4]; P.R = [0.45, -2.1 - pu * 0.4]; } return P; }
+  if (stl === 'walk') { const w = S.t * 7 + o * 9, s2 = Math.sin(w); P.LL = [s2 * 0.42, Math.max(0, -s2) * 0.55]; P.RL = [-s2 * 0.42, Math.max(0, s2) * 0.55]; P.L = [-0.12 - s2 * 0.3, 0.25]; P.R = [0.12 + s2 * 0.3, -0.25]; P.bounce = Math.abs(Math.cos(w)) * 1.3; return P; }
   if (!on && !band) { P.sway = id * 1.2; if (sl.drink) P.R = [0.3, 2.2]; return P; }
   if (!band && !sl.drink && !sl.inst && stl !== 'couple' && stl !== 'line') { const seg = Math.floor(b / 16), hs = Math.abs(Math.sin(seg * 12.9898 + o * 78.233) * 43758.5453) % 1; if (hs < 0.45) { moveX(P, EXTRA[Math.floor(hs / 0.45 * EXTRA.length)], { b, ph, n, pu, sn, E, o }); return P; } }
   switch (stl) {
@@ -581,13 +583,17 @@ function buildCrowd() {
   }
   CROWD = L.sort((a, b) => a.y - b.y);
 }
+const WANDER = { stand: 1, sway: 1, clap: 1, cheer: 1, rock: 0.6, funk: 0.6, rave: 0.5, step: 0.5 };
+let LAST_AMB = null, LAST_LIGHT = '#ffd9a0';
 function drawCrowd(amb, light, filter) {
+  LAST_AMB = amb; LAST_LIGHT = light;
   const ck = amb.col + light + S.act;
   for (const sl of CROWD) {
     if (filter && !filter(sl)) continue;
     if (sl.cKey !== ck) { sl.cKey = ck; sl.c = shadeSet(sl.p, amb, sl.style === 'couple' || sl.style === 'rave' ? ACTS[S.act].cols[(sl.off * 3) | 0] : light); }
     let x = sl.x;
     if (sl.style === 'couple' && S.playing) { const b = S.beat + sl.off * 0.1, th = Math.PI * Math.floor(b / 8) + Math.PI * smooth(clamp((b % 8) - 7, 0, 1)); x = sl.cx + Math.cos(th) * 13 * sl.s * sl.side; }
+    if (WANDER[sl.style] && !sl.table && !sl.inst) x += Math.sin(S.t * (0.07 + sl.off * 0.06) + sl.off * 40) * 26 * sl.s * WANDER[sl.style];
     if (sl.style === 'sit' && !sl.table) ell(x, sl.y - 2, 12 * sl.s, 4 * sl.s, '#1a1a1a', { skip: true });
     if (sl.inst) person(sl, x, sl.y, sl.s, (J) => instrument(sl.inst, J, ACTS[S.act], 'mid'), (J) => instrument(sl.inst, J, ACTS[S.act], 'post')); else person(sl, x, sl.y, sl.s);
     if (sl.table && sl.side2 !== 1) {/* tables drawn by scene */}
@@ -1268,7 +1274,82 @@ function sceneBeach(night) {
   vignette();
 }
 
-function vignette() { if (MARK) return; const v = g.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 1.05); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.45)'); g.fillStyle = v; g.fillRect(0, 0, W, H); }
+/* ---------------- people walking in and out of the scene ---------------- */
+const LANES = { inside: [528, 1.18], outside: [516, 1.0], deck: [528, 1.1], shore: [530, 1.18], beachDay: [508, 1.05], beachNight: [516, 1.0] };
+const WALKERS = []; let WALK_T = 0, WALK_SCENE = '';
+function newWalker(i) {
+  const dir = rnd() < 0.5 ? 1 : -1, base = ROSTER[Math.floor(rnd() * ROSTER.length)];
+  return { i, p: base, dir, x: dir > 0 ? -40 : W + 40, speed: 24 + rnd() * 18, stopAt: rnd() < 0.55 ? 160 + rnd() * 640 : null, stopFor: 4 + rnd() * 5, wait: 0, off: rnd(), face: dir, style: 'walk', yj: rnd() * 10 - 5, walker: true };
+}
+function drawWalkers() {
+  const lane = LANES[S.scene]; if (!lane || !LAST_AMB) return;
+  if (WALK_SCENE !== S.scene) { WALK_SCENE = S.scene; WALKERS.length = 0; for (let i = 0; i < 3; i++) { const w = newWalker(i); w.x = 120 + rnd() * 720; WALKERS.push(w); } }
+  const dt = clamp(S.t - WALK_T, 0, 0.1); WALK_T = S.t;
+  const ck = LAST_AMB.col + LAST_LIGHT;
+  WALKERS.forEach((w, k) => {
+    if (w.wait > 0) { w.wait -= dt; if (w.wait <= 0) WALKERS[k] = newWalker(w.i); return; }
+    if (w.stopAt != null && Math.abs(w.x - w.stopAt) < 6) { w.style = 'stand'; w.stopFor -= dt; if (w.stopFor <= 0) { w.stopAt = null; w.style = 'walk'; } }
+    else { w.style = 'walk'; w.x += w.dir * w.speed * dt; }
+    if (w.x < -60 || w.x > W + 60) { w.wait = 2 + rnd() * 6; w.hx = null; return; }
+    if (w.cKey !== ck) { w.cKey = ck; w.c = shadeSet(w.p, LAST_AMB, LAST_LIGHT); }
+    person(w, w.x, lane[0] + w.yj, lane[1]);
+  });
+}
+/* ---------------- regulars chatting ---------------- */
+const TALK = { next: 3, cur: null, recent: [] };
+const CHAT_W = { see: 30, taste: 13, club: 17, film: 10, ns: 7, hello: 9, music: 0 };
+function chatLine(cat, a, b) {
+  const C = window.SHR_CHAT;
+  if (cat === 'hello') {
+    const who = (sl) => { const m = String(sl.p.name || '').split(' from '); return { first: m[0] || 'Pat', where: (C.where && C.where[m[1]]) || m[1] || 'just up the road' }; };
+    const A = who(a), say = (t, o) => t.replace('{first}', o.first).replace('{where}', o.where);
+    return [say(C.hello[Math.floor(rnd() * C.hello.length)], A), b ? say(C.hello[Math.floor(rnd() * C.hello.length)], who(b)) : null];
+  }
+  const list = C[cat]; if (!list || !list.length) return null;
+  let idx = 0; for (let tries = 0; tries < 8; tries++) { idx = Math.floor(rnd() * list.length); if (!TALK.recent.includes(cat + idx)) break; }
+  TALK.recent.push(cat + idx); if (TALK.recent.length > 80) TALK.recent.shift();
+  const [l, r] = list[idx];
+  return [l, b ? (r || C.replies[Math.floor(rnd() * C.replies.length)]) : null];
+}
+function startTalk() {
+  if (!window.SHR_CHAT) return;
+  const pool = CROWD.filter((sl) => sl.hx != null && !sl.inst).concat(WALKERS.filter((w) => w.hx != null && w.wait <= 0));
+  if (pool.length < 1) return;
+  const a = pick(pool); let b = null, bd = 1e9;
+  pool.forEach((o) => { if (o === a) return; const d = Math.abs(o.hx - a.hx) + Math.abs(o.hy - a.hy) * 1.5; if (d < bd && d > 50) { bd = d; b = o; } });
+  if (bd > 220) b = null;
+  const w = Object.assign({}, CHAT_W, { music: S.playing ? 34 : 0 }); let tot = 0; for (const k in w) tot += w[k]; let x = rnd() * tot, cat = 'see'; for (const k in w) { if ((x -= w[k]) <= 0) { cat = k; break; } }
+  const lines = chatLine(cat, a, b); if (!lines) return;
+  if (a.walker && a.style === 'walk' && a.stopAt == null) { a.stopAt = a.x; a.stopFor = 6.5; }
+  if (b && b.walker && b.style === 'walk' && b.stopAt == null) { b.stopAt = b.x; b.stopFor = 6.5; }
+  TALK.cur = { a, b, lines, t0: S.t };
+}
+function wrapText(t, maxW) { const words = t.split(' '), out = []; let line = ''; words.forEach((wd) => { const tryL = line ? line + ' ' + wd : wd; if (g.measureText(tryL).width > maxW && line) { out.push(line); line = wd; } else line = tryL; }); if (line) out.push(line); return out; }
+function bubble(sl, text, age, dur, avoid) {
+  if (!sl || sl.hx == null || !text) return null;
+  const a = clamp(Math.min(age / 0.25, (dur - age) / 0.4), 0, 1);
+  g.save(); g.globalAlpha = a; g.font = '600 19px Georgia, serif';
+  const lines = wrapText(text, 250), lh = 23, wd = Math.max(...lines.map((l) => g.measureText(l).width)) + 24, ht = lines.length * lh + 14;
+  const hx = sl.hx, hy = sl.hy - 18 * (sl.hs || 1);
+  let bx = clamp(hx - wd / 2, 8, W - wd - 8), by = clamp(hy - ht - 16, 8, H - ht - 8);
+  if (avoid && bx < avoid.x + avoid.w + 6 && bx + wd > avoid.x - 6 && by < avoid.y + avoid.h + 6 && by + ht > avoid.y - 6) { if (avoid.y - ht - 8 >= 8) by = avoid.y - ht - 8; else by = avoid.y + avoid.h + 8; }
+  const rectOut = { x: bx, y: by, w: wd, h: ht }; if (a <= 0) { g.restore(); return rectOut; }
+  g.fillStyle = MARK ? PAPER : 'rgba(255,255,255,.96)'; g.strokeStyle = MARK ? INK : '#1b1b2a'; g.lineWidth = 2;
+  g.beginPath(); if (g.roundRect) g.roundRect(bx, by, wd, ht, 12); else g.rect(bx, by, wd, ht); g.fill(); g.stroke();
+  const tx = clamp(hx, bx + 16, bx + wd - 16); g.beginPath(); g.moveTo(tx - 8, by + ht - 1); g.lineTo(hx, hy - 2); g.lineTo(tx + 8, by + ht - 1); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = MARK ? INK : '#1b1b2a'; g.textAlign = 'left'; g.textBaseline = 'top';
+  lines.forEach((l, i) => g.fillText(l, bx + 12, by + 8 + i * lh));
+  g.restore(); return rectOut;
+}
+function drawTalk() {
+  if (S.t >= TALK.next && !TALK.cur) { startTalk(); TALK.next = S.t + 7 + rnd() * 5; }
+  const c = TALK.cur; if (!c) return;
+  const age = S.t - c.t0, D1 = 4.2, R0 = 3.0, D2 = 4.2;
+  const ra = bubble(c.a, c.lines[0], age, D1);
+  if (c.lines[1]) bubble(c.b, c.lines[1], age - R0, D2, ra);
+  if (age > (c.lines[1] ? R0 + D2 : D1)) TALK.cur = null;
+}
+function vignette() { drawWalkers(); drawTalk(); if (MARK) return; const v = g.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 1.05); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.45)'); g.fillStyle = v; g.fillRect(0, 0, W, H); }
 
 /* ---------------- tag a dancer ---------------- */
 let TAG = null;
