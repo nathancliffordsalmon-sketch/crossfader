@@ -545,13 +545,16 @@ function drawFire(d) {
   R(x - 30, y - 1, 16, 4, mix('#2a1d14', '#6a4628', d)); R(x - 30, y - 1, 16, 1, mix('#3a2a1c', '#8a6038', d));
   for (let i = 0; i < 6; i++) R(x - 8 + i * 3, y + 1, 3, 2, mix('#333344', '#8a8a96', d));
   R(x - 5, y - 1, 10, 2, mix('#2a1d14', '#5a3a1c', d));
-  if (night < 0.25) return;
+  drawCampChair(d);
+  const cooking = S.campfire > S.t; if (night < 0.25 && !cooking) return;
   const k = S.playing ? 1 + Math.exp(-(S.beat % 1) * 5) * 0.4 : 1;
   for (let i = 0; i < 26; i++) { const fx = x - 4 + rnd() * 8, fy = y - 1 - rnd() * 12 * k; P(fx, fy, pick(['#ff9a3c', '#ffd27a', '#ff5a2a', '#fff3b0'])); }
   g.globalAlpha = 0.16 * night; circle(x, y - 5, 26, '#ff9a3c'); g.globalAlpha = 1;
   if (rnd() < 0.3) S.sparks.push({ x: x + rnd() * 6 - 3, y: y - 10, vx: rnd() * 6 - 3, vy: -14 - rnd() * 10, l: 1.2, c: '#ffb04a' });
-  // cooking skewer
-  R(x - 9, y - 8, 18, 1, '#5a3a1c'); R(x - 2, y - 10, 4, 3, '#a0522d');
+  // cooking skewer: his catch when he's cooking, otherwise a sausage
+  R(x - 9, y - 8, 18, 1, '#5a3a1c');
+  if (hero.state === 'cook') { const done = clamp(hero.st / 6, 0, 1), fc = mix('#9fb4c8', '#b0702a', done); R(x - 5, y - 11, 9, 3, fc); R(x + 4, y - 12, 2, 5, fc); P(x - 4, y - 10, '#111'); if (rnd() < 0.4) puff(x, y - 13, 0.4); }
+  else R(x - 2, y - 10, 4, 3, '#a0522d');
 }
 
 /* hero sprite: an original castaway (straw hat, beard, striped shirt, rolled trousers) */
@@ -563,12 +566,12 @@ function heroSprite(x, y, f, d) {
   const flip = hero.dir < 0;
   g.save(); g.translate(Math.round(x), Math.round(y)); if (flip) g.scale(-1, 1);
   const st = hero.state, ph = S.playing ? (S.beat % 1) : (S.t * 1.5 % 1), bob = st === 'dance' ? -Math.round(Math.abs(Math.sin(ph * Math.PI)) * 2) : st === 'strut' ? -Math.round(Math.abs(Math.sin(hero.frame * Math.PI / 2)) * 2) : 0;
-  const sit = st === 'sit' || st === 'eat' || st === 'pipe' || st === 'drink';
+  const sit = st === 'sit' || st === 'eat' || st === 'pipe' || st === 'drink' || st === 'cook' || st === 'eatFish' || st === 'roast' || st === 'eatMallow';
   const legY = sit ? -6 : 0;
   // legs
   if (sit) { R(-4, -9, 10, 3, pants); R(3, -8, 4, 7, pants); R(3, -1, 5, 1, feet); }
   else {
-    const step = (st === 'walk' || st === 'strut' || st === 'toSeat' || st === 'toHut' || st === 'toFeed' || st === 'toWater' || st === 'wadeIn' || st === 'wadeOut') ? hero.frame % 4 : 0, kick = st === 'strut' ? 2 : 1;
+    const step = (st === 'walk' || st === 'strut' || st === 'toSeat' || st === 'toHut' || st === 'toFeed' || st === 'toWater' || st === 'wadeIn' || st === 'wadeOut' || CAMPWALK[st]) ? hero.frame % 4 : 0, kick = st === 'strut' ? 2 : 1;
     const lA = [0, kick, 0, -kick][step], lB = [0, -kick, 0, kick][step];
     let dl = 0, dr = 0; if (st === 'dance') { const mv = hero.move % 4; dl = mv === 1 ? -2 : mv === 3 ? 2 : 0; dr = -dl; }
     R(-3 + lA + dl, -9 + bob, 3, 9 - bob, pants); R(1 + lB + dr, -9 + bob, 3, 9 - bob, pants);
@@ -595,6 +598,10 @@ function heroSprite(x, y, f, d) {
   if (st === 'cheer') { pl = 'up'; pr = 'up'; }
   if (st === 'drink') pr = hero.eat > 0.5 ? 'eat' : 'down';
   if (st === 'pipe') pr = 'eat';
+  if (st === 'fish' || st === 'catch') { pr = 'out'; pl = 'out'; }
+  if (st === 'cook' || st === 'roast' || st === 'give') pr = 'out';
+  if (st === 'eatFish' || st === 'eatMallow') pr = hero.eat > 0.5 ? 'eat' : 'down';
+  if (st === 'carryChair') { pr = 'out'; pl = 'out'; }
   if (st === 'feed' || st === 'clean') { pr = 'out'; pl = Math.floor(S.t * 3) % 2 ? 'out' : 'down'; }
   if (st === 'surf') { pl = 'out'; pr = S.playing && (S.beatN % 2) ? 'up' : 'out'; }
   if (st === 'paddle' || st === 'paddleBack') { pl = hero.frame % 2 ? 'up' : 'out'; pr = hero.frame % 2 ? 'out' : 'up'; }
@@ -604,6 +611,7 @@ function heroSprite(x, y, f, d) {
   if (st === 'drink') { const beer = hero.drinkItem === 'beer', up = hero.eat > 0.5, cx = up ? -1 : 6, cy = up ? -24 + by : -12 + by;
     R(cx, cy, 3, 3, beer ? dim('#e8a02a') : dim('#f4efe6')); R(cx, cy, 3, 1, beer ? dim('#ffffff') : dim('#a0522d')); P(cx + 3, cy + 1, beer ? dim('#e8a02a') : dim('#f4efe6'));
     if (!beer && !up) { g.globalAlpha = 0.5; P(cx + 1, cy - 2 - Math.floor(S.t * 3) % 2, '#ffffff'); P(cx, cy - 4 + Math.floor(S.t * 3) % 2, '#ffffff'); g.globalAlpha = 1; } }
+  campItems(st, by, x, y, flip, dim);
   if (st === 'feed' || st === 'clean') { R(10, -16 + by, 4, 2, dim(st === 'feed' ? '#c8a060' : '#5aa0d0')); if (st === 'feed' && Math.floor(S.t * 6) % 2) P(12, -13 + by, dim('#8a5a2b')); }
   // head, beard, hat
   R(-3, -25 + by, 7, 7, skin); R(-3, -21 + by, 7, 3, beard); R(-2, -19 + by, 5, 2, beard); P(2, -23 + by, dim('#1a1a2a')); P(-1, -23 + by, dim('#1a1a2a'));
@@ -924,6 +932,7 @@ function heroThink(dt, d) {
   hero.timer -= dt; hero.st += dt;
   const night = d < 0.3;
   if (waterThink(dt, d)) return;
+  if (campThink(dt, d)) return;
   if (homeThink(dt, d)) return;
   // walk to a newly landed pot and light it
   const pot = S.rafts.find((r) => r.type === 'pot' && r.state === 'landed' && r.lit <= 0 && !r.claimed);
@@ -941,7 +950,9 @@ function heroThink(dt, d) {
   if (hero.timer > 0) return;
   // choose what to do next
   const r0 = rnd();
-  if (r0 < 0.07) { hero.state = 'toHut'; return; }
+  if (r0 < 0.035) { hero.state = 'toHut'; return; }
+  if (r0 < 0.2 && S.t - (S.lastFish || -999) > 45) { S.lastFish = S.t; startFishing(); return; }
+  if (r0 < 0.3 && S.t - (S.lastMallow || -999) > 55) { S.lastMallow = S.t; startMallows(); return; }
   if (r0 < 0.13 && S.t - (S.lastFeed || -999) > 150) { hero.state = 'toFeed'; S.lastFeed = S.t; return; }
   if (r0 < 0.21) { const n = d < 0.3; hero.next = 'pipe'; hero.state = 'toSeat'; hero.seatX = n ? FIRE - 22 : CHAIR + 5; hero.timer = 10 + rnd() * 8; hero.st = 0; toast(HERO + ' is taking a pipe break'); return; }
   if (r0 < 0.29) { const n = d < 0.3; hero.next = 'drink'; hero.state = 'toSeat'; hero.drinkItem = rnd() < 0.5 ? 'tea' : 'beer'; hero.seatX = n ? FIRE - 22 : CHAIR + 5; hero.timer = 9 + rnd() * 8; hero.st = 0; toast(HERO + (hero.drinkItem === 'tea' ? ' is having a cup of tea' : ' cracked open a cold beer')); return; }
@@ -954,6 +965,68 @@ function heroThink(dt, d) {
   hero.target = clamp(40 + rnd() * 190, 30, 232);
   hero.state = S.playing && rnd() < 0.55 ? 'strut' : 'walk'; hero.timer = 0;
 }
+/* camp life: fishing, cooking the catch over the fire, and marshmallows for everybody */
+const CAMP = { toFish: 1, fish: 1, catch: 1, toCook: 1, cook: 1, eatFish: 1, toHutM: 1, insideM: 1, carryChair: 1, roast: 1, toGive: 1, give: 1, toChair: 1, eatMallow: 1 };
+const CAMPWALK = { toFish: 1, toCook: 1, toHutM: 1, carryChair: 1, toGive: 1, toChair: 1 };
+const FISHES = ['a mackerel', 'a fat cod', 'a little haddock', 'a shiny herring', 'a rainbow trout', 'a striped bass'];
+const LOGSEAT = FIRE - 22, CAMPCHAIR = FIRE + 21;
+S.campfire = 0; S.campChair = false;
+function startFishing() { hero.state = 'toFish'; hero.fx = 58 + rnd() * 70; toast(HERO + ' grabbed his fishing rod'); }
+function startMallows() { hero.state = 'toHutM'; toast(HERO + ' is fetching the marshmallows'); }
+function mallowTargets() {
+  const t = [];
+  CATS.forEach((c) => { if (!c.inside && !c.job) t.push({ kind: 'cat', x: () => c.x, y: () => FLOOR - 12, c }); });
+  BL.birds.forEach((b) => { if (b.st === 'land' && b.y > HORIZON + 30) t.push({ kind: 'bird', x: () => b.x, y: () => b.y - 10, b }); });
+  S.rafts.forEach((r) => { if (r.type === 'visit' && r.state === 'landed' && r.v && r.v.st === 'dance') t.push({ kind: r.v.kind === 'robot' ? 'robot' : r.v.kind === 'monkey3' ? 'monkey' : 'guest', x: () => r.x + r.v.ox, y: () => r.y + r.v.oy - 24 }); });
+  if (BL.builder && BL.builder.st === 'build') t.push({ kind: 'kid', x: () => BL.builder.x, y: () => BL.builder.y - 20 });
+  return t.sort((a, b) => a.x() - b.x()).slice(0, 6);
+}
+const YUM = { cat: ['purrr…', 'purrrr!', 'mrrrp, purr'], bird: ['yummm!', 'squawk! yum!', 'yummm'], guest: ['Yummm!', 'Arr, yummm!', 'Mmm, yum!'], robot: ['YUM.EXE', 'BEEP. YUMMM.'], monkey: ['yum! yum! yum!'], kid: ['Yummm!', 'Thanks! Yum!'] };
+function campThink(dt, d) {
+  const st = hero.state; if (!CAMP[st]) return false;
+  const walk = (tx) => { hero.frameT = (hero.frameT || 0) + dt * 6; hero.frame = Math.floor(hero.frameT); return stepTo(tx, FLOOR, 22, dt); };
+  if (st === 'toFish') { if (walk(hero.fx)) { hero.state = 'fish'; hero.dir = -1; hero.timer = 7 + rnd() * 6; hero.st = 0; hero.bx = clamp(hero.x - 34, 8, W - 8); hero.byy = shoreY(hero.bx) - 4; splash(hero.bx, hero.byy, 4); } return true; }
+  if (st === 'fish') { hero.dir = -1; if (hero.timer <= 0) { hero.state = 'catch'; hero.timer = 1.6; hero.st = 0; hero.catchName = pick(FISHES); splash(hero.bx, hero.byy, 9); toast(HERO + ' caught ' + hero.catchName + '!'); say(hero.x, hero.y - 32, 'Got one!', 1.8); } return true; }
+  if (st === 'catch') { if (hero.timer <= 0) hero.state = 'toCook'; return true; }
+  if (st === 'toCook') { if (walk(LOGSEAT)) { hero.state = 'cook'; hero.dir = 1; hero.timer = 6.5; hero.st = 0; S.campfire = S.t + 16; toast(HERO + ' is cooking ' + hero.catchName + ' over the fire'); } return true; }
+  if (st === 'cook') { hero.dir = 1; if (hero.timer <= 0) { hero.state = 'eatFish'; hero.timer = 5 + rnd() * 2; hero.st = 0; say(hero.x, hero.y - 32, 'Mmm, fresh!', 2); } return true; }
+  if (st === 'eatFish') { hero.eat = (Math.sin(hero.st * 1.6) + 1) / 2; if (hero.timer <= 0) { hero.state = 'idle'; hero.timer = 0.6; } return true; }
+  if (st === 'toHutM') { if (walk(HUT.door + 6)) { hero.state = 'insideM'; hero.timer = 0.9; } return true; }
+  if (st === 'insideM') { if (hero.timer <= 0) { hero.state = 'carryChair'; toast(HERO + ' brought out the camp chair and a bag of marshmallows'); } return true; }
+  if (st === 'carryChair') { if (walk(CAMPCHAIR)) { S.campChair = true; hero.state = 'roast'; hero.dir = -1; hero.timer = 6 + rnd() * 2; hero.st = 0; S.campfire = S.t + 30; } return true; }
+  if (st === 'roast') { hero.dir = -1; if (hero.timer <= 0) { hero.queue = mallowTargets(); hero.state = hero.queue.length ? 'toGive' : 'eatMallow'; hero.timer = 4; hero.st = 0; if (hero.queue.length) toast(HERO + ' is sharing marshmallows'); } return true; }
+  if (st === 'toGive') { const t = hero.queue[0]; if (!t) { hero.state = 'toChair'; return true; } const tx = t.x(), side = tx > hero.x ? -1 : 1; if (walk(clamp(tx + side * 10, 10, W - 10))) { hero.dir = tx >= hero.x ? 1 : -1; hero.state = 'give'; hero.timer = 1.6; if (t.c) { t.c.t = Math.max(t.c.t, 2.5); if (t.c.state === 'walk') { t.c.state = 'sit'; } t.c.dir = -hero.dir; } if (t.b) t.b.t = Math.min(t.b.t, (t.b.stay || 10) - 3); } return true; }
+  if (st === 'give') { if (hero.timer <= 0) { const t = hero.queue.shift(); if (t) say(t.x(), t.y(), pick(YUM[t.kind] || YUM.guest), 2.4); hero.state = hero.queue.length ? 'toGive' : 'toChair'; } return true; }
+  if (st === 'toChair') { if (walk(CAMPCHAIR)) { hero.state = 'eatMallow'; hero.dir = -1; hero.timer = 4 + rnd() * 2; hero.st = 0; S.campfire = Math.max(S.campfire, S.t + 8); } return true; }
+  if (st === 'eatMallow') { hero.dir = -1; hero.eat = (Math.sin(hero.st * 1.8) + 1) / 2; if (hero.timer <= 0) { say(hero.x, hero.y - 32, 'Yummm!', 1.8); hero.state = 'idle'; hero.timer = 0.8; } return true; }
+  return false;
+}
+function drawCampChair(d) {
+  const sitting = hero.state === 'roast' || hero.state === 'eatMallow';
+  if (!S.campChair && !sitting) return; const x = CAMPCHAIR, y = FLOOR, dim = (c) => mix('#1a1a2a', c, 0.4 + d * 0.6);
+  R(x - 6, y - 7, 11, 2, dim('#2f7ab8')); R(x + 4, y - 16, 2, 10, dim('#2f7ab8')); R(x + 3, y - 16, 4, 1, dim('#1f5a8a'));
+  for (let i = 0; i < 6; i++) { P(x - 5 + i, y - 5 + i, dim('#9aa0aa')); P(x + 3 - i, y - 5 + i, dim('#9aa0aa')); }
+}
+function campItems(st, by, x, y, flip, dim) {
+  // local, pre-flipped coordinates: right hand 'out' sits near (12, -16)
+  const toLocal = (wx, wy) => [(wx - Math.round(x)) * (flip ? -1 : 1), wy - Math.round(y)];
+  if (st === 'fish' || st === 'catch') {
+    const tipX = 22, tipY = -32 + by; ln2(12, -16 + by, tipX, tipY, dim('#8a5a2b'));
+    const [lx, ly] = toLocal(hero.bx, hero.byy);
+    if (st === 'fish') { const bob = Math.floor(S.t * 2) % 2; ln2(tipX, tipY, lx, ly + bob, 'rgba(255,255,255,.55)'); P(lx, ly - 1 + bob, '#ff3b3b'); P(lx, ly + bob, '#ffffff'); }
+    else { const sw = Math.round(Math.sin(hero.st * 9) * 2); ln2(tipX, tipY, tipX + sw, tipY + 7, 'rgba(255,255,255,.55)'); R(tipX - 1 + sw, tipY + 7, 3, 6, dim('#9fb4c8')); P(tipX + sw, tipY + 13, dim('#9fb4c8')); P(tipX - 1 + sw, tipY + 14, dim('#9fb4c8')); P(tipX + 1 + sw, tipY + 14, dim('#9fb4c8')); }
+  }
+  if (st === 'catch' || st === 'toCook') { if (st === 'toCook') { R(-7, -14 + by, 3, 6, dim('#9fb4c8')); P(-6, -8 + by, dim('#9fb4c8')); } }
+  if (st === 'eatFish' && hero.eat > 0.5) { R(-2, -23 + by, 5, 2, dim('#b0702a')); P(3, -24 + by, dim('#b0702a')); P(3, -21 + by, dim('#b0702a')); }
+  if (st === 'roast' || st === 'give') {
+    const toast_ = clamp(hero.st / 5, 0, 1), m = mix('#ffffff', '#c8843a', st === 'roast' ? toast_ : 0.5);
+    ln2(12, -16 + by, 24, -21 + by, dim('#8a5a2b')); R(23, -23 + by, 3, 3, m);
+    if (st === 'roast' && Math.floor(S.t * 4) % 3 === 0) P(24, -25 + by, '#ffb04a');
+  }
+  if (st === 'eatMallow' && hero.eat > 0.5) { R(-1, -23 + by, 3, 3, '#f4e8d0'); P(0, -23 + by, '#c8843a'); }
+  if (st === 'carryChair') { R(8, -20 + by, 3, 12, dim('#2f7ab8')); R(6, -12 + by, 7, 2, dim('#9aa0aa')); R(-9, -15 + by, 4, 5, dim('#ffffff')); R(-9, -15 + by, 4, 1, dim('#ff6fa8')); }
+}
+function ln2(x0, y0, x1, y1, c) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) | 0; for (let i = 0; i <= n; i++) P(Math.round(x0 + (x1 - x0) * i / (n || 1)), Math.round(y0 + (y1 - y0) * i / (n || 1)), c); }
 /* home life: outfit changes, feeding the cats, pipe and drinks */
 const HOME = { toSeat: 1, toHut: 1, inside: 1, toFeed: 1, feed: 1, watchCats: 1, clean: 1, pipe: 1, drink: 1 };
 S.bowls = null;
@@ -961,7 +1034,7 @@ function homeThink(dt, d) {
   const st = hero.state; if (!HOME[st]) return false;
   const walk = (tx) => { hero.frameT = (hero.frameT || 0) + dt * 6; hero.frame = Math.floor(hero.frameT); return stepTo(tx, FLOOR, 22, dt); };
   if (st === 'toSeat') { const keep = hero.timer + dt; if (walk(hero.seatX)) { hero.state = hero.next; hero.dir = 1; hero.st = 0; } hero.timer = keep; return true; }
-  if (st === 'toHut') { if (walk(HUT.door + 6)) { hero.state = 'inside'; hero.timer = 4 + rnd() * 4; } return true; }
+  if (st === 'toHut') { if (walk(HUT.door + 6)) { hero.state = 'inside'; hero.timer = 1.2 + rnd() * 1.2; } return true; }
   if (st === 'inside') { if (hero.timer <= 0) { let n; do { n = Math.floor(rnd() * OUTFITS.length); } while (n === hero.outfit); hero.outfit = n; hero.state = 'idle'; hero.timer = 1.5; hero.dir = -1; toast(HERO + ' changed into ' + OUTFITS[n].name); } return true; }
   if (st === 'toFeed') { if (walk(FEED_X)) { hero.state = 'feed'; hero.dir = 1; hero.timer = 2.4; } return true; }
   if (st === 'feed') { if (hero.timer <= 0) { S.bowls = { food: [1, 1, 1] }; CATS.forEach((c, i) => { c.inside = false; if (c.x > HUT.door - 10 && c.x < HUT.door + 20) c.x = HUT.door + 4; c.state = 'toBowl'; c.tx = BOWLS[i] - 9; c.bowl = i; }); hero.state = 'watchCats'; hero.timer = 16; toast(HERO + ' is feeding Marmalade, Pepper and Biscuit'); } return true; }
