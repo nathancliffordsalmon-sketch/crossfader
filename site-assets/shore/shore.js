@@ -1328,17 +1328,17 @@ function wrapText(t, maxW) { const words = t.split(' '), out = []; let line = ''
 function bubble(sl, text, age, dur, avoid) {
   if (!sl || sl.hx == null || !text) return null;
   const a = clamp(Math.min(age / 0.25, (dur - age) / 0.4), 0, 1);
-  g.save(); g.globalAlpha = a; g.font = '600 19px Georgia, serif';
-  const lines = wrapText(text, 250), lh = 23, wd = Math.max(...lines.map((l) => g.measureText(l).width)) + 24, ht = lines.length * lh + 14;
+  g.save(); g.globalAlpha = a; g.font = '600 16px Georgia, serif';
+  const lines = wrapText(text, 215), lh = 19, wd = Math.max(...lines.map((l) => g.measureText(l).width)) + 20, ht = lines.length * lh + 12;
   const hx = sl.hx, hy = sl.hy - 18 * (sl.hs || 1);
-  let bx = clamp(hx - wd / 2, 8, W - wd - 8), by = clamp(hy - ht - 16, 8, H - ht - 8);
+  let bx = clamp(hx - wd / 2, 8, W - wd - 8), by = clamp(hy - ht - 14, 8, H - ht - 8);
   if (avoid && bx < avoid.x + avoid.w + 6 && bx + wd > avoid.x - 6 && by < avoid.y + avoid.h + 6 && by + ht > avoid.y - 6) { if (avoid.y - ht - 8 >= 8) by = avoid.y - ht - 8; else by = avoid.y + avoid.h + 8; }
   const rectOut = { x: bx, y: by, w: wd, h: ht }; if (a <= 0) { g.restore(); return rectOut; }
   g.fillStyle = MARK ? PAPER : 'rgba(255,255,255,.96)'; g.strokeStyle = MARK ? INK : '#1b1b2a'; g.lineWidth = 2;
-  g.beginPath(); if (g.roundRect) g.roundRect(bx, by, wd, ht, 12); else g.rect(bx, by, wd, ht); g.fill(); g.stroke();
-  const tx = clamp(hx, bx + 16, bx + wd - 16); g.beginPath(); g.moveTo(tx - 8, by + ht - 1); g.lineTo(hx, hy - 2); g.lineTo(tx + 8, by + ht - 1); g.closePath(); g.fill(); g.stroke();
+  g.beginPath(); if (g.roundRect) g.roundRect(bx, by, wd, ht, 10); else g.rect(bx, by, wd, ht); g.fill(); g.stroke();
+  const tx = clamp(hx, bx + 16, bx + wd - 16); g.beginPath(); g.moveTo(tx - 7, by + ht - 1); g.lineTo(hx, hy - 2); g.lineTo(tx + 7, by + ht - 1); g.closePath(); g.fill(); g.stroke();
   g.fillStyle = MARK ? INK : '#1b1b2a'; g.textAlign = 'left'; g.textBaseline = 'top';
-  lines.forEach((l, i) => g.fillText(l, bx + 12, by + 8 + i * lh));
+  lines.forEach((l, i) => g.fillText(l, bx + 10, by + 7 + i * lh));
   g.restore(); return rectOut;
 }
 function drawTalk() {
