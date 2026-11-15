@@ -804,6 +804,7 @@ function drawShip(d) {
     // flag on the tallest mast, streaming aft
     const tall = t.masts.reduce((a, b) => (b[1] > a[1] ? b : a));
     sh.nat.flag(tall[0] - 7, -hh - 1 - tall[1] - 1 + (Math.floor(S.t * 3) % 2 ? 0 : 0), dim);
+    { const nD = Math.max(2, Math.floor(L / 5)), ph = S.playing ? S.beat : S.t * 1.2; for (let k = 0; k < nD; k++) { const dx = -L + 5 + Math.round(k * (2 * L - 10) / Math.max(1, nD - 1)), up = (Math.floor(ph * (S.playing ? 2 : 1) + k) % 2), col = dim(['#ff6fa8', '#ffd24a', '#7affb2', '#5ee0ff', '#ffffff'][k % 5]); R(dx, -hh - 3 - up, 1, 2, col); P(dx, -hh - 4 - up, dim('#f0c9a0')); P(dx + (up ? 1 : -1), -hh - 4 - up, col); } }
     if (night > 0.3) { R(-L - 1, -hh - t.st - 3, 2, 2, '#ffd27a'); g.globalAlpha = 0.25 * night; circle(-L, -hh - t.st - 2, 4, '#ffd27a'); g.globalAlpha = 1; }
     g.restore();
     g.globalAlpha = 0.4; R(sh.x - L, base + 1, 2 * L, 1, mix('#20305a', '#d9f6ff', d)); g.globalAlpha = 1;
@@ -1023,6 +1024,7 @@ function drawHero(d) {
 function catsThink(dt) {
   CATS.forEach((c) => {
     c.t -= dt; c.peek -= dt;
+    if (c.job) return;
     if (c.inside) { if (c.peek <= 0 && rnd() < 0.004) { c.peek = 2 + rnd() * 4; c.peekAt = rnd() < 0.7 ? 'win' : 'door'; c.peekX = ri(0, 10); } if (c.t <= 0) { c.inside = false; c.x = HUT.door + 6; c.state = 'walk'; c.tx = 150 + rnd() * 120; c.t = 3; } return; }
     if (c.state === 'toBowl') { const dx = c.tx - c.x; c.dir = dx >= 0 ? 1 : -1; c.x += clamp(dx, -22 * dt, 22 * dt); if (Math.abs(dx) < 1) { c.state = 'eatBowl'; c.dir = 1; c.t = 6 + rnd() * 5; } return; }
     if (c.state === 'eatBowl') { if (c.t <= 0) { if (S.bowls) S.bowls.food[c.bowl] = 0; c.state = 'sit'; c.t = 3 + rnd() * 4; } return; }
@@ -1046,6 +1048,175 @@ function raftsThink(dt) {
   S.rafts = S.rafts.filter((r) => r.state !== 'gone');
 }
 
+/* ---------------- beach life: petting cats, sandcastles, the drowned captain, birds, buried treasure ---------------- */
+const BL = { petNext: 18, purrNext: 9, castleNext: 45, birdNext: 10, birds: [], marks: [], bubbles: [], castle: null, builder: null, ghost: null, pet: null };
+const PIRATES = { pegleg: 1, hook: 1, captain: 1, parrot: 1, cutlass: 1 };
+const BIRDS = [
+  { kind: 'gull', w: 3 }, { kind: 'parrot', w: 1.5 }, { kind: 'puffin', w: 1.5 }, { kind: 'penguin', w: 1 }, { kind: 'osprey', w: 1 }, { kind: 'crane', w: 1 }
+];
+const BIRD_NAMES = { gull: 'a seagull', parrot: 'a parrot', puffin: 'a puffin', penguin: 'a penguin', osprey: 'an osprey', crane: 'a crane' };
+function freeCat() { return CATS.filter((c) => !c.inside && (c.state === 'sit' || c.state === 'walk') && !c.job); }
+function bubble(x, y, text, a) {
+  g.save(); g.globalAlpha = a; g.font = 'bold 7px monospace'; const w = Math.ceil(g.measureText(text).width) + 6;
+  const bx = Math.round(clamp(x - w / 2, 1, W - w - 1)), by = Math.round(y - 11);
+  R(bx, by, w, 9, '#ffffff'); R(bx, by, w, 1, '#2a2a3a'); R(bx, by + 8, w, 1, '#2a2a3a'); R(bx, by, 1, 9, '#2a2a3a'); R(bx + w - 1, by, 1, 9, '#2a2a3a');
+  P(Math.round(x), by + 9, '#ffffff'); P(Math.round(x), by + 10, '#2a2a3a');
+  g.fillStyle = '#2a2a3a'; g.textBaseline = 'top'; g.fillText(text, bx + 3, by + 1); g.restore();
+}
+function say(x, y, text, dur) { BL.bubbles.push({ x, y, text, t: 0, dur: dur || 2.6 }); }
+/* little beach-goer who builds sandcastles */
+function builderSprite(x, y, b, d) {
+  const dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65), step = b.st === 'walk' || b.st === 'leave' ? Math.floor(S.t * 6) % 2 : 0, dig = b.st === 'build' ? Math.floor(S.t * 5) % 2 : 0;
+  g.save(); g.translate(Math.round(x), Math.round(y)); if (b.dir < 0) g.scale(-1, 1);
+  R(-2 + step, -5, 2, 5, dim(b.legs)); R(1 - step, -5, 2, 5, dim(b.legs));
+  R(-2, -11, 5, 6, dim(b.shirt)); R(-1, -15, 3, 4, dim(b.skin)); R(-2, -16, 5, 2, dim(b.hair));
+  if (b.st === 'build') { R(3, -9 + dig * 2, 1, 4, dim('#c8a060')); R(3, -5 + dig * 2, 2, 1, dim('#888')); } else { R(3, -8, 1, 3, dim(b.skin)); R(3, -5, 3, 3, dim('#ff5a5a')); }
+  g.restore();
+}
+function castleSprite(c, d) {
+  const sand = mix('#5a4a6a', '#e8c880', d), dark = mix('#423650', '#c4a060', d), x = Math.round(c.x), y = Math.round(c.y);
+  if (c.st === 'pile' || c.st === 'raked') { const h = c.st === 'raked' ? 0 : Math.round(3 * c.pile); for (let i = -7; i <= 7; i++) { const hh = Math.max(0, h - Math.floor(Math.abs(i) / 2)); if (hh) R(x + i, y - hh, 1, hh, (i % 3) ? sand : dark); } if (c.st === 'raked' || c.rakeLines) for (let k = -10; k <= 10; k += 3) R(x + k, y - 1, 1, 3, dark); return; }
+  const h = c.h; if (h <= 0) return;
+  const tall = Math.round(12 * h);
+  R(x - 8, y - Math.min(tall, 5), 17, Math.min(tall, 5), sand);
+  if (tall > 5) { R(x - 8, y - Math.min(tall, 9), 4, Math.min(tall, 9) - 5, sand); R(x + 5, y - Math.min(tall, 9), 4, Math.min(tall, 9) - 5, sand); R(x - 2, y - tall, 5, tall - 5, sand); }
+  if (tall > 9) { for (let i = 0; i < 3; i++) { P(x - 8 + i * 2, y - 10, sand); P(x + 5 + i * 2, y - 10, sand); } R(x, y - tall - 1, 1, 1, dark); }
+  if (h >= 1) { R(x, y - 4, 1, 4, dark); R(x, y - tall - 5, 1, 4, mix('#3a3a4a', '#6a4a2a', d)); R(x + 1, y - tall - 5, 3, 2, mix('#3a1a2a', '#ff3b6b', d)); }
+  for (let i = -8; i <= 8; i += 4) P(x + i, y - 2, dark);
+}
+/* the drowned captain: an original undead pirate who keeps the beach tidy */
+function ghostSprite(G, d) {
+  const x = Math.round(G.x), y = Math.round(G.y), glowA = 0.25 + 0.15 * Math.sin(S.t * 3) + (1 - d) * 0.25;
+  g.save(); g.globalAlpha = glowA; circle(x, y - 10, 11, '#5effb0'); g.restore();
+  g.save(); g.translate(x, y); if (G.dir < 0) g.scale(-1, 1);
+  const coat = '#1f4a4a', coatD = '#133030', bone = '#cfe8c8', eye = '#7affd0', step = G.st === 'walk' || G.st === 'back' ? Math.floor(S.t * 5) % 2 : 0;
+  R(-2 + step, -5, 2, 5, bone); R(1 - step, -5, 2, 5, bone);
+  R(-4, -14, 9, 10, coat); for (let i = -4; i < 5; i += 2) P(i, -4, coatD); R(-4, -14, 1, 10, coatD);
+  R(-1, -13, 2, 6, '#2a6a3a'); P(3, -10, '#3a8a3a'); P(-3, -8, '#3a8a3a'); P(2, -6, '#2a6a3a');
+  R(-3, -20, 7, 6, bone); P(-1, -18, eye); P(2, -18, eye); R(-1, -16, 4, 1, '#3a4a3a'); R(-2, -15, 6, 2, '#8a9a8a'); P(0, -13, '#8a9a8a'); P(2, -13, '#8a9a8a');
+  R(-5, -22, 11, 2, '#101418'); R(-3, -24, 7, 2, '#101418'); P(0, -23, bone);
+  const rk = G.st === 'rake' ? Math.round(Math.sin(S.t * 5) * 3) : 0;
+  R(5, -16, 1, 14, '#7a5a3a'); R(3 + rk, -2, 6, 1, '#9a9a9a'); for (let i = 0; i < 6; i += 2) P(3 + rk + i, -1, '#9a9a9a');
+  R(4, -11, 2, 2, bone);
+  g.restore();
+}
+function birdSprite(b, d) {
+  const dim = (c) => mix('#1a1a2a', c, 0.4 + d * 0.6), x = Math.round(b.x), y = Math.round(b.y), fl = Math.floor(S.t * (b.st === 'fly' || b.st === 'flee' || b.st === 'dive' ? 10 : 2) + b.ph) % 2, flying = b.st === 'fly' || b.st === 'flee' || b.st === 'dive' || b.st === 'up';
+  g.save(); g.translate(x, y); if (b.dir < 0) g.scale(-1, 1);
+  const k = b.kind;
+  if (k === 'gull') { if (flying) { R(-4, -1 - fl, 3, 1, dim('#cfd4da')); R(1, -1 - fl, 3, 1, dim('#cfd4da')); R(-1, 0, 3, 1, dim('#ffffff')); P(2, 0, dim('#ffcc33')); } else { R(-2, -3, 4, 3, dim('#ffffff')); R(-2, -3, 3, 1, dim('#aeb4bc')); P(2, -4, dim('#ffffff')); P(3, -4, dim('#ffcc33')); P(-1, 0, dim('#ffcc33')); P(1, 0, dim('#ffcc33')); } }
+  else if (k === 'parrot') { if (flying) { R(-4, -1 - fl, 3, 1, dim('#2a7ae0')); R(1, -1 - fl, 3, 1, dim('#ffd024')); R(-2, 0, 4, 1, dim('#e8302a')); P(2, -1, dim('#e8302a')); } else { R(-1, -5, 3, 4, dim('#e8302a')); P(1, -6, dim('#e8302a')); P(2, -6, dim('#ffffff')); P(3, -5, dim('#222')); R(-1, -3, 1, 3, dim('#2a7ae0')); P(-2, -1, dim('#ffd024')); P(-3, 0, dim('#2a7ae0')); } }
+  else if (k === 'puffin') { if (flying) { R(-3, -1 - fl, 2, 1, dim('#111')); R(1, -1 - fl, 2, 1, dim('#111')); R(-1, 0, 3, 1, dim('#111')); P(2, 0, dim('#ff7a1a')); } else { R(-1, -5, 3, 5, dim('#111')); R(0, -3, 2, 3, dim('#ffffff')); P(1, -5, dim('#ffffff')); P(2, -5, dim('#ff7a1a')); P(2, -4, dim('#ff7a1a')); P(0, 0, dim('#ff7a1a')); } }
+  else if (k === 'penguin') { const w = b.st === 'walk' ? fl : 0; R(-1, -7 + w, 4, 7, dim('#111')); R(0, -5 + w, 2, 5, dim('#ffffff')); P(2, -6 + w, dim('#ffcc33')); P(3, -6 + w, dim('#ff8a1a')); P(-2, -4 + w, dim('#111')); P(0, 0, dim('#ff8a1a')); P(2, 0, dim('#ff8a1a')); }
+  else if (k === 'osprey') { if (flying) { R(-6, -1 - fl, 5, 1, dim('#5a3a20')); R(1, -1 - fl, 5, 1, dim('#5a3a20')); R(-1, 0, 3, 1, dim('#ffffff')); P(2, -1, dim('#ffffff')); if (b.fish) { P(0, 2, dim('#9ac8e0')); P(1, 2, dim('#9ac8e0')); } } else { R(-1, -5, 3, 5, dim('#5a3a20')); R(0, -4, 2, 3, dim('#ffffff')); } }
+  else if (k === 'crane') { if (flying) { R(-6, -1 - fl, 5, 1, dim('#c8ccd2')); R(1, -1 - fl, 5, 1, dim('#c8ccd2')); R(-2, 0, 6, 1, dim('#ffffff')); R(4, -1, 2, 1, dim('#ffffff')); P(-5, 0, dim('#333')); } else { const peck = Math.floor(S.t * 0.7 + b.ph) % 4 === 0; R(-2, -9, 4, 3, dim('#e8ecf0')); R(-3, -8, 2, 2, dim('#9aa0a8')); R(1, peck ? -9 : -14, 1, peck ? 1 : 5, dim('#e8ecf0')); R(1, peck ? -8 : -15, 2, 1, dim('#e8ecf0')); P(peck ? 3 : 2, peck ? -7 : -15, dim('#c8302a')); P(peck ? 4 : 3, peck ? -7 : -15, dim('#555')); R(-1, -6, 1, 6, dim('#555')); if (b.oneLeg < 0.5) R(1, -6, 1, 6, dim('#555')); } }
+  g.restore();
+}
+function spawnBird() {
+  if (BL.birds.length >= 3) return;
+  const t = wpick(BIRDS), dir = rnd() < 0.5 ? 1 : -1, b = { kind: t.kind, dir, x: dir > 0 ? -10 : W + 10, y: 18 + rnd() * 40, st: 'fly', t: 0, ph: rnd() * 6, oneLeg: rnd() };
+  if (t.kind === 'penguin') { b.x = 30 + rnd() * 120; b.y = shoreY(b.x) - 2; b.st = 'emerge'; b.tx = clamp(b.x + (rnd() - 0.5) * 60, 30, 240); b.ty = FLOOR + 6 + rnd() * 10; b.dir = b.tx > b.x ? 1 : -1; }
+  else if (t.kind === 'osprey') { b.tx = 60 + rnd() * 260; b.ty = HORIZON + 10 + rnd() * 14; }
+  else if (t.kind === 'crane') { b.tx = 30 + rnd() * 110; b.ty = shoreY(b.tx) - 3; }
+  else { b.tx = 40 + rnd() * 220; b.ty = FLOOR + 2 + rnd() * 18; }
+  BL.birds.push(b); if (rnd() < 0.5) toast((BIRD_NAMES[t.kind].charAt(0).toUpperCase() + BIRD_NAMES[t.kind].slice(1)) + (t.kind === 'penguin' ? ' waddled up out of the water!' : t.kind === 'osprey' ? ' is fishing in the cove' : ' landed on the beach'));
+}
+function birdsThink(dt) {
+  BL.birds.forEach((b) => {
+    b.t += dt;
+    if (b.st === 'fly') { const dx = b.tx - b.x, dy = b.ty - b.y, dd = Math.hypot(dx, dy); b.dir = dx >= 0 ? 1 : -1; const sp = (b.kind === 'osprey' ? 46 : 34) * dt; if (dd < sp + 0.5) { b.x = b.tx; b.y = b.ty; if (b.kind === 'osprey') { b.st = 'dive'; b.t = 0; splash(b.x, b.y, 6); } else { b.st = 'land'; b.t = 0; b.stay = b.kind === 'crane' ? 18 + rnd() * 14 : 14 + rnd() * 16; } } else { b.x += dx / dd * sp; b.y += dy / dd * sp + Math.sin(b.t * 3) * 0.2; } }
+    else if (b.st === 'dive') { if (b.t > 0.6) { b.fish = true; b.st = 'flee'; b.t = 0; } }
+    else if (b.st === 'emerge') { b.st = 'walk'; }
+    else if (b.st === 'walk') { const dx = b.tx - b.x, dy = b.ty - b.y, dd = Math.hypot(dx, dy); if (dd < 1) { b.st = 'land'; b.t = 0; b.stay = 16 + rnd() * 12; } else { b.x += dx / dd * 7 * dt; b.y += dy / dd * 7 * dt; } }
+    else if (b.st === 'land') { if (b.kind !== 'crane' && b.kind !== 'penguin' && rnd() < dt * 0.5) b.dir *= -1; if (b.t > b.stay) { if (b.kind === 'penguin') { b.st = 'home'; b.tx = b.x; b.ty = shoreY(b.x) - 2; } else { b.st = 'flee'; b.t = 0; } } }
+    else if (b.st === 'home') { const dy = b.ty - b.y; b.y += clamp(dy, -10 * dt, 10 * dt); if (Math.abs(dy) < 1) { splash(b.x, b.y, 5); b.gone = true; } }
+    else if (b.st === 'flee') { b.y -= 30 * dt; b.x += b.dir * 40 * dt; if (b.y < -10 || b.x < -20 || b.x > W + 20) b.gone = true; }
+  });
+  BL.birds = BL.birds.filter((b) => !b.gone);
+}
+function catChase(dt) {
+  const target = BL.birds.find((b) => b.st === 'land' && b.kind !== 'crane' && b.y > FLOOR - 6 && !b.chased);
+  if (target && rnd() < dt * 0.25) { const c = freeCat().sort((a, b) => Math.abs(a.x - target.x) - Math.abs(b.x - target.x))[0]; if (c) { c.job = 'chase'; c.prey = target; target.chased = true; c.state = 'walk'; } }
+  CATS.forEach((c) => {
+    if (c.job !== 'chase') return; const b = c.prey;
+    if (!b || b.gone || (b.st !== 'land' && b.st !== 'walk')) { c.job = null; c.prey = null; c.state = 'sit'; c.t = 2; return; }
+    c.tx = b.x; const dx = b.x - c.x; c.dir = dx >= 0 ? 1 : -1; c.x += clamp(dx, -26 * dt, 26 * dt);
+    if (Math.abs(dx) < 12) { if (b.kind === 'penguin') { b.st = 'home'; b.tx = b.x; b.ty = shoreY(b.x) - 2; } else { b.st = 'flee'; b.t = 0; b.dir = c.dir; } c.job = null; c.prey = null; c.state = 'sit'; c.t = 3; if (rnd() < 0.6) toast(c.name + ' chased off ' + BIRD_NAMES[b.kind] + '!'); }
+  });
+}
+function petThink(dt) {
+  BL.petNext -= dt; BL.purrNext -= dt;
+  const heroFree = hero.state !== 'inside' && !WET[hero.state];
+  if (BL.petNext <= 0 && !BL.pet && heroFree && hero.x > 30 && hero.x < 270) {
+    const c = freeCat().sort((a, b) => Math.abs(a.x - hero.x) - Math.abs(b.x - hero.x))[0];
+    if (c) { c.job = 'pet'; c.state = 'walk'; BL.pet = { c, t: 0, st: 'go' }; }
+    BL.petNext = 22 + rnd() * 25;
+  }
+  const P0 = BL.pet;
+  if (P0) {
+    const c = P0.c; P0.t += dt;
+    if (P0.st === 'go') { const tx = hero.x + (hero.dir || 1) * 7, dx = tx - c.x; c.dir = dx >= 0 ? 1 : -1; c.x += clamp(dx, -18 * dt, 18 * dt); c.tx = c.x; if (Math.abs(dx) < 1.5 || P0.t > 9) { P0.st = 'pet'; P0.t = 0; c.state = 'sit'; c.t = 6; c.dir = hero.x > c.x ? 1 : -1; say(c.x + 2, FLOOR - 12, pick(['purr', 'purrr~', 'prrrr ♥', 'mrrp!']), 2.8); } }
+    else if (P0.st === 'pet') { c.state = 'sit'; c.t = Math.max(c.t, 1); if (P0.t > 1.6 && !P0.second) { P0.second = 1; say(c.x + 2, FLOOR - 12, pick(['purr purr', '♥ purr ♥', 'prrrrr']), 2.4); } if (P0.t > 4.5) { c.job = null; BL.pet = null; } }
+    if (BL.pet && (hero.state === 'inside' || WET[hero.state])) { c.job = null; BL.pet = null; }
+  }
+  if (BL.purrNext <= 0) { const c = CATS.filter((k) => !k.inside && k.state === 'sit' && !k.job); if (c.length) { const k = pick(c); say(k.x + 2, FLOOR - 12, pick(['purr', 'mrrp', 'meow', 'purrr~', 'mew?'])); } BL.purrNext = 10 + rnd() * 14; }
+}
+function castleThink(dt) {
+  BL.castleNext -= dt;
+  if (!BL.castle && !BL.builder && BL.castleNext <= 0) {
+    const x = 70 + rnd() * 100, kid = { st: 'walk', x: -12, dir: 1, tx: x - 11, y: FLOOR + 14, skin: pick(['#f0c9a0', '#c48a5a', '#8a5a3c', '#e0b48a']), shirt: pick(['#ff6fa8', '#5ee0ff', '#ffd24a', '#7affb2', '#ff8a3c']), legs: pick(['#2747b8', '#2a2a3a', '#c01a2a']), hair: pick(['#3a2414', '#e8c060', '#111', '#8a3a1a']) };
+    BL.builder = kid; BL.castle = { x, y: FLOOR + 14, h: 0, st: 'build' }; BL.castleNext = 70 + rnd() * 70; toast('Someone is building a sandcastle!');
+  }
+  const b = BL.builder, c = BL.castle;
+  if (b) {
+    if (b.st === 'walk') { const dx = b.tx - b.x; b.dir = dx >= 0 ? 1 : -1; b.x += clamp(dx, -16 * dt, 16 * dt); if (Math.abs(dx) < 1) { b.st = 'build'; b.t = 0; b.dir = 1; } }
+    else if (b.st === 'build') { b.t += dt; c.h = Math.min(1, b.t / 9); if (rnd() < dt * 4) S.sparks.push({ x: c.x + rnd() * 10 - 5, y: c.y - 2, vx: (rnd() - 0.5) * 14, vy: -10 - rnd() * 8, l: 0.6, c: '#e8c880' }); if (b.t > 9) { b.st = 'admire'; b.t = 0; say(b.x, b.y - 16, pick(['ta-da!', 'my castle!', 'nailed it', 'fit for a king']), 2.2); } }
+    else if (b.st === 'admire') { b.t += dt; if (b.t > 2.5) { b.st = 'leave'; b.dir = -1; c.st = 'standing'; c.t = 0; } }
+    else if (b.st === 'leave') { b.x -= 18 * dt; if (b.x < -14) BL.builder = null; }
+  }
+  if (c && c.st === 'standing') {
+    c.t += dt;
+    if (c.t > 6 && !c.cat) { const k = freeCat()[0]; if (k) { c.cat = k; k.job = 'castle'; k.state = 'walk'; } }
+    if (c.cat) { const k = c.cat, dx = c.x - k.x; k.dir = dx >= 0 ? 1 : -1; k.x += clamp(dx, -20 * dt, 20 * dt); k.tx = k.x; if (Math.abs(dx) < 3) { c.st = 'pile'; c.pile = 1; c.t = 0; for (let i = 0; i < 14; i++) S.sparks.push({ x: c.x + rnd() * 14 - 7, y: c.y - 4 - rnd() * 6, vx: (rnd() - 0.5) * 30, vy: -14 - rnd() * 10, l: 0.8, c: '#e8c880' }); say(k.x, FLOOR - 12, pick(['mrrp!', 'oops', '*thud*', 'meow!']), 2); toast(k.name + ' knocked down the sandcastle!'); k.job = null; k.state = 'sit'; k.t = 3; c.cat = null; } }
+  }
+  if (c && c.st === 'pile') { c.t += dt; if (c.t > 3 && !BL.ghost) { const gx = clamp(c.x, 40, 200); BL.ghost = { st: 'rise', x: gx, y: shoreY(gx) + 14, wy: shoreY(gx), dir: 1, t: 0 }; toast('☠ The Drowned Captain rises from the sea to rake the beach…'); } }
+  const G = BL.ghost;
+  if (G) {
+    G.t += dt;
+    if (G.st === 'rise') { G.y -= 7 * dt; if (G.y <= G.wy + 2) { G.st = 'walk'; } }
+    else if (G.st === 'walk') { const tx = c ? c.x - 9 : G.x, ty = c ? c.y : FLOOR + 10, dx = tx - G.x, dy = ty - G.y, dd = Math.hypot(dx, dy); G.dir = dx >= 0 ? 1 : -1; if (dd < 1) { G.st = 'rake'; G.t = 0; G.dir = 1; say(G.x, G.y - 26, pick(['Arr... tidy beach.', 'Rake, rake, rake...', 'Me sandcastle...', 'Yarrr.']), 2.6); } else { G.x += dx / dd * 12 * dt; G.y += dy / dd * 12 * dt; } }
+    else if (G.st === 'rake') { if (c) { c.pile = Math.max(0, 1 - G.t / 6); c.rakeLines = true; } if (G.t > 6.5) { if (c) c.st = 'raked'; G.st = 'back'; G.ty = shoreY(G.x) + 2; } }
+    else if (G.st === 'back') { const dy = G.ty - G.y; G.dir = -1; G.y += clamp(dy, -12 * dt, 12 * dt); if (Math.abs(dy) < 1) { G.st = 'sink'; G.t = 0; } }
+    else if (G.st === 'sink') { G.y += 7 * dt; if (G.t > 3) { BL.ghost = null; splash(G.x, shoreY(G.x), 8); if (c) { c.t = 0; c.fading = true; } } }
+  }
+  if (c && c.fading) { c.t += dt; if (c.t > 10) BL.castle = null; }
+}
+function treasureThink(dt) {
+  S.rafts.forEach((r) => {
+    if (r.type !== 'visit' || r.state !== 'landed' || !PIRATES[r.v.kind]) return; const v = r.v;
+    if (v.st === 'dance' && !v.buried) { v.st = 'dig'; v.t = 0; v.digX = r.x + v.ox + 6; v.digY = r.y + v.oy; toast('\u{1F3F4}‍☠️ ' + v.name.charAt(0).toUpperCase() + v.name.slice(1) + ' is burying treasure!'); }
+    if (v.st === 'dig') { if (rnd() < dt * 5) S.sparks.push({ x: v.digX + rnd() * 4 - 2, y: v.digY - 1, vx: (rnd() - 0.5) * 16, vy: -12 - rnd() * 8, l: 0.6, c: '#e8c880' }); if (v.t > 6) { v.buried = true; v.st = 'dance'; v.t = 0; BL.marks.push({ x: v.digX, y: v.digY, t: 0 }); say(r.x + v.ox, r.y + v.oy - 20, pick(['X marks the spot!', 'Yo ho ho!', 'Tell no one!', 'Arr, buried!']), 2.6); } }
+  });
+  BL.marks.forEach((m) => { m.t += dt; }); BL.marks = BL.marks.filter((m) => m.t < 90);
+}
+function drawBeachUnder(d) {
+  BL.marks.forEach((m) => { const a = clamp((90 - m.t) / 10, 0, 1); g.save(); g.globalAlpha = a; const c = mix('#4a1a1a', '#c8302a', d); for (let i = -2; i <= 2; i++) { P(m.x + i, m.y + i, c); P(m.x + i, m.y - i, c); } g.restore(); });
+  S.rafts.forEach((r) => { if (r.type === 'visit' && r.v && r.v.st === 'dig') { const v = r.v, k = clamp(v.t / 6, 0, 1), x = Math.round(v.digX), y = Math.round(v.digY); const sink = Math.round(k * 5); g.save(); g.beginPath(); g.rect(x - 6, y - 12, 12, 12); g.clip(); R(x - 3, y - 5 + sink, 7, 5, mix('#3a2410', '#8a5a2a', d)); R(x - 3, y - 3 + sink, 7, 1, mix('#4a3a10', '#ffd24a', d)); R(x - 3, y - 6 + sink, 7, 1, mix('#2a1a08', '#6a4020', d)); g.restore(); const sh = Math.round(Math.sin(S.t * 6) * 2); R(x - 6 + sh, y - 9, 1, 6, mix('#3a2a1a', '#a07a4a', d)); R(x - 7 + sh, y - 3, 3, 2, '#888'); } });
+  if (BL.castle) { const c = BL.castle; g.save(); if (c.fading) g.globalAlpha = clamp(1 - c.t / 10, 0, 1); castleSprite(c, d); g.restore(); }
+}
+function drawBeachOver(dt, d) {
+  if (BL.builder) builderSprite(BL.builder.x, BL.builder.y, BL.builder, d);
+  if (BL.ghost) { const G = BL.ghost; g.save(); if (G.st === 'rise' || G.st === 'sink') { g.beginPath(); g.rect(0, 0, W, G.wy + 1); g.clip(); } ghostSprite(G, d); g.restore(); if (G.st === 'rise' || G.st === 'sink') { g.globalAlpha = 0.6; R(G.x - 7, G.wy, 14, 1, '#d9f6ff'); g.globalAlpha = 1; } }
+  if (BL.pet && BL.pet.st === 'pet' && Math.abs(hero.x - BL.pet.c.x) < 14) { const c = BL.pet.c, hx = c.x + 2 + Math.round(Math.sin(S.t * 5) * 2); R(hx, FLOOR - 13, 3, 2, mix('#3a2a20', '#e6b68a', d)); if (Math.floor(S.t * 2) % 2) P(c.x + 6, FLOOR - 16 - Math.round((S.t * 6) % 4), '#ff5a8a'); }
+  BL.birds.forEach((b) => birdSprite(b, d));
+  BL.bubbles.forEach((b) => { b.t += dt; const a = clamp(Math.min(b.t / 0.2, (b.dur - b.t) / 0.4), 0, 1); if (a > 0) bubble(b.x, b.y, b.text, a); });
+  BL.bubbles = BL.bubbles.filter((b) => b.t < b.dur);
+}
+function beachLifeThink(dt) {
+  BL.birdNext -= dt; if (BL.birdNext <= 0) { spawnBird(); BL.birdNext = 14 + rnd() * 20; }
+  birdsThink(dt); catChase(dt); petThink(dt); castleThink(dt); treasureThink(dt);
+}
+
 /* ---------------- main loop ---------------- */
 let last = performance.now(), clockT = 0;
 function frame(now) {
@@ -1061,8 +1232,8 @@ function frame(now) {
   S.rafts.filter((r) => r.state === 'landed').forEach((r) => { drawRaft(r, d); });
   S.rafts.forEach((r) => potFire(r));
   smokeThink(dt, d);
-  drawBowls(d); catsThink(dt); CATS.forEach((c) => { if (!c.inside) catSprite(c.x, FLOOR - 2 + (c.x % 7 > 3 ? 1 : 0), c.dir, c, false, false); });
-  heroThink(dt, d); drawHero(d);
+  drawBowls(d); drawBeachUnder(d); catsThink(dt); CATS.forEach((c) => { if (!c.inside) catSprite(c.x, FLOOR - 2 + (c.x % 7 > 3 ? 1 : 0), c.dir, c, false, false); });
+  heroThink(dt, d); drawHero(d); beachLifeThink(dt); drawBeachOver(dt, d);
   raftsThink(dt); visitorsThink(dt); shipThink(dt); swirlThink(dt); drawSparks(dt, d);
   // night tint over the island
   if (d < 0.6) { g.globalAlpha = (0.6 - d) * 0.35; R(0, HORIZON, W, H - HORIZON, '#0a0f3a'); g.globalAlpha = 1; }
@@ -1078,5 +1249,5 @@ $('#isl-print-btn').addEventListener('click', () => {
   $('#isl-print').innerHTML = `<img alt="The island" src="${big.toDataURL('image/png')}"><h2>A message in a bottle from ${HERO}'s island</h2><p>Dear friend, the tide brought me ${songs.length} song${songs.length === 1 ? '' : 's'} today. The cats approved. Here is what washed ashore:</p><ol>${songs.map((s) => `<li>${esc(s.title)}</li>`).join('')}</ol><p class="foot">Island Sessions · likethefish.ca · ${new Date().toLocaleDateString()}</p>`;
   window.print();
 });
-window.islDebug = { S, hero, CATS, spawnRaft, songStart, setPlaying, SHIPS, NATIONS };
+window.islDebug = { S, hero, CATS, BL, spawnBird, spawnRaft, songStart, setPlaying, SHIPS, NATIONS };
 })();
