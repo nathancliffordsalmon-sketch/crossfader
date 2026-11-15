@@ -800,9 +800,9 @@ function sunsetClouds(yMax, key, dark) {
   }
 }
 function cirrus(yMax, a) { if (MARK) { g.strokeStyle = INK; g.lineWidth = 1; g.beginPath(); for (let i = 0; i < 9; i++) { const y = 20 + i * yMax / 10; g.moveTo(40 + i * 30, y); g.quadraticCurveTo(400, y - 30, 900 - i * 20, y + 10); } g.stroke(); return; } g.strokeStyle = `rgba(255,255,255,${0.18 * a})`; g.lineCap = 'round'; for (let i = 0; i < 26; i++) { const y = 10 + (i * 37 % yMax), x = (i * 131 + S.t * 3) % (W + 400) - 200; g.lineWidth = 2 + (i % 4) * 2; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + 160, y - 14, x + 360, y + 6); g.stroke(); } }
-function boulder(x, y, r, seed, night) {
+function boulder(x, y, r, seed, night, white) {
   const rr = RNG(seed), pts = []; for (let i = 0; i < 12; i++) { const a = Math.PI + i / 11 * Math.PI, k = 0.82 + rr() * 0.25; pts.push(x + Math.cos(a) * r * 1.15 * k, y + Math.sin(a) * r * 0.85 * k); } pts.push(x + r * 1.1, y + 2, x - r * 1.1, y + 2);
-  poly(pts, night ? '#4a4f5a' : '#a9a9a4', { lw: 1.6 });
+  poly(pts, white ? (night ? '#8a8e98' : '#e6e3dc') : night ? '#4a4f5a' : '#a9a9a4', { lw: 1.6 });
   if (!MARK) { g.save(); path(pts, true); g.clip(); g.fillStyle = night ? 'rgba(0,0,0,.2)' : 'rgba(255,255,255,.25)'; g.beginPath(); g.ellipse(x - r * 0.3, y - r * 0.5, r * 0.6, r * 0.35, -0.3, 0, 7); g.fill(); for (let i = 0; i < r * 2; i++) { g.fillStyle = rr() < 0.5 ? 'rgba(40,40,40,.35)' : 'rgba(255,255,255,.35)'; g.fillRect(x - r + rr() * r * 2, y - r * 0.9 + rr() * r * 0.9, 1.4, 1.4); } g.restore(); }
   else { g.fillStyle = INK; for (let i = 0; i < r; i++) g.fillRect(x - r * 0.8 + rr() * r * 1.6, y - r * 0.7 + rr() * r * 0.7, 1, 1); }
 }
@@ -1198,7 +1198,8 @@ function sceneBeach(night) {
   else { ln(0, 372, W, 362, INK, 1.6); g.fillStyle = INK; const r = RNG(4); for (let i = 0; i < 180; i++) g.fillRect(r() * W, 380 + r() * 160, 1.2, 1.2); }
   lapping(372, night);
   raftCrew('beach', amb, light);
-  seaweed(0, 396, 420, 1); seaweed(380, 392, 300, 2); seaweed(640, 388, 320, 3); seaweed(100, 452, 160, 4); seaweed(700, 470, 120, 5);
+  seaweed(470, 391, 260, 2); seaweed(720, 470, 60, 5);
+  [[488, 402, 20, 21], [522, 410, 13, 22], [462, 414, 12, 23], [548, 400, 9, 24], [500, 422, 8, 25], [440, 422, 7, 26]].forEach(([x, y, r, sd]) => boulder(x, y, r, sd, night, true));
   // dune grass and granite boulders at the back right and the front left
   poly([600, 372, 640, 344, 760, 334, 960, 326, 960, 372], night ? '#3a3448' : '#e2d6bc', { lw: 1.4 });
   grassTufts(640, 960, 334, 360, 7, night ? '#1e2a24' : '#7a8a4a');
