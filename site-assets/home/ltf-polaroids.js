@@ -13,6 +13,7 @@
     '.ltf-pol .tape{position:absolute;top:-9px;left:50%;width:62px;height:18px;margin-left:-31px;background:rgba(255,236,170,.75);transform:rotate(3deg);box-shadow:0 1px 2px rgba(0,0,0,.15)}' +
     '.ltf-pol .tk{position:absolute;left:7%;bottom:8px;max-width:80%;z-index:1;pointer-events:none;background:#fff4c8;color:#2b1055;border:1.5px dashed #c2410c;outline:2px solid #fff4c8;border-radius:3px;padding:3px 9px 2px;font:13px/1.15 "Permanent Marker","Comic Sans MS",cursive;text-transform:uppercase;letter-spacing:.5px;text-align:left;transform:rotate(-3deg);box-shadow:2px 3px 0 rgba(43,16,85,.55)}' +
     '.ltf-pol .tk small{display:block;font:700 7.5px/1 Georgia,serif;letter-spacing:2px;color:#c2410c;margin-bottom:2px}' +
+    '.ltf-pol .tk.up{top:10px;bottom:auto;left:auto;right:7%;transform:rotate(3deg)}' +
     '@media (max-width:600px){.ltf-pol .tk{font-size:11px;padding:2px 7px 1px}}' +
     '.ltf-pol .cap{font:16px/1.25 "Permanent Marker","Comic Sans MS",cursive;margin:9px 2px 3px;color:#1b1b1b}' +
     '.ltf-pol .meta{font:600 .74rem/1.3 Georgia,serif;color:#555;display:flex;justify-content:space-between;gap:6px;margin-top:auto;padding-top:4px}' +
@@ -30,7 +31,7 @@
     var show = strip(p.title.rendered).replace(/^Concert Review:\s*/i, '');
     var d = new Date(p.date), date = d.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
     var el = document.createElement('div'); el.className = 'ltf-pol'; el.style.setProperty('--tilt', (k % 2 ? 2.5 : -2.5) + 'deg');
-    el.innerHTML = '<span class="tape" aria-hidden="true"></span><a class="ph" href="' + esc(full) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(thumb) + '\')" aria-label="Full photo: ' + esc(strip(p.title.rendered)) + '"><span class="tk"><small>ADMIT ONE</small>' + esc(show) + '</span></a>' +
+    el.innerHTML = '<span class="tape" aria-hidden="true"></span><a class="ph" href="' + esc(full) + '" target="_blank" rel="noopener" style="background-image:url(\'' + esc(thumb) + '\')" aria-label="Full photo: ' + esc(strip(p.title.rendered)) + '"><span class="tk' + (Math.random() < 0.5 ? ' up' : '') + '"><small>ADMIT ONE</small>' + esc(show) + '</span></a>' +
       '<div class="cap">' + esc(strip(p.excerpt.rendered)) + '</div>' +
       '<div class="meta"><span>' + esc(date) + (overall ? ' <span class="st" title="Overall ' + overall + ' out of 5">\u2605 ' + overall + '/5</span>' : '') + '</span><a href="' + esc(p.link) + '">Review \u2192</a></div>';
     return el;
@@ -50,6 +51,7 @@
       var k = Math.floor(Math.random() * n), cur = grid.children[k], nx = null;
       for (var t = 0; t < pols.length; t++) { var c = pols[pi++ % pols.length]; if (!c.isConnected) { nx = c; break; } }
       if (!nx || !cur) return; nx.style.setProperty('--tilt', (k % 2 ? 2.5 : -2.5) + 'deg');
+      var tk = nx.querySelector('.tk'); if (tk) tk.classList.toggle('up', Math.random() < 0.5);
       cur.replaceWith(nx); nx.classList.remove('ltf-swapin'); void nx.offsetWidth; nx.classList.add('ltf-swapin');
     }
     setInterval(function () { if (!document.hidden) swap(); }, 7000);
