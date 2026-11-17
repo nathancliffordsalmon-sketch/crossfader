@@ -1331,7 +1331,7 @@ function beachLifeThink(dt) {
 
 /* ---------------- random encounters (the 🎲 button) ---------------- */
 const ENC = { cur: null, last: null, shake: 0, sky: 0, skyT: 0, hutGuitars: [] };
-const ENC_KINDS = ['juggle', 'guitar', 'dragon', 'pirate', 'feast', 'aliens'];
+const ENC_KINDS = ['juggle', 'guitar', 'dragon', 'pirate', 'feast', 'aliens', 'beard'];
 const GUITAR_TYPES = ['acoustic', 'strat', 'flyingv', 'singlecut', 'explorer', 'bass', 'acoustic', 'strat'];
 const GUITAR_COLS = ['#e8413a', '#2f6ae0', '#f2c230', '#111318', '#f4efe6', '#7affb2', '#ff6fa8', '#c8742a', '#9a3ad8', '#5ee0ff'];
 const DAD_JOKES = [
@@ -1511,7 +1511,9 @@ function ballDraw(b) { R(b.x - 1, b.y - 1, 3, 3, b.c); P(b.x - 1, b.y - 1, '#fff
 function rowboat(x, y, d) { const dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65); R(x - 11, y, 22, 3, dim('#7a4a24')); R(x - 9, y + 3, 18, 1, dim('#5a3418')); R(x - 11, y, 22, 1, dim('#a0703a')); }
 
 /* ---- each encounter: init, think, and drawing behind / in front of Clifford ---- */
+const PALM_TOPS = [{ x: 4 + Math.round(Math.sin(1.6) * 9) + 2, y: 210 - 84 }, { x: 204 + Math.round(Math.sin(1.6) * -6) + 2, y: 178 - 84 }];
 const ENC_INIT = {
+  beard(E) { E.sx = 108; E.chute = pick([['#e8413a', '#ffffff'], ['#2f6ae0', '#ffd24a'], ['#ff6fa8', '#7affb2'], ['#9a3ad8', '#ff8a3c']]); toast(HERO + ' is growing out his beard…'); heroSay(pick(['Hmm… I could use a trim.', 'Feels a bit scruffy…', 'Watch this!']), 2.2); },
   juggle(E) { E.gull = { x: -14, y: 26, dir: 1 }; E.balls = [{ c: '#e8413a', red: 1 }, { c: '#ffd24a' }, { c: '#2f8ae0' }]; toast('A seagull is carrying something shiny…'); },
   guitar(E) { E.gt = { type: pick(GUITAR_TYPES), col: pick(GUITAR_COLS) }; E.stork = { x: W + 16, y: 30, dir: -1, carry: true }; E.dropX = clamp(hero.x + (hero.x < 160 ? 34 : -34), 60, 250); E.g = null; toast('A stork is flying in with a special delivery!'); },
   dragon(E) { E.dr = { x: W + 40, y: 46, s: 1, dir: -1, flash: 0, cx: 210 }; E.shots = ri(3, 5); E.shot = 0; E.arrows = []; E.drops = []; toast('🐉 A DRAGON is circling the island!'); },
@@ -1528,6 +1530,21 @@ const ENC_INIT = {
   aliens(E) { E.ufo = rnd() < 0.55; E.v = { x: E.ufo ? W + 30 : -40, y: E.ufo ? 20 : 44 }; E.hx = clamp(hero.x + (hero.x < 170 ? 40 : -40), 80, 240); E.al = [0, 1, 2].map((i) => ({ x: E.hx - 14 + i * 14, y: FLOOR + 6, alpha: 0, dir: -1, robe: ['#6a3ab8', '#2f6ae0', '#c01a6a'][i], ph: i, talk: false })); toast(E.ufo ? '🛸 A flying saucer is coming in low…' : '✈ A strange biplane is buzzing the island…'); }
 };
 const ENC_THINK = {
+  beard(E, dt) {
+    const e = hero.ep; E.tt += dt;
+    if (E.st === 'in') { e.beard = Math.min(18, E.tt * 4.5); e.pl = 'down'; e.pr = Math.floor(E.tt * 3) % 2 ? 'eat' : 'down'; if (E.tt > 4.4) { encGo(E, 'walk'); heroSay('Now THAT is a beard.', 2); } }
+    if (E.st === 'walk') { e.pr = 'down'; if (heroGo(E.sx, dt)) { hero.dir = 1; encGo(E, 'throw'); E.p = 0; heroSay('Hup!', 1.2); toast(HERO + ' flung his beard up over the palm trees!'); } }
+    if (E.st === 'throw') { e.pl = 'up'; e.pr = 'up'; E.p = Math.min(1, E.tt / 1.1); if (E.tt > 1.3) { encGo(E, 'pull'); heroSay('Three… two…', 2); } }
+    if (E.st === 'pull') { e.pl = 'out'; e.pr = 'out'; hero.y = FLOOR + Math.min(10, E.tt * 6); e.walk = Math.floor(E.tt * 8) % 2 === 0; hero.frame = Math.floor(E.tt * 3); if (E.tt > 2.2) { encGo(E, 'launch'); E.vy = -320; heroSay('WHEEEEEE!', 1.8); toast(HERO + ' slingshotted himself straight up into the sky!'); for (let i = 0; i < 16; i++) S.sparks.push({ x: hero.x + rnd() * 8 - 4, y: hero.y, vx: (rnd() - 0.5) * 40, vy: -10 - rnd() * 20, l: 0.6, c: '#e8c880' }); ENC.palm = 4; } }
+    if (E.st === 'launch') { e.walk = false; e.pl = 'up'; e.pr = 'up'; hero.y += E.vy * dt; E.vy *= (1 - dt * 0.3); ENC.palm = Math.max(0, (ENC.palm || 0) - dt * 4) * (Math.floor(E.tt * 20) % 2 ? 1 : -1); e.beard = Math.max(0, 18 - E.tt * 12); if (rnd() < dt * 20) S.sparks.push({ x: hero.x + rnd() * 4 - 2, y: hero.y + 2, vx: 0, vy: 20, l: 0.4, c: '#ffffff' }); if (hero.y < -60) { ENC.palm = 0; encGo(E, 'sky'); } }
+    if (E.st === 'sky') { if (E.tt > 1.8) { encGo(E, 'chute'); hero.x = 120 + rnd() * 60; E.bx = hero.x; hero.y = -10; e.beard = 0; toast(HERO + ' is floating back down on a parachute'); } }
+    if (E.st === 'chute') { e.pl = 'up'; e.pr = 'up'; hero.y += 20 * dt; hero.x = E.bx + Math.sin(E.tt * 1.1) * 12; hero.dir = Math.cos(E.tt * 1.1) >= 0 ? 1 : -1; if (E.tt > 2 && !E.s1) { E.s1 = 1; heroSay(pick(['Lovely view up here!', 'I can see my hut from here!', 'Wheee… slowly…']), 2.4); } if (hero.y >= FLOOR) { hero.y = FLOOR; encGo(E, 'land'); heroSay(pick(['Nailed it.', 'Ten out of ten.', 'Smooth landing!']), 2); } }
+    if (E.st === 'land') { e.pl = 'down'; e.pr = 'down'; if (E.tt > 1.2) { encGo(E, 'pack'); toast(HERO + ' is packing up his parachute'); } }
+    if (E.st === 'pack') { hero.dir = 1; e.pl = Math.floor(E.tt * 4) % 2 ? 'out' : 'down'; e.pr = Math.floor(E.tt * 4) % 2 ? 'down' : 'out'; if (E.tt > 2.6) { e.item = 'pack'; encGo(E, 'toHut'); } }
+    if (E.st === 'toHut') { e.pl = 'down'; e.pr = 'out'; if (heroGo(HUT.door + 6, dt)) { e.hidden = true; encGo(E, 'inHut'); } }
+    if (E.st === 'inHut') { if (E.tt > 1.3) { e.hidden = false; e.item = null; toast(HERO + ' put the parachute away in his hut'); encGo(E, 'done'); } }
+    if (E.st === 'done' && E.tt > 1.2) encEnd();
+  },
   juggle(E, dt) {
     const G = E.gull, e = hero.ep; E.tt += dt;
     if (E.st === 'in') { const tx = hero.x, ty = 58; G.x += 46 * dt; G.y += clamp(ty - G.y, -20 * dt, 20 * dt); if (G.x >= tx - 2) { E.balls.forEach((b, i) => { b.x = G.x + i * 2; b.y = G.y + 2; b.vy = 10 + i * 8; b.st = 'fall'; }); encGo(E, 'drop'); say(G.x, G.y - 4, 'Catch!', 1.6); } }
@@ -1692,6 +1709,12 @@ function feastItem(q, x, y, d) {
 function encFront(d) {
   const E = ENC.cur; if (!E) { if (ENC.flash > 0) { g.globalAlpha = ENC.flash; R(0, 0, W, H, '#ffffff'); g.globalAlpha = 1; } return; }
   const dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65);
+  if (E.kind === 'beard') {
+    const bc = dim('#8a5a2b'), chin = { x: hero.x + hero.dir * 1, y: hero.y - 17 };
+    if (E.st === 'throw' || E.st === 'pull') { const p = E.st === 'throw' ? E.p : 1; PALM_TOPS.forEach((t) => { const end = { x: lerp(chin.x, t.x, p), y: lerp(chin.y, t.y, p) - Math.sin(p * Math.PI) * 18 }; ln2(chin.x, chin.y, end.x, end.y, bc); ln2(chin.x + 1, chin.y, end.x + 1, end.y, bc); if (p >= 1) { R(t.x - 1, t.y - 1, 3, 3, bc); } }); }
+    if (E.st === 'chute') { const cx = Math.round(hero.x), cy = Math.round(hero.y - 50); for (let i = 0; i < 9; i++) { const w = Math.round(Math.sqrt(1 - Math.pow((8 - i) / 9, 2)) * 17); for (let xx = -w; xx <= w; xx++) P(cx + xx, cy + i, dim(Math.floor((xx + 17) / 5) % 2 ? E.chute[0] : E.chute[1])); } ln2(cx - 16, cy + 8, cx - 3, hero.y - 26, dim('#e8e0d0')); ln2(cx + 16, cy + 8, cx + 3, hero.y - 26, dim('#e8e0d0')); ln2(cx - 6, cy + 8, cx - 2, hero.y - 26, dim('#e8e0d0')); ln2(cx + 6, cy + 8, cx + 2, hero.y - 26, dim('#e8e0d0')); }
+    if (E.st === 'land' || E.st === 'pack') { const k = E.st === 'land' ? 1 : clamp(1 - E.tt / 2.6, 0.15, 1), cx = Math.round(hero.x + 14), w = Math.round(16 * k); for (let xx = -w; xx <= w; xx++) { const hh = Math.max(1, Math.round((3 + Math.sin(xx * 0.7) * 1.5) * k)); R(cx + xx, FLOOR - hh, 1, hh, dim(Math.floor((xx + 16) / 4) % 2 ? E.chute[0] : E.chute[1])); } }
+  }
   if (E.kind === 'juggle') { birdSprite({ kind: 'gull', x: E.gull.x, y: E.gull.y, st: 'fly', dir: 1, ph: 0 }, d); if (E.catcher) birdSprite({ kind: 'gull', x: E.catcher.x, y: E.catcher.y, st: 'fly', dir: 1, ph: 1 }, d); E.balls.forEach((b) => { if (b.st && b.st !== 'sunk') ballDraw(b); }); }
   if (E.kind === 'guitar' && E.stork) { storkSprite(E.stork.x, E.stork.y, E.stork.dir, d, E.stork.carry); if (E.stork.carry) drawGuitar(E.stork.x + 9, E.stork.y + 10, E.gt, 1.3, dim); }
   if (E.kind === 'dragon') { if (E.st !== 'night') dragonSprite(E.dr.x, E.dr.y, E.dr.s, E.dr.dir, d, E.dr.flash > 0 && Math.floor(S.t * 20) % 2); E.arrows.forEach((a) => { const n = Math.hypot(a.vx, a.vy), ux = a.vx / n, uy = a.vy / n; for (let i = 0; i < 7; i++) P(a.x - ux * i, a.y - uy * i, i < 2 ? '#d0d8e0' : '#8a5a2b'); P(a.x - ux * 7, a.y - uy * 7 - 1, '#ffffff'); P(a.x - ux * 7, a.y - uy * 7 + 1, '#e8413a'); }); }
@@ -1713,6 +1736,8 @@ function encFront(d) {
 /* what Clifford holds during encounters (local, pre-flipped coordinates) */
 function encItems(by, dim) {
   const e = hero.ep; if (!e) return; const it = e.item, L = e.lunge > 0 ? 3 : 0;
+  if (e.beard > 0) { const bl = Math.round(e.beard), sw = Math.round(Math.sin(S.t * 3) * Math.min(2, bl / 8)); for (let i = 0; i < bl; i++) { const w = Math.max(2, 5 - Math.floor(i / 6)); R(-2 + Math.floor((5 - w) / 2) + Math.round(sw * i / Math.max(1, bl)), -18 + by + i, w, 1, dim(i % 4 === 3 ? '#6a4420' : '#8a5a2b')); } }
+  if (it === 'pack' && ENC.cur) { R(9, -16 + by, 6, 5, dim(ENC.cur.chute ? ENC.cur.chute[0] : '#e8413a')); R(9, -16 + by, 6, 1, dim('#ffffff')); R(11, -18 + by, 2, 2, dim('#5a3418')); }
   if (e.quiver) { R(-7, -22 + by, 3, 8, dim('#7a4a24')); P(-7, -23 + by, dim('#e8413a')); P(-5, -24 + by, dim('#ffffff')); }
   if (it === 'guitar') drawGuitar(1, -12 + by, ENC.cur.gt, -0.25, dim);
   if (it === 'guitarUp') drawGuitar(0, -30 + by, ENC.cur.gt, -0.35 + Math.sin(S.t * 10) * 0.1, dim);
