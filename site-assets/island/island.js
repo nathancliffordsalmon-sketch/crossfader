@@ -1451,6 +1451,7 @@ function encStart(kind) {
 function encEnd() { ENC.cur = null; hero.state = 'idle'; hero.timer = 1.2; hero.ep = null; ENC.shake = 0; }
 function encGo(E, st) { E.st = st; E.tt = 0; }
 function heroGo(tx, dt, sp) { const e = hero.ep; e.walk = true; hero.frameT = (hero.frameT || 0) + dt * 6; hero.frame = Math.floor(hero.frameT); const dx = tx - hero.x; if (Math.abs(dx) < 1) { hero.x = tx; e.walk = false; return true; } hero.dir = dx > 0 ? 1 : -1; hero.x += clamp(dx, -(sp || 26) * dt, (sp || 26) * dt); return false; }
+function moveTo(o, tx, ty, sp, dt) { const dx = tx - o.x, dy = ty - o.y, dd = Math.hypot(dx, dy); if (dd <= sp * dt || dd < 0.5) { o.x = tx; o.y = ty; return true; } o.x += dx / dd * sp * dt; o.y += dy / dd * sp * dt; return false; }
 function arc(p, a, b, hgt) { return { x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p) - Math.sin(p * Math.PI) * hgt }; }
 function heroSay(t, dur) { say(hero.x, hero.y - 32, t, dur || 2.6); }
 
@@ -1591,7 +1592,7 @@ const ENC_THINK = {
     E.drops.forEach((q) => { if (q.y < FLOOR - 1) { q.vy += 140 * dt; q.y = Math.min(FLOOR - 1, q.y + q.vy * dt); if (q.y >= FLOOR - 1 && q.k === 'coco') { q.vy = 0; say(q.x, q.y - 4, 'bonk', 1); } } });
     if (E.st === 'falling') { if (E.drops.every((q) => q.y >= FLOOR - 1)) { if (heroGo(E.drops[0].x + 2, dt)) { E.drops = E.drops.filter((q) => q.k === 'coco'); e.item = 'bow'; e.quiver = true; heroSay('A bow and arrows! Of course!', 2); encGo(E, 'aim'); toast(HERO + ' found a bow and a quiver of arrows'); } } }
     if (E.st === 'aim') { hero.dir = D.x > hero.x ? 1 : -1; e.pl = 'out'; e.pr = 'out'; if (E.tt > 0.9) { E.shot++; const last = E.shot >= E.shots, ax = hero.x + hero.dir * 8, ay = hero.y - 18, lead = { x: D.x + (last ? 0 : (rnd() < 0.5 ? -1 : 1) * (16 + rnd() * 10)), y: D.y + (last ? 0 : -10 - rnd() * 8) }, dd = Math.hypot(lead.x - ax, lead.y - ay); E.arrows.push({ x: ax, y: ay, vx: (lead.x - ax) / dd * 230, vy: (lead.y - ay) / dd * 230, hit: last, l: 2 }); if (!last) { E.dodge = (rnd() < 0.5 ? -1 : 1) * 10; } encGo(E, 'fly'); } }
-    E.arrows.forEach((a) => { a.l -= dt; if (a.hit && a.l > 0) { const dx = D.x - a.x, dy = D.y - 2 - a.y, dd = Math.hypot(dx, dy); a.vx = dx / dd * 230; a.vy = dy / dd * 230; if (dd < 6) { a.l = 0; D.flash = 0.6; encGo(E, 'flee'); say(D.x, D.y - 12, 'SKREEEEE!', 2); toast('Bullseye! The dragon is fleeing!'); heroSay('Got ye!', 2); } } a.x += a.vx * dt; a.y += a.vy * dt; });
+    E.arrows.forEach((a) => { a.l -= dt; if (a.hit && a.l > 0) { const dx = D.x - a.x, dy = D.y - 2 - a.y, dd = Math.hypot(dx, dy); a.vx = dx / dd * 230; a.vy = dy / dd * 230; if (dd < 6 || dd < 240 * dt) { a.l = 0; D.flash = 0.6; encGo(E, 'flee'); say(D.x, D.y - 12, 'SKREEEEE!', 2); toast('Bullseye! The dragon is fleeing!'); heroSay('Got ye!', 2); } } a.x += a.vx * dt; a.y += a.vy * dt; });
     E.arrows = E.arrows.filter((a) => a.l > 0 && a.y > -20 && a.x > -20 && a.x < W + 20);
     if (E.st === 'fly' && E.tt > 1.2) { if (E.shot < E.shots) { heroSay(pick(['Missed!', 'Hold still!', 'Drat!', 'Almost!', 'The wind took it!']), 1.6); if (rnd() < 0.6) say(D.x, D.y - 12, pick(['Ha!', 'Missed me!', 'Too slow!']), 1.4); encGo(E, 'aim'); } }
     if (E.st === 'flee') { e.pl = 'up'; e.pr = 'up'; const p = clamp(E.tt / 3.2, 0, 1); D.x += (250 - D.x) * dt * 1.2; D.y += (14 - D.y) * dt * 1.2; D.s = lerp(1, 0.18, p); if (p >= 1) { encGo(E, 'boom'); const cols = ['#ff4fd8', '#5ef0ff', '#ffe14a', '#7affb2', '#ff8a3c', '#9a8cff', '#ffffff']; for (let i = 0; i < 140; i++) { const a = rnd() * Math.PI * 2, sp = 20 + rnd() * 70; S.sparks.push({ x: D.x, y: D.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 10, l: 1.2 + rnd() * 1.2, c: pick(cols) }); } ENC.flash = 0.5; toast('KABOOM! The dragon exploded into a starry, starry night…'); } }
@@ -1602,7 +1603,7 @@ const ENC_THINK = {
     const B = E.boat, p = E.p, e = hero.ep; E.tt += dt; p.walk += dt * 6;
     B.y = shoreY(clamp(B.x, 0, W)) + 1;
     if (E.st === 'in') { B.x += 22 * dt; p.x = B.x; p.y = B.y; if (B.x >= B.land) { B.x = B.land; encGo(E, 'ashore'); toast('⚔ ' + p.name + ' challenges ' + HERO + ' to a dad-joke sword fight!'); } }
-    if (E.st === 'ashore') { p.st = 'walk'; const tx = clamp(hero.x - 16, 40, 230), dx = tx - p.x, dy = FLOOR - p.y, dd = Math.hypot(dx, dy); if (dd < 1) { p.st = 'fight'; encGo(E, 'duel'); E.sub = 0; say(p.x, p.y - 26, 'En garde, ye landlubber!', 2.2); } else { p.x += dx / dd * 22 * dt; p.y += dy / dd * 22 * dt; } hero.dir = p.x < hero.x ? -1 : 1; }
+    if (E.st === 'ashore') { p.st = 'walk'; const tx = clamp(hero.x - 16, 40, 230); if (moveTo(p, tx, FLOOR, 22, dt)) { p.st = 'fight'; encGo(E, 'duel'); E.sub = 0; say(p.x, p.y - 26, 'En garde, ye landlubber!', 2.2); } hero.dir = p.x < hero.x ? -1 : 1; }
     if (E.st === 'duel') {
       e.item = 'sword'; hero.dir = p.x < hero.x ? -1 : 1; const r = E.round;
       if (E.sub === 0 && E.tt > 2.4) { E.joke = nextJoke(); say(p.x, p.y - 26, E.joke[0], 3.4); E.sub = 1; E.tt = 0; p.lunge = 0.4; }
@@ -1610,7 +1611,7 @@ const ENC_THINK = {
       if (E.sub === 2 && E.tt > 3.2) { E.round++; E.sub = 0; E.tt = 1.4; p.x = Math.max(30, p.x - 5); if (rnd() < 0.5) say(p.x, p.y - 26, pick(['Ouch! That one hurt!', 'Groan…', 'Arrgh, me ears!', 'That be terrible!']), 1.6); if (E.round >= E.rounds) { encGo(E, 'flee'); say(p.x, p.y - 26, pick(['Arrr! Ye out-punned me!', 'No more jokes! I yield!', 'I\'ll be back… with better jokes!']), 2.6); toast(p.name + ' surrenders and runs for the boat!'); } }
       p.lunge = Math.max(0, (p.lunge || 0) - dt); e.lunge = Math.max(0, (e.lunge || 0) - dt);
     }
-    if (E.st === 'flee') { p.st = 'walk'; p.walk += dt * 6; const dx = B.x - p.x, dy = B.y - p.y, dd = Math.hypot(dx, dy); if (dd < 1.5) { encGo(E, 'away'); p.st = 'aboard'; heroSay(pick(['And stay out!', 'Thank ye, I\'ll be here all week!', 'Who\'s laughing now?']), 2.4); } else { p.x += dx / dd * 40 * dt; p.y += dy / dd * 40 * dt; } }
+    if (E.st === 'flee') { p.st = 'walk'; p.walk += dt * 6; if (moveTo(p, B.x, B.y, 40, dt)) { encGo(E, 'away'); p.st = 'aboard'; heroSay(pick(['And stay out!', 'Thank ye, I\'ll be here all week!', 'Who\'s laughing now?']), 2.4); } }
     if (E.st === 'away') { e.item = null; B.x -= 30 * dt; p.x = B.x; p.y = B.y; if (B.x < -30) encEnd(); }
   },
   feast(E, dt) {
@@ -1619,7 +1620,7 @@ const ENC_THINK = {
     if (E.st === 'unload') { E.k -= dt; const n = E.items.find((q) => q.st === 'barge'); if (n && E.k <= 0) { n.st = 'hop'; n.p = 0; E.k = 0.35; } if (!n && E.items.every((q) => q.st === 'set')) { encGo(E, 'gather'); E.guests.forEach((gq, i) => { gq.st = 'walk'; gq.x = B.x - 10 + i * 6; gq.y = B.y - 2; gq.delay = i * 0.6; }); toast('Everybody on the island is invited to the feast!'); heroSay('A feast! Grab a seat, everyone!', 2.4); E.cats = freeCat().slice(0, 3); E.cats.forEach((c, i) => { c.job = 'feast'; c.state = 'walk'; c.fx = E.TX - 40 - i * 8; }); } }
     E.items.forEach((q) => { if (q.st === 'hop' || q.st === 'back') { q.p += dt / 0.6; if (q.p >= 1) { q.st = q.st === 'hop' ? 'set' : 'gone'; } } });
     if (E.st === 'gather' || E.st === 'eat') {
-      E.guests.forEach((gq) => { gq.v.walk += dt * 6; if (gq.st === 'walk') { gq.delay -= dt; if (gq.delay > 0) return; const tx = gq.seat, ty = FLOOR - 1, dx = tx - gq.x, dy = ty - gq.y, dd = Math.hypot(dx, dy); if (dd < 1) { gq.st = 'sit'; gq.v.st = 'eat'; } else { gq.x += dx / dd * 22 * dt; gq.y += dy / dd * 22 * dt; } } });
+      E.guests.forEach((gq) => { gq.v.walk += dt * 6; if (gq.st === 'walk') { gq.delay -= dt; if (gq.delay > 0) return; if (moveTo(gq, gq.seat, FLOOR - 1, 22, dt)) { gq.st = 'sit'; gq.v.st = 'eat'; } } });
       (E.cats || []).forEach((c) => { const dx = c.fx - c.x; c.dir = dx >= 0 ? 1 : -1; c.x += clamp(dx, -18 * dt, 18 * dt); c.tx = c.x; if (Math.abs(dx) < 1) c.state = 'sit'; });
       if (BL.builder && BL.builder.st === 'admire') BL.builder.t = 0;
     }
@@ -1630,7 +1631,7 @@ const ENC_THINK = {
       if (E.tt > 16) { encGo(E, 'pack'); toast('Time to pack up the feast…'); heroSay('Thanks for coming, everybody!', 2.2); E.guests.forEach((gq, i) => { gq.st = 'leave'; gq.v.st = 'walk'; gq.delay = i * 0.4; }); (E.cats || []).forEach((c) => { c.job = null; c.state = 'sit'; c.t = 2; }); E.k = 1; }
     }
     if (E.st === 'pack') {
-      E.guests.forEach((gq) => { gq.v.walk += dt * 6; if (gq.st !== 'leave') return; gq.delay -= dt; if (gq.delay > 0) return; const dx = B.x - gq.x, dy = B.y - 2 - gq.y, dd = Math.hypot(dx, dy); if (dd < 1.5) gq.st = 'aboard'; else { gq.x += dx / dd * 24 * dt; gq.y += dy / dd * 24 * dt; } });
+      E.guests.forEach((gq) => { gq.v.walk += dt * 6; if (gq.st !== 'leave') return; gq.delay -= dt; if (gq.delay > 0) return; if (moveTo(gq, B.x, B.y - 2, 24, dt)) gq.st = 'aboard'; });
       E.k -= dt; const n = [...E.items].reverse().find((q) => q.st === 'set'); if (n && E.k <= 0) { n.st = 'back'; n.p = 0; E.k = 0.3; }
       if (!n && E.items.every((q) => q.st === 'gone') && E.guests.every((gq) => gq.st === 'aboard')) { encGo(E, 'out'); }
     }
@@ -1652,7 +1653,7 @@ const ENC_THINK = {
     if (E.st === 'leave') { V.x += (E.ufo ? 90 : 80) * dt; V.y -= (E.ufo ? 30 : 4) * dt; if (V.x > W + 60 || V.y < -40) encEnd(); }
   }
 };
-function encThink(dt, d) { const E = ENC.cur; if (E) { E.t += dt; ENC_THINK[E.kind](E, dt, d); } if (ENC.sky > 0) { ENC.skyT += dt; if (ENC.skyT > 24) ENC.sky = Math.max(0, ENC.sky - dt / 3); } ENC.flash = Math.max(0, (ENC.flash || 0) - dt); }
+function encThink(dt, d) { const E = ENC.cur; if (E) { E.t += dt; ENC_THINK[E.kind](E, dt, d); if (ENC.cur === E && E.t > 120) { (E.cats || []).forEach((c) => { c.job = null; c.state = 'sit'; c.t = 2; }); ENC.palm = 0; ENC.wobble = 0; encEnd(); } } if (ENC.sky > 0) { ENC.skyT += dt; if (ENC.skyT > 24) ENC.sky = Math.max(0, ENC.sky - dt / 3); } ENC.flash = Math.max(0, (ENC.flash || 0) - dt); }
 function startCastle() { BL.castleNext = 0; castleThink(0); }
 
 /* neon starry-night sky after the dragon blows up */
