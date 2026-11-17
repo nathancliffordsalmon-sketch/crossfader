@@ -1712,24 +1712,32 @@ function encSky(d) {
 }
 /* drawn before Clifford (behind him) */
 function seadogSprite(D, d, clipY) {
-  const wet = D.wet, dim = (c) => mix('#1a1a2a', mix(c, '#5a6a7a', wet * 0.45), 0.4 + d * 0.6), fur = dim('#d8dce2'), furD = dim('#9aa2ae'), furL = dim('#ffffff'), weed = dim('#2f8a4a');
-  const jag = (i) => ((i * 37) % 5) * (1 - wet * 0.7) | 0;
+  const wet = D.wet, dim = (c) => mix('#1a1a2a', mix(c, '#4a5a70', wet * 0.5), 0.4 + d * 0.6);
+  const white = dim('#f6f6f2'), grey = dim('#8e98a8'), greyD = dim('#6a7486'), shade = dim('#d0d4dc'), weed = dim('#2f8a4a'), ink = dim('#1a1a22');
+  const fluff = 1 - wet * 0.8, jag = (i) => Math.round((((i * 37) % 5) - 1) * fluff);
+  const blob = (cx, cy, rx, ry, col, colB, split) => { for (let dy = -ry; dy <= ry; dy++) { const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy * dy) / (ry * ry)))) + jag(dy + cx); if (w <= 0) continue; if (split == null) R(cx - w, cy + dy, w * 2, 1, (dy + ry) % 5 === 0 ? shade : col); else { const sx = Math.max(cx - w, Math.min(cx + w, split)); R(cx - w, cy + dy, sx - (cx - w), 1, (dy + ry) % 5 === 0 ? shade : col); R(sx, cy + dy, cx + w - sx, 1, (dy + ry) % 6 === 0 ? greyD : colB); } } };
   g.save(); g.beginPath(); g.rect(0, 0, W, clipY); g.clip();
   g.translate(Math.round(D.x + D.shake), Math.round(D.y + D.sink)); if (D.dir > 0) g.scale(-1, 1);
-  // tail (wagging)
-  const wg = Math.round(Math.sin(D.wag) * 6); for (let i = 0; i < 18; i++) R(44 + Math.round(i * 0.4) + Math.round(wg * i / 18), -50 - i, 7, 1, i % 4 ? fur : furL);
-  // back legs, body, front legs
-  R(20, -20, 13, 20, furD); R(34, -18, 11, 18, furD); for (let i = 0; i < 4; i++) P(21 + i * 3, -1, dim('#5a6070'));
-  for (let dy = -24; dy <= 22; dy++) { const w = Math.round(46 * Math.sqrt(1 - Math.pow(dy / 25, 2))), j = jag(dy + 30); R(-w - j, -40 + dy, (w + j) * 2, 1, dy % 5 === 0 ? furL : dy > 12 ? furD : fur); }
-  for (let i = 0; i < 6; i++) { const x0 = -30 + i * 11; R(x0, -58 + (i % 2) * 3, 2, 6, weed); P(x0 + 2, -53 + (i % 2) * 3, weed); }
-  R(-30, -20, 13, 20, fur); R(-14, -18, 12, 18, fur); for (let i = 0; i < 4; i++) { P(-29 + i * 3, -1, dim('#5a6070')); P(-13 + i * 3, -1, dim('#5a6070')); }
-  // big shaggy head
-  for (let dy = -20; dy <= 20; dy++) { const w = Math.round(20 * Math.sqrt(1 - Math.pow(dy / 21, 2))), j = jag(dy + 7); R(-46 - w - j, -66 + dy, (w + j) * 2, 1, dy % 4 === 0 ? furL : fur); }
-  R(-62, -66, 18, 12, furL); R(-66, -66, 6, 5, dim('#1a1a2a')); R(-65, -67, 3, 1, dim('#5a5a6a'));
-  R(-60, -56, 14, 1, dim('#3a3a4a')); if (!wet || D.shake === 0) { R(-58, -55, 5, 7, dim('#ff7a9a')); R(-57, -49, 3, 1, dim('#e8506a')); }
-  R(-64, -80, 34, 9, furL); for (let i = 0; i < 34; i += 3) R(-64 + i, -72, 2, 3 + (i % 2), furL);
-  P(-52, -71, dim('#1a1a2a')); P(-42, -71, dim('#1a1a2a'));
-  R(-32, -80, 8, 24, furD); R(-30, -57, 5, 3, furD); R(-58, -86, 6, 7, weed);
+  // tail: a big wagging plume
+  const wg = Math.sin(D.wag) * 8; for (let i = 0; i < 20; i++) { const t = i / 20, x = 40 + t * 10 + wg * t * t, y = -52 - t * 26; R(Math.round(x) - 3, Math.round(y), 7 - Math.floor(t * 3), 2, i % 5 ? grey : white); }
+  // far legs
+  R(26, -28, 11, 28, greyD); R(-22, -28, 10, 28, shade); R(25, -3, 13, 3, shade); R(-23, -3, 12, 3, shade);
+  // body: white front, grey back
+  blob(0, -46, 44, 19, white, grey, 4);
+  for (let i = 0; i < 5; i++) { const x0 = -6 + i * 10; R(x0, -64 + (i % 2) * 2, 2, 5, weed); P(x0 + 2, -60 + (i % 2) * 2, weed); }
+  // near legs with big fluffy paws
+  R(16, -30, 12, 30, grey); R(14, -4, 16, 4, white); R(-36, -30, 12, 30, white); R(-38, -4, 16, 4, white); for (let i = 0; i < 3; i++) { P(16 + i * 4, -1, ink); P(-36 + i * 4, -1, ink); }
+  // chest fluff, head, snout
+  blob(-34, -50, 14, 16, white);
+  blob(-44, -78, 19, 17, white);
+  blob(-64, -70, 9, 7, white); R(-75, -73, 6, 5, ink); P(-74, -74, dim('#6a6a7a'));
+  R(-70, -64, 13, 1, ink); if (D.shake === 0) { R(-66, -63, 6, 9, dim('#ff7a9a')); R(-65, -55, 4, 1, dim('#e8506a')); R(-64, -63, 1, 7, dim('#e8506a')); }
+  // shaggy fringe over the eyes, with a peek of eye
+  for (let i = 0; i < 30; i++) R(-60 + i, -92 + (i % 3), 1, 12 + ((i * 7) % 4), i % 4 ? white : shade);
+  P(-53, -80, ink); P(-46, -80, ink); P(-53, -81, '#ffffff');
+  // floppy ear
+  R(-30, -90, 8, 6, grey); R(-29, -84, 8, 22, grey); R(-28, -62, 6, 2, greyD); R(-25, -84, 2, 20, greyD);
+  R(-58, -98, 6, 7, weed); P(-55, -99, weed);
   g.restore();
 }
 function encBack(d) {
