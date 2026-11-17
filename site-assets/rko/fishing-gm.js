@@ -5,6 +5,7 @@ const root = document.getElementById('cif'); if (!root || root.dataset.gm) retur
 const SRC = (document.currentScript && document.currentScript.src) || '';
 if (!window.LTFGM) { const s = document.createElement('script'); s.src = SRC.replace(/fishing-gm\.js.*$/, 'gm.js'); document.head.appendChild(s); }
 if (!window.cifBlaster) { const s3 = document.createElement('script'); s3.src = SRC.replace(/fishing-gm\.js.*$/, 'fishing-blaster.js'); document.head.appendChild(s3); }
+if (!window.cifPulse) { const s4 = document.createElement('script'); s4.src = SRC.replace(/fishing-gm\.js.*$/, 'fishing-pulse.js'); document.head.appendChild(s4); }
 if (!window.LTFSP) { const s2 = document.createElement('script'); s2.src = SRC.replace(/fishing-gm\.js.*$/, 'ltf-spotify.js'); document.head.appendChild(s2); }
 const st = document.createElement('style');
 st.textContent = `#cif .cif-gm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 14px 12px;background:#10142a}
