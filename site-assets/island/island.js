@@ -932,6 +932,7 @@ function drawSwirls(mx, my, sx, sy, d) {
 /* ---------------- behaviour ---------------- */
 function heroThink(dt, d) {
   hero.timer -= dt; hero.st += dt;
+  if (!WET[hero.state] && (hero.x < 6 || hero.x > W - 6 || !(hero.x === hero.x))) { hero.x = clamp(hero.x === hero.x ? hero.x : 140, 6, W - 6); hero.y = FLOOR; hero.ox = null; hero.state = 'walk'; hero.target = 140; }
   const night = d < 0.3;
   if (waterThink(dt, d)) return;
   if (campThink(dt, d)) return;
@@ -1077,7 +1078,7 @@ function waterThink(dt, d) {
     return true;
   }
   if (st === 'paddleBack') { walkAnim(3); if (stepTo(hero.wx, hero.wy, 12, dt)) { hero.state = 'wadeOut'; splash(hero.x, hero.y - 2, 5); } return true; }
-  if (st === 'wadeOut') { walkAnim(5); if (stepTo(hero.x + 6, FLOOR, 10, dt)) { hero.state = 'idle'; hero.timer = 0.5; } return true; }
+  if (st === 'wadeOut') { walkAnim(5); if (hero.ox == null) hero.ox = clamp(hero.x + 6, 20, 240); if (stepTo(hero.ox, FLOOR, 10, dt)) { hero.ox = null; hero.state = 'idle'; hero.timer = 0.5; } return true; }
   return false;
 }
 function drawBoard(x, y) {
