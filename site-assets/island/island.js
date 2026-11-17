@@ -1331,7 +1331,7 @@ function beachLifeThink(dt) {
 
 /* ---------------- random encounters (the 🎲 button) ---------------- */
 const ENC = { cur: null, last: null, shake: 0, sky: 0, skyT: 0, hutGuitars: [] };
-const ENC_KINDS = ['juggle', 'guitar', 'dragon', 'pirate', 'feast', 'aliens', 'beard'];
+const ENC_KINDS = ['juggle', 'guitar', 'dragon', 'pirate', 'feast', 'aliens', 'beard', 'seadog'];
 const GUITAR_TYPES = ['acoustic', 'strat', 'flyingv', 'singlecut', 'explorer', 'bass', 'acoustic', 'strat'];
 const GUITAR_COLS = ['#e8413a', '#2f6ae0', '#f2c230', '#111318', '#f4efe6', '#7affb2', '#ff6fa8', '#c8742a', '#9a3ad8', '#5ee0ff'];
 const DAD_JOKES = [
@@ -1513,6 +1513,7 @@ function rowboat(x, y, d) { const dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65
 /* ---- each encounter: init, think, and drawing behind / in front of Clifford ---- */
 const PALM_TOPS = [{ x: 4 + Math.round(Math.sin(1.6) * 9) + 2, y: 210 - 84 }, { x: 204 + Math.round(Math.sin(1.6) * -6) + 2, y: 178 - 84 }];
 const ENC_INIT = {
+  seadog(E) { E.dg = { x: 150, y: 184, sink: 90, dir: -1, wet: 1, wag: 0, shake: 0 }; E.clipY = shoreY(150) + 2; toast('Bubbles… something HUGE is coming up out of the sea!'); for (let i = 0; i < 20; i++) S.sparks.push({ x: 150 + rnd() * 40 - 20, y: shoreY(150), vx: (rnd() - 0.5) * 30, vy: -20 - rnd() * 30, l: 0.8, c: '#d9f6ff' }); },
   beard(E) { E.sx = 108; E.chute = pick([['#e8413a', '#ffffff'], ['#2f6ae0', '#ffd24a'], ['#ff6fa8', '#7affb2'], ['#9a3ad8', '#ff8a3c']]); toast(HERO + ' is growing out his beard…'); heroSay(pick(['Hmm… I could use a trim.', 'Feels a bit scruffy…', 'Watch this!']), 2.2); },
   juggle(E) { E.gull = { x: -14, y: 26, dir: 1 }; E.balls = [{ c: '#e8413a', red: 1 }, { c: '#ffd24a' }, { c: '#2f8ae0' }]; toast('A seagull is carrying something shiny…'); },
   guitar(E) { E.gt = { type: pick(GUITAR_TYPES), col: pick(GUITAR_COLS) }; E.stork = { x: W + 16, y: 30, dir: -1, carry: true }; E.dropX = clamp(hero.x + (hero.x < 160 ? 34 : -34), 60, 250); E.g = null; toast('A stork is flying in with a special delivery!'); },
@@ -1530,6 +1531,31 @@ const ENC_INIT = {
   aliens(E) { E.ufo = rnd() < 0.55; E.v = { x: E.ufo ? W + 30 : -40, y: E.ufo ? 20 : 44 }; E.hx = clamp(hero.x + (hero.x < 170 ? 40 : -40), 80, 240); E.al = [0, 1, 2].map((i) => ({ x: E.hx - 14 + i * 14, y: FLOOR + 6, alpha: 0, dir: -1, robe: ['#6a3ab8', '#2f6ae0', '#c01a6a'][i], ph: i, talk: false })); toast(E.ufo ? '🛸 A flying saucer is coming in low…' : '✈ A strange biplane is buzzing the island…'); }
 };
 const ENC_THINK = {
+  seadog(E, dt) {
+    const D = E.dg, e = hero.ep; E.tt += dt; D.wag += dt * (E.st === 'love' ? 14 : 6); D.shake = 0;
+    const DX = 214;
+    if (E.st === 'in') { D.sink = Math.max(0, 90 - E.tt * 30); if (rnd() < dt * 8) splash(D.x + rnd() * 60 - 30, shoreY(D.x), 3); if (D.sink <= 0) { encGo(E, 'wade'); toast('A GIANT shaggy sea-dog climbed out of the ocean!'); say(D.x - 40, 100, 'WOOF!', 1.8); } }
+    if (E.st === 'wade') { const p = Math.min(1, E.tt / 3.2); D.x = lerp(150, DX, p); E.clipY = lerp(shoreY(150) + 2, H + 10, p); if (Math.floor(E.tt * 4) % 2 && rnd() < 0.3) splash(D.x - 20, D.y - 2, 2); if (p >= 1) { encGo(E, 'shake'); toast('The sea-dog is shaking himself dry… look out!'); } }
+    if (E.st === 'shake') {
+      D.shake = Math.sin(E.tt * 42) * 3; D.wet = Math.max(0, 1 - E.tt / 2.6);
+      for (let i = 0; i < 6; i++) { const a = rnd() * Math.PI * 2, sp = 40 + rnd() * 90; S.sparks.push({ x: D.x + rnd() * 80 - 40, y: D.y - 30 - rnd() * 40, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.6 - 20, l: 0.7, c: rnd() < 0.5 ? '#9fe8ff' : '#d9f6ff' }); }
+      if (!E.wetSaid && E.tt > 0.5) { E.wetSaid = 1; heroSay(pick(['Hey! I just dried off!', 'Bleh! Salty!', 'Who turned on the rain?!']), 2.2);
+        S.rafts.forEach((r) => { if (r.type === 'visit' && r.state === 'landed') say(r.x + r.v.ox, r.y + r.v.oy - 24, pick(['Arr, I\'m soaked!', 'Me hat! Me hat!', 'Splash!']), 2.2); });
+        if (BL.builder) say(BL.builder.x, BL.builder.y - 16, pick(['Ahh! Cold!', 'My castle!', 'Wheee, a shower!']), 2.2);
+        E.cats = CATS.filter((c) => !c.inside); E.cats.forEach((c) => { c.job = 'scared'; c.state = 'walk'; say(c.x + 2, FLOOR - 12, pick(['HISSSS!', 'hsssss!', 'HISS! pfft!']), 1.6); }); }
+      if (E.tt > 2.8) { encGo(E, 'fluffy'); toast('All dry, and twice as fluffy!'); say(D.x - 50, 96, 'WOOF! WOOF!', 1.8); }
+    }
+    (E.cats || []).forEach((c) => { if (c.job !== 'scared') return; const dx = HUT.door + 4 - c.x; c.dir = dx >= 0 ? 1 : -1; c.x += clamp(dx, -46 * dt, 46 * dt); c.tx = c.x; if (Math.abs(dx) < 1.5) { c.inside = true; c.t = 10; c.peek = 0; c.job = null; c.state = 'sit'; } });
+    if (E.st === 'fluffy') { if (heroGo(clamp(D.x - 78, 60, 150), dt)) { hero.dir = 1; encGo(E, 'talk'); E.line = 0; } }
+    if (E.st === 'talk' || E.st === 'love') {
+      hero.dir = 1; const lines = [[0, 'Whoa… ye\'re bigger than my HOUSE!'], [1, 'WOOF!'], [0, 'And such a good, friendly pup!'], ['pet'], [1, 'Arf! *pant pant*'], [0, 'Okay. Time to go, puppy.'], [0, 'This island is too small for ye.'], [1, 'awoo…']];
+      if (E.tt > 2.4 && E.line < lines.length) { const [who, txt] = lines[E.line]; if (who === 'pet') { encGo(E, 'love'); e.pl = 'up'; e.pr = 'up'; } else if (who === 0) { heroSay(txt, 2.4); e.pl = 'down'; e.pr = 'out'; } else say(D.x - 52, 96, txt, 2.2); if (who !== 'pet') E.tt = 0; E.line++; }
+      if (E.st === 'love') { if (rnd() < dt * 5) S.sparks.push({ x: hero.x + rnd() * 30, y: hero.y - 34, vx: (rnd() - 0.5) * 8, vy: -16, l: 1.2, c: '#ff5a8a', note: true }); if (E.tt > 2.6) { E.st = 'talk'; E.tt = 2.4; e.pl = 'down'; e.pr = 'down'; } }
+      if (E.line >= lines.length && E.tt > 2.4) { encGo(E, 'leave'); toast('The giant sea-dog is heading back out to sea'); }
+    }
+    if (E.st === 'leave') { D.dir = 1; const p = Math.min(1, E.tt / 4); D.x = lerp(DX, 150, p); E.clipY = lerp(H + 10, shoreY(150) + 2, p); if (p >= 1) { D.sink = Math.min(95, D.sink + dt * 30); if (rnd() < dt * 8) splash(D.x + rnd() * 60 - 30, shoreY(D.x), 3); if (D.sink >= 95) { heroSay(pick(['Bye, puppy!', 'Good boy!', 'Write when ye get there!']), 2.2); encGo(E, 'done'); } } }
+    if (E.st === 'done' && E.tt > 1.6) encEnd();
+  },
   beard(E, dt) {
     const e = hero.ep; E.tt += dt;
     if (E.st === 'in') { e.beard = Math.min(18, E.tt * 4.5); e.pl = 'down'; e.pr = Math.floor(E.tt * 3) % 2 ? 'eat' : 'down'; if (E.tt > 4.4) { encGo(E, 'walk'); heroSay('Now THAT is a beard.', 2); } }
@@ -1670,7 +1696,7 @@ const ENC_THINK = {
     if (E.st === 'leave') { V.x += (E.ufo ? 90 : 80) * dt; V.y -= (E.ufo ? 30 : 4) * dt; if (V.x > W + 60 || V.y < -40) encEnd(); }
   }
 };
-function encThink(dt, d) { const E = ENC.cur; if (E) { E.t += dt; ENC_THINK[E.kind](E, dt, d); if (ENC.cur === E && E.t > 120) { (E.cats || []).forEach((c) => { c.job = null; c.state = 'sit'; c.t = 2; }); ENC.palm = 0; ENC.wobble = 0; encEnd(); } } if (ENC.sky > 0) { ENC.skyT += dt; if (ENC.skyT > 24) ENC.sky = Math.max(0, ENC.sky - dt / 3); } ENC.flash = Math.max(0, (ENC.flash || 0) - dt); }
+function encThink(dt, d) { const E = ENC.cur; if (E) { E.t += dt; ENC_THINK[E.kind](E, dt, d); if (ENC.cur === E && E.t > 120) { (E.cats || []).forEach((c) => { if (c.job) { c.job = null; c.state = 'sit'; c.t = 2; } }); ENC.palm = 0; ENC.wobble = 0; encEnd(); } } if (ENC.sky > 0) { ENC.skyT += dt; if (ENC.skyT > 24) ENC.sky = Math.max(0, ENC.sky - dt / 3); } ENC.flash = Math.max(0, (ENC.flash || 0) - dt); }
 function startCastle() { BL.castleNext = 0; castleThink(0); }
 
 /* neon starry-night sky after the dragon blows up */
@@ -1685,8 +1711,30 @@ function encSky(d) {
   g.restore();
 }
 /* drawn before Clifford (behind him) */
+function seadogSprite(D, d, clipY) {
+  const wet = D.wet, dim = (c) => mix('#1a1a2a', mix(c, '#5a6a7a', wet * 0.45), 0.4 + d * 0.6), fur = dim('#d8dce2'), furD = dim('#9aa2ae'), furL = dim('#ffffff'), weed = dim('#2f8a4a');
+  const jag = (i) => ((i * 37) % 5) * (1 - wet * 0.7) | 0;
+  g.save(); g.beginPath(); g.rect(0, 0, W, clipY); g.clip();
+  g.translate(Math.round(D.x + D.shake), Math.round(D.y + D.sink)); if (D.dir > 0) g.scale(-1, 1);
+  // tail (wagging)
+  const wg = Math.round(Math.sin(D.wag) * 6); for (let i = 0; i < 18; i++) R(44 + Math.round(i * 0.4) + Math.round(wg * i / 18), -50 - i, 7, 1, i % 4 ? fur : furL);
+  // back legs, body, front legs
+  R(20, -20, 13, 20, furD); R(34, -18, 11, 18, furD); for (let i = 0; i < 4; i++) P(21 + i * 3, -1, dim('#5a6070'));
+  for (let dy = -24; dy <= 22; dy++) { const w = Math.round(46 * Math.sqrt(1 - Math.pow(dy / 25, 2))), j = jag(dy + 30); R(-w - j, -40 + dy, (w + j) * 2, 1, dy % 5 === 0 ? furL : dy > 12 ? furD : fur); }
+  for (let i = 0; i < 6; i++) { const x0 = -30 + i * 11; R(x0, -58 + (i % 2) * 3, 2, 6, weed); P(x0 + 2, -53 + (i % 2) * 3, weed); }
+  R(-30, -20, 13, 20, fur); R(-14, -18, 12, 18, fur); for (let i = 0; i < 4; i++) { P(-29 + i * 3, -1, dim('#5a6070')); P(-13 + i * 3, -1, dim('#5a6070')); }
+  // big shaggy head
+  for (let dy = -20; dy <= 20; dy++) { const w = Math.round(20 * Math.sqrt(1 - Math.pow(dy / 21, 2))), j = jag(dy + 7); R(-46 - w - j, -66 + dy, (w + j) * 2, 1, dy % 4 === 0 ? furL : fur); }
+  R(-62, -66, 18, 12, furL); R(-66, -66, 6, 5, dim('#1a1a2a')); R(-65, -67, 3, 1, dim('#5a5a6a'));
+  R(-60, -56, 14, 1, dim('#3a3a4a')); if (!wet || D.shake === 0) { R(-58, -55, 5, 7, dim('#ff7a9a')); R(-57, -49, 3, 1, dim('#e8506a')); }
+  R(-64, -80, 34, 9, furL); for (let i = 0; i < 34; i += 3) R(-64 + i, -72, 2, 3 + (i % 2), furL);
+  P(-52, -71, dim('#1a1a2a')); P(-42, -71, dim('#1a1a2a'));
+  R(-32, -80, 8, 24, furD); R(-30, -57, 5, 3, furD); R(-58, -86, 6, 7, weed);
+  g.restore();
+}
 function encBack(d) {
   const E = ENC.cur; if (!E) return; const dim = (c) => mix('#1a1a2a', c, 0.35 + d * 0.65);
+  if (E.kind === 'seadog') seadogSprite(E.dg, d, E.clipY);
   if (E.kind === 'guitar' && E.g) drawGuitar(E.g.x, E.g.y, E.gt, E.g.rot, dim);
   if (E.kind === 'dragon') E.drops.forEach((q) => { if (q.k === 'bow') { for (let i = 0; i < 10; i++) P(q.x + Math.round(Math.sin(i / 9 * Math.PI) * 2), q.y - 9 + i, dim('#8a5a2b')); R(q.x, q.y - 9, 1, 10, dim('#f4efe6')); } else if (q.k === 'quiver') { R(q.x, q.y - 7, 3, 7, dim('#7a4a24')); P(q.x, q.y - 9, dim('#e8413a')); P(q.x + 2, q.y - 8, dim('#ffffff')); } else { R(q.x, q.y - 3, 3, 3, dim('#6a4628')); } });
   if (E.kind === 'pirate') { rowboat(E.boat.x, E.boat.y, d); if (E.st === 'away') { const o = Math.round(Math.sin(S.t * 6) * 3); R(E.boat.x - 13, E.boat.y + 1 + o, 1, 4, dim('#8a6038')); R(E.boat.x + 12, E.boat.y + 1 - o, 1, 4, dim('#8a6038')); } if (E.p.st === 'aboard') visitorSprite(E.p.x, E.p.y, E.p, d); }
