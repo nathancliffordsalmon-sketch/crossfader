@@ -1725,7 +1725,7 @@ function encItems(by, dim) {
 let last = performance.now(), clockT = 0;
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.1, (now - last) / 1000); last = now; S.t += dt; S.clock += dt / 60;
+  const dt = clamp((now - last) / 1000, 0, 0.1); last = now; S.t += dt; S.clock += dt / 60;
   beatTick(dt);
   const d = dayness();
   drawSky(d); encSky(d); drawFloaters(dt, d); drawSea(d);
