@@ -1745,7 +1745,12 @@ function frame(now) {
   clockT += dt; if (clockT > 1) { clockT = 0; const m = ((S.clock % 30) + 30) % 30, left = m < 15 ? 15 - m : 30 - m; $('#isl-clock').textContent = S.toast && S.t < S.toast.until ? S.toast.t : `${phaseName()} · ${m < 15 ? 'sunset' : 'sunrise'} in ${Math.max(0, Math.ceil(left))} min`; $('#isl-skip').textContent = m < 15 ? '\u{1F319} Skip to night' : '☀️ Skip to day'; }
 }
 requestAnimationFrame(frame);
-cv.addEventListener('click', () => { if (S.rafts.length < 5) spawnRaft(); });
+cv.addEventListener('click', (e) => {
+  // tapping the hut door knocks, and something unexpected happens
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+  if (x > HUT.door - 5 && x < HUT.door + 17 && y > HUT.y - 30 && y < HUT.y + 6) { say(HUT.door + 6, HUT.y - 26, 'knock knock!', 1.4); encStart(); return; }
+  if (S.rafts.length < 5) spawnRaft();
+});
 
 /* message in a bottle: printable postcard */
 $('#isl-print-btn').addEventListener('click', () => {
